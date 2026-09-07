@@ -38,7 +38,6 @@ from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
 from homeassistant.helpers import target as target_helper
 
-from .blueprints import is_blueprint
 from .const import (
     ATTR_MODE,
     ATTR_PARAMETER,
@@ -49,7 +48,7 @@ from .const import (
     SERVICE_GET_VALUES,
     SERVICE_SET_VALUE,
 )
-from .coordinator import PresetCoordinator, PresetModeRuntime
+from .coordinator import PresetCoordinator, async_get_runtime
 
 
 def _scalar(value: Any) -> Any:
@@ -79,30 +78,19 @@ GET_VALUES_SCHEMA = vol.Schema(
 )
 
 
-def _runtimes(hass: HomeAssistant) -> list[PresetModeRuntime]:
-    """Return the runtime of every loaded preset mode."""
-    entries = [
-        entry
-        for entry in hass.config_entries.async_loaded_entries(DOMAIN)
-        # A blueprint is a config entry of this domain as well, but it has
-        # no runtime: it is configuration for the presets following it, and
-        # there is nothing about it a service could address.
-        if not is_blueprint(entry)
-    ]
-    if not entries:
+def _all_presets(hass: HomeAssistant) -> dict[str, PresetCoordinator]:
+    """Return every preset of every loaded preset mode, keyed by subentry id.
+
+    Only a loaded preset mode registers its presets with the runtime, and a
+    blueprint never does - it is configuration for the presets following it,
+    and there is nothing about it a service could address.
+    """
+    runtime = async_get_runtime(hass)
+    if runtime is None or not runtime.preset_modes:
         raise ServiceValidationError(
             translation_domain=DOMAIN, translation_key="not_loaded"
         )
-    return [entry.runtime_data for entry in entries]
-
-
-def _all_presets(hass: HomeAssistant) -> dict[str, PresetCoordinator]:
-    """Return every preset of every loaded preset mode, keyed by subentry id."""
-    return {
-        preset_id: coordinator
-        for runtime in _runtimes(hass)
-        for preset_id, coordinator in runtime.presets.items()
-    }
+    return dict(runtime.presets)
 
 
 def _resolve_presets(hass: HomeAssistant, call: ServiceCall) -> list[PresetCoordinator]:
@@ -152,8 +140,13 @@ def _resolve_presets(hass: HomeAssistant, call: ServiceCall) -> list[PresetCoord
 
 
 def _resolve_mode(coordinator: PresetCoordinator, raw_mode: str) -> str:
-    """Return the mode key ``raw_mode`` names for one preset."""
-    mode = coordinator.preset_mode.resolve_mode(raw_mode)
+    """Return the mode key ``raw_mode`` names for one preset.
+
+    Against the modes of the preset, not of its preset mode: the two are the
+    same list while it follows one, and only the preset still has it after the
+    preset mode was deleted.
+    """
+    mode = coordinator.resolve_mode(raw_mode)
     if mode is None:
         raise ServiceValidationError(
             translation_domain=DOMAIN,

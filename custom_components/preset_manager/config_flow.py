@@ -1,48 +1,49 @@
-"""Config, options and subentry flows for the Preset Mode.
+"""Config and subentry flows of the Preset Manager.
 
-One config entry is one preset mode: a set of modes plus the conditions
-that decide which of them is active. Its modes are edited in the options flow,
-and every preset - a device or scenario with its parameters - is a subentry of
-the preset mode it follows.
+Every object is a subentry of the hub that holds its kind (see ``hubs``), so
+there is one subentry flow per kind and no options flow at all: a hub holds
+nothing to configure, and everything an object has is edited in its own
+reconfigure flow.
 
-A config entry can also be a *blueprint*: a list of parameter definitions
-and nothing else, followed by any number of presets. Both edit that
-list with the same steps, which is what ``ParameterListFlow`` is for; they only
-differ in where the finished list goes.
+The config flow is the way in: it asks which kind of object to create, and the
+hub of that kind appears with the first one. A preset and a blueprint edit the
+same thing - one list of parameter definitions - which is what
+``ParameterListFlow`` is for; they only differ in where the finished list goes.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Mapping
-from contextlib import nullcontext
 from dataclasses import replace
 from types import MappingProxyType
 from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import (
+    SOURCE_RECONFIGURE,
     ConfigEntry,
     ConfigFlow,
     ConfigFlowResult,
     ConfigSubentry,
+    ConfigSubentryData,
     ConfigSubentryFlow,
-    OptionsFlow,
     SubentryFlowResult,
 )
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers import selector
+from homeassistant.util.ulid import ulid_now
 
-from . import blueprints
 from . import conditions as condition_helper
+from . import following, hubs
 from .const import (
     BLUEPRINT_NONE,
     CONF_BLUEPRINT,
     CONF_CONDITIONS,
+    CONF_COPY_NAME,
     CONF_DEFAULT,
     CONF_DEVICE_CLASS,
     CONF_DISPLAY_MODE,
-    CONF_ENTRY_TYPE,
     CONF_ICON,
     CONF_KEY,
     CONF_MAX,
@@ -63,10 +64,12 @@ from .const import (
     DEFAULT_PRESET_MODE_NAME,
     DOMAIN,
     ENTRY_MINOR_VERSION,
-    ENTRY_TYPE_BLUEPRINT,
-    ENTRY_TYPE_PRESET_MODE,
     ENTRY_VERSION,
-    SUBENTRY_TYPE_PRESET,
+    HUB_BLUEPRINTS,
+    HUB_PRESET_MODES,
+    HUB_PRESETS,
+    HUB_SUBENTRY_TYPES,
+    HUB_TITLES,
 )
 from .models import (
     ModeDef,
@@ -102,6 +105,9 @@ _LOGGER = logging.getLogger(__name__)
 
 CONF_PARAMETER = "parameter"
 
+#: Value of a reference selector standing for "follows nothing".
+REFERENCE_NONE = BLUEPRINT_NONE
+
 #: Domains offered when picking the entity a preset mode follows. Any entity would
 #: do - we only read its state - but an unfiltered picker is unusable.
 SOURCE_ENTITY_DOMAINS = ["sensor", "select", "input_select", "input_text", "text"]
@@ -124,30 +130,83 @@ _DEFAULT_SELECTORS: dict[str, Any] = {
 # Shared helpers ---------------------------------------------------------------
 
 
-def _preset_modes(hass: HomeAssistant) -> list[ConfigEntry]:
-    """Return every preset mode, i.e. every entry that is not a set."""
-    return blueprints.async_preset_modes(hass)
+def _chosen(value: str | None) -> str | None:
+    """Return what was picked, or ``None`` for "nothing"."""
+    return None if value in (None, "", REFERENCE_NONE) else value
 
 
-def _blueprint_selector(sets: list[ConfigEntry]) -> selector.SelectSelector:
-    """Return the selector listing the blueprints, plus "none".
+def _reference_selector(
+    objects: Mapping[str, ConfigSubentry],
+) -> selector.SelectSelector:
+    """Return the selector listing objects to follow, plus "none".
 
-    "None" is an option of its own rather than an empty field: an empty optional
-    field is not submitted at all, and a preset would have no way of saying that
-    it wants to leave its set.
+    "None" is an option of its own rather than an empty field: an empty
+    optional field is not submitted at all, and a preset would have no way of
+    saying that it wants to leave what it follows.
     """
     return selector.SelectSelector(
         selector.SelectSelectorConfig(
             options=[
-                selector.SelectOptionDict(value=BLUEPRINT_NONE, label="-"),
+                selector.SelectOptionDict(value=REFERENCE_NONE, label="-"),
                 *(
-                    selector.SelectOptionDict(value=item.entry_id, label=item.title)
-                    for item in sets
+                    selector.SelectOptionDict(value=key, label=item.title)
+                    for key, item in objects.items()
                 ),
             ],
             mode=selector.SelectSelectorMode.DROPDOWN,
         )
     )
+
+
+def _preset_schema(hass: HomeAssistant) -> vol.Schema:
+    """Return the schema asking for a new preset and what it follows."""
+    schema = vol.Schema(
+        {
+            vol.Required(CONF_NAME): selector.TextSelector(),
+            vol.Optional(
+                CONF_PRESET_MODE, description={"suggested_value": REFERENCE_NONE}
+            ): _reference_selector(hubs.async_preset_modes(hass)),
+        }
+    )
+    if blueprints := hubs.async_blueprints(hass):
+        # Offered only when there is one; picking it skips the parameters.
+        schema = schema.extend(
+            {
+                vol.Optional(
+                    CONF_BLUEPRINT, description={"suggested_value": REFERENCE_NONE}
+                ): _reference_selector(blueprints)
+            }
+        )
+    return schema
+
+
+def _preset_data(
+    preset_mode: str | None,
+    blueprint: str | None,
+    parameters: list[ParameterDef],
+) -> dict[str, Any]:
+    """Return the subentry data of a new preset.
+
+    A preset following a blueprint stores the reference and nothing else - its
+    parameters are read from there on every setup, so a copy could only ever
+    drift. Its modes are not stored either: they come from its preset mode.
+    """
+    data: dict[str, Any] = {}
+    if preset_mode is not None:
+        data[CONF_PRESET_MODE] = preset_mode
+    if blueprint is not None:
+        data[CONF_BLUEPRINT] = blueprint
+    else:
+        data[CONF_PARAMETERS] = parameters_to_data(parameters)
+    return data
+
+
+def _modes_of(hass: HomeAssistant, preset_mode_id: str | None) -> list[dict[str, Any]]:
+    """Return the modes of a preset mode, for a preset about to leave it."""
+    subentry = hubs.async_object(hass, HUB_PRESET_MODES, preset_mode_id)
+    if subentry is None:
+        return []
+    return [dict(item) for item in subentry.data.get(CONF_MODES, [])]
 
 
 def _mode_options(modes: list[ModeDef]) -> list[selector.SelectOptionDict]:
@@ -737,8 +796,14 @@ class ParameterListFlow:
 # Config flow ------------------------------------------------------------------
 
 
-class PresetModeConfigFlow(ParameterListFlow, ConfigFlow, domain=DOMAIN):
-    """Creates one preset mode - or one blueprint - per config entry."""
+class PresetManagerConfigFlow(ParameterListFlow, ConfigFlow, domain=DOMAIN):
+    """Creates objects, and the hub that holds them the first time round.
+
+    The user never creates a hub: they add a preset mode, a preset or a
+    blueprint, and the hub of that kind appears with it. Once it is there the
+    same object can also be added from the hub itself, which is the path Home
+    Assistant offers on the integration page.
+    """
 
     VERSION = ENTRY_VERSION
     MINOR_VERSION = ENTRY_MINOR_VERSION
@@ -746,40 +811,44 @@ class PresetModeConfigFlow(ParameterListFlow, ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         """Initialise the flow."""
         super().__init__()
-        #: Name of the blueprint being created.
+        #: Which kind of object is being created, once the user picked one.
+        self._kind: str = ""
+        #: Name of the object being created.
         self._name: str = ""
+        #: The preset mode and the blueprint a new preset follows.
+        self._preset_mode: str | None = None
+        self._blueprint: str | None = None
 
     @classmethod
     @callback
     def async_get_supported_subentry_types(
         cls, config_entry: ConfigEntry
     ) -> dict[str, type[ConfigSubentryFlow]]:
-        """Return the supported subentry types."""
-        if blueprints.is_blueprint(config_entry):
-            # A blueprint holds parameters, not presets.
+        """Return the one subentry type the hub holds."""
+        handlers: dict[str, type[ConfigSubentryFlow]] = {
+            HUB_PRESET_MODES: PresetModeSubentryFlowHandler,
+            HUB_PRESETS: PresetSubentryFlowHandler,
+            HUB_BLUEPRINTS: BlueprintSubentryFlowHandler,
+        }
+        kind = hubs.hub_kind(config_entry)
+        if kind is None:
             return {}
-        return {SUBENTRY_TYPE_PRESET: PresetSubentryFlowHandler}
-
-    @staticmethod
-    @callback
-    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
-        """Return the options flow of a preset mode or of a blueprint."""
-        if blueprints.is_blueprint(config_entry):
-            return BlueprintOptionsFlow()
-        return PresetModeOptionsFlow()
+        return {HUB_SUBENTRY_TYPES[kind]: handlers[kind]}
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Ask which of the two kinds of entry is being created."""
+        """Ask which kind of object is being created."""
         return self.async_show_menu(
-            step_id="user", menu_options=["preset_mode", "blueprint"]
+            step_id="user", menu_options=["preset_mode", "preset", "blueprint"]
         )
+
+    # One object per kind ------------------------------------------------------
 
     async def async_step_preset_mode(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Ask for the name and the modes of the preset mode."""
+        """Ask for the name and the modes of a preset mode."""
         errors: dict[str, str] = {}
         if user_input is not None:
             modes, error = _modes_from_names(user_input[CONF_MODES])
@@ -787,12 +856,10 @@ class PresetModeConfigFlow(ParameterListFlow, ConfigFlow, domain=DOMAIN):
                 errors[CONF_MODES] = error
             else:
                 assert modes is not None
-                return self.async_create_entry(
-                    title=user_input[CONF_NAME].strip(),
-                    data={
-                        CONF_ENTRY_TYPE: ENTRY_TYPE_PRESET_MODE,
-                        CONF_MODES: modes_to_data(modes),
-                    },
+                return await self._async_add(
+                    HUB_PRESET_MODES,
+                    user_input[CONF_NAME].strip(),
+                    {CONF_MODES: modes_to_data(modes)},
                 )
 
         return self.async_show_form(
@@ -803,11 +870,29 @@ class PresetModeConfigFlow(ParameterListFlow, ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
+    async def async_step_preset(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """Ask for the name of a preset and what it follows."""
+        if user_input is not None:
+            self._kind = HUB_PRESETS
+            self._name = user_input[CONF_NAME].strip()
+            self._preset_mode = _chosen(user_input.get(CONF_PRESET_MODE))
+            self._blueprint = _chosen(user_input.get(CONF_BLUEPRINT))
+            if self._blueprint is not None:
+                return await self._async_parameters_done()
+            return await self.async_step_manage_parameters()
+
+        return self.async_show_form(
+            step_id="preset", data_schema=_preset_schema(self.hass)
+        )
+
     async def async_step_blueprint(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Ask for the name of the blueprint, then for its parameters."""
+        """Ask for the name of a blueprint, then for its parameters."""
         if user_input is not None:
+            self._kind = HUB_BLUEPRINTS
             self._name = user_input[CONF_NAME].strip()
             return await self.async_step_manage_parameters()
 
@@ -817,60 +902,187 @@ class PresetModeConfigFlow(ParameterListFlow, ConfigFlow, domain=DOMAIN):
         )
 
     async def _async_parameters_done(self) -> ConfigFlowResult:
-        """Create the blueprint from the finished list."""
-        return self.async_create_entry(
-            title=self._name,
-            data={
-                CONF_ENTRY_TYPE: ENTRY_TYPE_BLUEPRINT,
-                CONF_PARAMETERS: parameters_to_data(self._parameters),
-            },
+        """Create the preset or the blueprint from the finished list."""
+        if self._kind == HUB_PRESETS:
+            return await self._async_add(
+                HUB_PRESETS,
+                self._name,
+                _preset_data(self._preset_mode, self._blueprint, self._parameters),
+            )
+        return await self._async_add(
+            HUB_BLUEPRINTS,
+            self._name,
+            {CONF_PARAMETERS: parameters_to_data(self._parameters)},
+        )
+
+    async def _async_add(
+        self, kind: str, title: str, data: dict[str, Any]
+    ) -> ConfigFlowResult:
+        """Put a new object into its hub, creating the hub with it if needed."""
+        hub = hubs.async_hub(self.hass, kind)
+        if hub is None:
+            await self.async_set_unique_id(kind)
+            self._abort_if_unique_id_configured()
+            return self.async_create_entry(
+                title=HUB_TITLES[kind],
+                data={},
+                subentries=[
+                    ConfigSubentryData(
+                        data=data,
+                        subentry_type=HUB_SUBENTRY_TYPES[kind],
+                        title=title,
+                        unique_id=None,
+                    )
+                ],
+            )
+
+        self.hass.config_entries.async_add_subentry(
+            hub,
+            ConfigSubentry(
+                data=MappingProxyType(data),
+                subentry_type=HUB_SUBENTRY_TYPES[kind],
+                title=title,
+                unique_id=None,
+            ),
+        )
+        return self.async_abort(reason=f"{kind}_added")
+
+
+# Subentry flows ---------------------------------------------------------------
+
+
+class DuplicateFlow(ConfigSubentryFlow):
+    """Copies one object, whatever kind it is.
+
+    Everything an object is stands in its subentry data, so a copy is that
+    data under a new id - which is also why the copy is offered where the
+    object is, rather than as a variant of the "add" flow: there is nothing
+    left to ask for but the name.
+    """
+
+    def _duplicate_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Return the data of the copy."""
+        return data
+
+    @callback
+    def _async_duplicated(self, source_id: str, copy_id: str) -> None:
+        """React to the copy having been created."""
+
+    async def async_step_duplicate(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Ask for the name of the copy, then create it."""
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            copy_id = ulid_now()
+            # Everything the copy brings along is written before it exists:
+            # adding the subentry sets its entities up, and they read what is
+            # in the store at that moment.
+            self._async_duplicated(subentry.subentry_id, copy_id)
+            self.hass.config_entries.async_add_subentry(
+                self._get_entry(),
+                ConfigSubentry(
+                    data=MappingProxyType(self._duplicate_data(dict(subentry.data))),
+                    subentry_id=copy_id,
+                    subentry_type=subentry.subentry_type,
+                    title=user_input[CONF_COPY_NAME].strip(),
+                    unique_id=None,
+                ),
+            )
+            return self.async_abort(reason="duplicated")
+
+        return self.async_show_form(
+            step_id="duplicate",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_COPY_NAME,
+                        description={"suggested_value": f"{subentry.title} 2"},
+                    ): selector.TextSelector()
+                }
+            ),
+            description_placeholders={"name": subentry.title},
         )
 
 
-# Options flow -----------------------------------------------------------------
+class PresetModeSubentryFlowHandler(DuplicateFlow):
+    """Creates and edits one preset mode.
 
-
-class PresetModeOptionsFlow(OptionsFlow):
-    """Manages the modes and the settings of one preset mode.
-
-    The modes live in the *data* of the config entry, not in its options: an
-    option is something the user tweaks about an existing thing, while the
-    modes are what the entry actually is.
+    Its modes live in the *data* of the subentry, not in options: an option is
+    something the user tweaks about an existing thing, while the modes are what
+    the preset mode actually is.
     """
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Ask for the name and the modes of a new preset mode."""
+        errors: dict[str, str] = {}
+        if user_input is not None:
+            modes, error = _modes_from_names(user_input[CONF_MODES])
+            if error:
+                errors[CONF_MODES] = error
+            else:
+                assert modes is not None
+                return self.async_create_entry(
+                    title=user_input[CONF_NAME].strip(),
+                    data={CONF_MODES: modes_to_data(modes)},
+                )
+
+        return self.async_show_form(
+            step_id="user",
+            data_schema=self.add_suggested_values_to_schema(
+                _modes_chips_schema(), {CONF_NAME: DEFAULT_PRESET_MODE_NAME}
+            ),
+            errors=errors,
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Show what can be changed about a preset mode."""
+        return self.async_show_menu(
+            step_id="reconfigure",
+            menu_options=["manage_modes", "preset_mode_settings", "duplicate"],
+        )
+
+    def _duplicate_data(self, data: dict[str, Any]) -> dict[str, Any]:
+        """Return the data of the copy, without the entity it follows.
+
+        Two preset modes reading the same entity would always hold the same
+        mode, which is one preset mode with two names. The copy is manual
+        until it is given a source of its own.
+        """
+        return {key: value for key, value in data.items() if key != CONF_SOURCE_ENTITY}
 
     @property
     def _current(self) -> PresetModeConfig:
-        """Return the preset mode that is being configured."""
-        entry = self.config_entry
-        return PresetModeConfig.from_entry(entry.entry_id, entry.title, entry.data)
+        """Return the preset mode being configured."""
+        subentry = self._get_reconfigure_subentry()
+        return PresetModeConfig.from_subentry(
+            subentry.subentry_id, subentry.title, subentry.data
+        )
 
     def _save(
         self,
         updates: Mapping[str, Any] | None = None,
         *,
         title: str | None = None,
-    ) -> ConfigFlowResult:
-        """Write changes back to the config entry."""
-        entry = self.config_entry
-        data = dict(entry.data)
+    ) -> SubentryFlowResult:
+        """Write changes back to the subentry."""
+        subentry = self._get_reconfigure_subentry()
+        data = dict(subentry.data)
         data.update(updates or {})
-        self.hass.config_entries.async_update_entry(
-            entry, data=data, title=title if title is not None else entry.title
-        )
-        return self.async_create_entry(data={})
-
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Show the management menu of a preset mode."""
-        return self.async_show_menu(
-            step_id="init",
-            menu_options=["manage_modes", "preset_mode_settings"],
+        return self.async_update_and_abort(
+            self._get_entry(),
+            subentry,
+            data=data,
+            title=title if title is not None else subentry.title,
         )
 
     async def async_step_manage_modes(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> SubentryFlowResult:
         """Add, rename, reorder and delete modes, and set their conditions."""
         current = self._current
         errors: dict[str, str] = {}
@@ -890,7 +1102,7 @@ class PresetModeOptionsFlow(OptionsFlow):
 
     async def async_step_preset_mode_settings(
         self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
+    ) -> SubentryFlowResult:
         """Change the name and the entity the preset mode follows."""
         current = self._current
         if user_input is not None:
@@ -915,117 +1127,17 @@ class PresetModeOptionsFlow(OptionsFlow):
         return self.async_show_form(step_id="preset_mode_settings", data_schema=schema)
 
 
-# Blueprint options flow ---------------------------------------------------
-
-
-class BlueprintOptionsFlow(ParameterListFlow, OptionsFlow):
-    """Edits the parameters of one blueprint.
-
-    Everything a set has is its parameters, so the options flow is the parameter
-    editor and nothing else - a menu with one entry would only add a click. The
-    name is the title of the config entry and is renamed where every entry is.
-    """
-
-    def _load_parameters(self) -> list[ParameterDef]:
-        """Return the parameters stored on the set."""
-        return [
-            ParameterDef.from_dict(item)
-            for item in self.config_entry.data.get(CONF_PARAMETERS, [])
-        ]
-
-    async def async_step_init(
-        self, user_input: dict[str, Any] | None = None
-    ) -> ConfigFlowResult:
-        """Open the parameter list right away."""
-        return await self.async_step_manage_parameters(user_input)
-
-    async def _async_parameters_done(self) -> ConfigFlowResult:
-        """Write the parameters back and let every bound preset follow.
-
-        Writing the entry fires its update listener, which reloads the preset_modes
-        of the presets following this set; they read the new list on the way up.
-        """
-        entry = self.config_entry
-        blueprints.async_forget_parameters(self.hass, entry.entry_id, self._retyped)
-        self.hass.config_entries.async_update_entry(
-            entry,
-            data={
-                **entry.data,
-                CONF_PARAMETERS: parameters_to_data(self._parameters),
-            },
-        )
-        return self.async_create_entry(data={})
-
-
-# Instance subentry ------------------------------------------------------------
-
-
-class PresetSubentryFlowHandler(ParameterListFlow, ConfigSubentryFlow):
-    """Creates and reconfigures a single preset."""
+class BlueprintSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
+    """Creates and edits one blueprint."""
 
     def __init__(self) -> None:
-        """Initialise the subentry flow."""
+        """Initialise the flow."""
         super().__init__()
         self._name: str = ""
-        #: Blueprint the new preset is to follow, if any.
-        self._blueprint: str | None = None
-
-    @property
-    def _entry(self) -> ConfigEntry:
-        return self._get_entry()
-
-    @property
-    def _bound_to(self) -> str | None:
-        """Return the blueprint this preset follows, if any."""
-        if self.source != "reconfigure":
-            return self._blueprint
-        return self._get_reconfigure_subentry().data.get(CONF_BLUEPRINT)
-
-    # Creation ----------------------------------------------------------------
-
-    async def async_step_user(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Ask for the name of the new preset, and for a blueprint.
-
-        The preset mode is not asked for: the preset is created inside the
-        preset mode it is added to. A blueprint is only offered when there is
-        one; picking it skips the parameter editor for good.
-        """
-        available = blueprints.async_blueprints(self.hass)
-        if user_input is not None:
-            self._name = user_input[CONF_NAME].strip()
-            chosen = user_input.get(CONF_BLUEPRINT)
-            if chosen and chosen != BLUEPRINT_NONE:
-                self._blueprint = chosen
-                return await self._async_parameters_done()
-            return await self.async_step_manage_parameters()
-
-        schema = vol.Schema({vol.Required(CONF_NAME): selector.TextSelector()})
-        if available:
-            schema = schema.extend(
-                {
-                    vol.Optional(
-                        CONF_BLUEPRINT,
-                        description={"suggested_value": BLUEPRINT_NONE},
-                    ): _blueprint_selector(available)
-                }
-            )
-        return self.async_show_form(
-            step_id="user",
-            data_schema=schema,
-            description_placeholders={"preset_mode": self._entry.title},
-        )
-
-    # Parameters --------------------------------------------------------------
 
     def _load_parameters(self) -> list[ParameterDef]:
-        """Return the parameters the preset starts out with.
-
-        On a reconfiguration that is the stored list; while creating a preset it
-        is empty.
-        """
-        if self.source != "reconfigure":
+        """Return the parameters the blueprint starts out with."""
+        if self.source != SOURCE_RECONFIGURE:
             return []
         subentry = self._get_reconfigure_subentry()
         return [
@@ -1033,115 +1145,133 @@ class PresetSubentryFlowHandler(ParameterListFlow, ConfigSubentryFlow):
             for item in subentry.data.get(CONF_PARAMETERS, [])
         ]
 
-    async def async_step_manage_parameters(
+    async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Add, rename, reorder and delete parameters in one list."""
-        if self._bound_to is not None:
-            # The parameters belong to the set; editing them here would be a
-            # change the next update of that set silently took back.
-            return self.async_abort(reason="blueprint_locked")
-        return await super().async_step_manage_parameters(user_input)
+        """Ask for the name of a new blueprint, then for its parameters."""
+        if user_input is not None:
+            self._name = user_input[CONF_NAME].strip()
+            return await self.async_step_manage_parameters()
 
-    async def _async_parameters_done(self) -> SubentryFlowResult:
-        """Write the finished preset back."""
-        if self.source != "reconfigure":
-            return self.async_create_entry(title=self._name, data=self._preset_data())
-        if self._retyped and (store := async_get_store(self.hass)) is not None:
-            subentry = self._get_reconfigure_subentry()
-            for key in self._retyped:
-                store.remove_parameter(subentry.subentry_id, key)
-        return self._async_save_reconfigure(parameters=self._parameters)
-
-    def _preset_data(self) -> dict[str, Any]:
-        """Return the subentry data of a new preset.
-
-        A preset following a blueprint stores the set and nothing else - its
-        parameters are read from there on every setup, so a copy could only ever
-        be a copy that goes stale.
-        """
-        if self._blueprint is not None:
-            return {CONF_BLUEPRINT: self._blueprint}
-        return {CONF_PARAMETERS: parameters_to_data(self._parameters)}
-
-    # Reconfiguration ---------------------------------------------------------
+        return self.async_show_form(
+            step_id="user",
+            data_schema=vol.Schema({vol.Required(CONF_NAME): selector.TextSelector()}),
+        )
 
     async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Show the reconfiguration menu of a preset.
-
-        A preset following a blueprint has no parameter editor of its own -
-        the entry that would open it is the one that leads out of the set.
-        """
-        options = ["manage_parameters"]
-        if self._bound_to is not None:
-            options = []
-        if self._bound_to is not None or blueprints.async_blueprints(self.hass):
-            options.append("blueprint")
+        """Show what can be done with a blueprint."""
         return self.async_show_menu(
-            step_id="reconfigure",
-            menu_options=[*options, "rename_preset", "assign_preset_mode"],
+            step_id="reconfigure", menu_options=["edit_blueprint", "duplicate"]
         )
 
-    async def async_step_blueprint(
+    async def async_step_edit_blueprint(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Attach the preset to a blueprint, or detach it from one.
-
-        Attaching replaces the parameters of the preset with those of the set;
-        detaching keeps the ones it currently has, as its own. Values survive
-        wherever a parameter key survives - the rest is dropped on the reload,
-        the same way a deleted parameter is.
-        """
+        """Ask for the name, then open the parameter editor."""
         subentry = self._get_reconfigure_subentry()
-        current = subentry.data.get(CONF_BLUEPRINT) or BLUEPRINT_NONE
         if user_input is not None:
-            chosen = user_input[CONF_BLUEPRINT]
-            if chosen == current:
-                return self.async_abort(reason="reconfigure_successful")
-            data = {
-                key: value
-                for key, value in subentry.data.items()
-                if key not in (CONF_PARAMETERS, CONF_BLUEPRINT)
-            }
-            if chosen == BLUEPRINT_NONE:
-                resolved = blueprints.async_resolve_preset_data(
-                    self.hass, subentry.data
-                )
-                data[CONF_PARAMETERS] = list(resolved.get(CONF_PARAMETERS, []))
-            else:
-                data[CONF_BLUEPRINT] = chosen
-            return self.async_update_and_abort(self._entry, subentry, data=data)
+            self._name = user_input[CONF_NAME].strip()
+            return await self.async_step_manage_parameters()
 
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_BLUEPRINT, description={"suggested_value": current}
-                ): _blueprint_selector(blueprints.async_blueprints(self.hass))
-            }
+        return self.async_show_form(
+            step_id="edit_blueprint",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_NAME, description={"suggested_value": subentry.title}
+                    ): selector.TextSelector()
+                }
+            ),
         )
-        return self.async_show_form(step_id="blueprint", data_schema=schema)
 
-    def _async_save_reconfigure(
-        self,
-        *,
-        parameters: list[ParameterDef] | None = None,
-        title: str | None = None,
-        **updates: Any,
-    ) -> SubentryFlowResult:
-        """Write the changed preset configuration back to the subentry."""
+    async def _async_parameters_done(self) -> SubentryFlowResult:
+        """Write the finished parameter list back."""
+        data = {CONF_PARAMETERS: parameters_to_data(self._parameters)}
+        if self.source != SOURCE_RECONFIGURE:
+            return self.async_create_entry(title=self._name, data=data)
+
         subentry = self._get_reconfigure_subentry()
-        data = dict(subentry.data)
-        data.update(updates)
-        if parameters is not None:
-            data[CONF_PARAMETERS] = parameters_to_data(parameters)
-        return self.async_update_and_abort(
-            self._entry,
-            subentry,
-            data=data,
-            title=title if title is not None else subentry.title,
+        # A retyped parameter keeps its key, so the values stored for it under
+        # every preset following this blueprint no longer fit.
+        following.async_forget_parameters(
+            self.hass, subentry.subentry_id, self._retyped
         )
+        return self.async_update_and_abort(
+            self._get_entry(), subentry, data=data, title=self._name
+        )
+
+
+class PresetSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
+    """Creates and edits one preset."""
+
+    def __init__(self) -> None:
+        """Initialise the flow."""
+        super().__init__()
+        self._name: str = ""
+        self._preset_mode: str | None = None
+        self._blueprint: str | None = None
+
+    @property
+    def _bound_to(self) -> str | None:
+        """Return the blueprint the preset follows, if any."""
+        if self.source != SOURCE_RECONFIGURE:
+            return self._blueprint
+        return self._get_reconfigure_subentry().data.get(CONF_BLUEPRINT) or None
+
+    def _load_parameters(self) -> list[ParameterDef]:
+        """Return the parameters the preset starts out with."""
+        if self.source != SOURCE_RECONFIGURE:
+            return []
+        subentry = self._get_reconfigure_subentry()
+        return [
+            ParameterDef.from_dict(item)
+            for item in subentry.data.get(CONF_PARAMETERS, [])
+        ]
+
+    async def async_step_user(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Ask for the name of the preset and for what it follows.
+
+        A preset mode is offered but not required: a preset without one keeps
+        everything except its active mode, and can be assigned one later.
+        """
+        if user_input is not None:
+            self._name = user_input[CONF_NAME].strip()
+            self._preset_mode = _chosen(user_input.get(CONF_PRESET_MODE))
+            self._blueprint = _chosen(user_input.get(CONF_BLUEPRINT))
+            if self._blueprint is not None:
+                # Picking a blueprint skips the parameter editor for good.
+                return await self._async_parameters_done()
+            return await self.async_step_manage_parameters()
+
+        return self.async_show_form(
+            step_id="user", data_schema=_preset_schema(self.hass)
+        )
+
+    async def async_step_reconfigure(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Show what can be changed about a preset."""
+        options = ["rename_preset", "assign_preset_mode"]
+        if self._bound_to is not None or hubs.async_blueprints(self.hass):
+            options.append("assign_blueprint")
+        if self._bound_to is None:
+            options.append("manage_parameters")
+        options.append("duplicate")
+        return self.async_show_menu(step_id="reconfigure", menu_options=options)
+
+    @callback
+    def _async_duplicated(self, source_id: str, copy_id: str) -> None:
+        """Hand the copy the values of the preset it was made from.
+
+        Without them the copy is the empty shell of a preset - and filling one
+        in is the work that made a copy worth having.
+        """
+        if (store := async_get_store(self.hass)) is not None:
+            store.copy_preset(source_id, copy_id)
 
     async def async_step_rename_preset(
         self, user_input: dict[str, Any] | None = None
@@ -1149,85 +1279,134 @@ class PresetSubentryFlowHandler(ParameterListFlow, ConfigSubentryFlow):
         """Rename the preset."""
         subentry = self._get_reconfigure_subentry()
         if user_input is not None:
-            return self._async_save_reconfigure(title=user_input[CONF_NAME].strip())
+            return self._save(title=user_input[CONF_NAME].strip())
 
-        schema = vol.Schema(
-            {
-                vol.Required(
-                    CONF_NAME, description={"suggested_value": subentry.title}
-                ): selector.TextSelector()
-            }
+        return self.async_show_form(
+            step_id="rename_preset",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_NAME, description={"suggested_value": subentry.title}
+                    ): selector.TextSelector()
+                }
+            ),
         )
-        return self.async_show_form(step_id="rename_preset", data_schema=schema)
 
     async def async_step_assign_preset_mode(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Attach the preset to another preset mode."""
-        subentry = self._get_reconfigure_subentry()
-        entry = self._entry
-        if user_input is not None:
-            target_id = user_input[CONF_PRESET_MODE]
-            if target_id == entry.entry_id:
-                return self.async_abort(reason="reconfigure_successful")
-            return self._async_move_preset(
-                subentry, target_id, title=subentry.title, data=subentry.data
-            )
+        """Let the preset follow another preset mode, or none.
 
-        schema = vol.Schema(
-            {
-                vol.Required(CONF_PRESET_MODE, default=entry.entry_id): (
-                    selector.SelectSelector(
-                        selector.SelectSelectorConfig(
-                            options=[
-                                selector.SelectOptionDict(
-                                    value=item.entry_id, label=item.title
-                                )
-                                for item in _preset_modes(self.hass)
-                            ],
-                            mode=selector.SelectSelectorMode.DROPDOWN,
-                        )
-                    )
-                )
-            }
-        )
-        return self.async_show_form(step_id="assign_preset_mode", data_schema=schema)
-
-    @callback
-    def _async_move_preset(
-        self,
-        subentry: ConfigSubentry,
-        target_entry_id: str,
-        *,
-        title: str,
-        data: Mapping[str, Any],
-    ) -> SubentryFlowResult:
-        """Move a preset to another preset mode.
-
-        The subentry is recreated under the *same* subentry id, which is what
-        every entity unique id, every device identifier and every stored value
-        is keyed by. Home Assistant restores the entity ids of the briefly
-        removed entities from its registry, so the move keeps the history and
-        the configured values of the preset.
+        The modes it kept from a deleted preset mode go with the assignment:
+        from then on they come from the new one, and a snapshot left lying
+        around would only be read again if that one disappeared as well.
         """
-        target = self.hass.config_entries.async_get_entry(target_entry_id)
-        if target is None:
-            return self.async_abort(reason="unknown_preset_mode")
-        moved = ConfigSubentry(
-            data=MappingProxyType(dict(data)),
-            subentry_id=subentry.subentry_id,
-            subentry_type=subentry.subentry_type,
-            title=title,
-            unique_id=subentry.unique_id,
+        subentry = self._get_reconfigure_subentry()
+        current = subentry.data.get(CONF_PRESET_MODE)
+        if user_input is not None:
+            chosen = _chosen(user_input.get(CONF_PRESET_MODE))
+            if chosen == current:
+                return self.async_abort(reason="reconfigure_successful")
+            data = {
+                key: value
+                for key, value in subentry.data.items()
+                if key not in (CONF_PRESET_MODE, CONF_MODES)
+            }
+            if chosen is not None:
+                data[CONF_PRESET_MODE] = chosen
+            else:
+                # Keeping the modes is what keeps the editors of the preset.
+                data[CONF_MODES] = _modes_of(self.hass, current)
+            return self.async_update_and_abort(self._get_entry(), subentry, data=data)
+
+        return self.async_show_form(
+            step_id="assign_preset_mode",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_PRESET_MODE,
+                        description={"suggested_value": current or REFERENCE_NONE},
+                    ): _reference_selector(hubs.async_preset_modes(self.hass))
+                }
+            ),
         )
-        store = async_get_store(self.hass)
-        with (
-            nullcontext()
-            if store is None
-            else store.protect_preset(subentry.subentry_id)
-        ):
-            self.hass.config_entries.async_remove_subentry(
-                self._entry, subentry.subentry_id
+
+    async def async_step_assign_blueprint(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Let the preset follow a blueprint, or none.
+
+        Leaving a blueprint keeps its parameters as the preset's own, so the
+        preset is editable again without losing anything.
+        """
+        subentry = self._get_reconfigure_subentry()
+        current = subentry.data.get(CONF_BLUEPRINT)
+        if user_input is not None:
+            chosen = _chosen(user_input.get(CONF_BLUEPRINT))
+            if chosen == current:
+                return self.async_abort(reason="reconfigure_successful")
+            data = {
+                key: value
+                for key, value in subentry.data.items()
+                if key not in (CONF_PARAMETERS, CONF_BLUEPRINT)
+            }
+            if chosen is not None:
+                data[CONF_BLUEPRINT] = chosen
+            else:
+                resolved = hubs.async_resolve_preset_data(self.hass, subentry.data)
+                data[CONF_PARAMETERS] = list(resolved.get(CONF_PARAMETERS, []))
+            return self.async_update_and_abort(self._get_entry(), subentry, data=data)
+
+        return self.async_show_form(
+            step_id="assign_blueprint",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_BLUEPRINT,
+                        description={"suggested_value": current or REFERENCE_NONE},
+                    ): _reference_selector(hubs.async_blueprints(self.hass))
+                }
+            ),
+        )
+
+    async def async_step_manage_parameters(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Add, rename, reorder and delete parameters in one list."""
+        if self._bound_to is not None:
+            # The parameters belong to the blueprint; editing them here would
+            # be a change the next update of that blueprint silently took back.
+            return self.async_abort(reason="blueprint_locked")
+        return await super().async_step_manage_parameters(user_input)
+
+    async def _async_parameters_done(self) -> SubentryFlowResult:
+        """Write the finished preset back."""
+        if self.source != SOURCE_RECONFIGURE:
+            return self.async_create_entry(
+                title=self._name,
+                data=_preset_data(self._preset_mode, self._blueprint, self._parameters),
             )
-            self.hass.config_entries.async_add_subentry(target, moved)
-        return self.async_abort(reason="preset_moved")
+
+        subentry = self._get_reconfigure_subentry()
+        if self._retyped and (store := async_get_store(self.hass)) is not None:
+            for key in self._retyped:
+                store.remove_parameter(subentry.subentry_id, key)
+        return self._save(parameters=self._parameters)
+
+    def _save(
+        self,
+        *,
+        parameters: list[ParameterDef] | None = None,
+        title: str | None = None,
+    ) -> SubentryFlowResult:
+        """Write the changed preset configuration back to the subentry."""
+        subentry = self._get_reconfigure_subentry()
+        data = dict(subentry.data)
+        if parameters is not None:
+            data[CONF_PARAMETERS] = parameters_to_data(parameters)
+        return self.async_update_and_abort(
+            self._get_entry(),
+            subentry,
+            data=data,
+            title=title if title is not None else subentry.title,
+        )

@@ -7,7 +7,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import PresetModeConfigEntry
+from .coordinator import PresetManagerConfigEntry
 from .entity import ParameterValueEntity
 from .parameter_types import get_parameter_type
 
@@ -20,7 +20,7 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: PresetModeConfigEntry,
+    entry: PresetManagerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up binary sensors for boolean parameters."""

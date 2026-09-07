@@ -18,7 +18,7 @@ from homeassistant.helpers import icon as icon_helper
 
 from custom_components.preset_manager.const import DOMAIN
 
-from .conftest import BRIGHTNESS, make_entry, make_preset
+from .conftest import BRIGHTNESS, async_setup_one, make_preset
 
 COMPONENT = Path(__file__).parent.parent / "custom_components" / DOMAIN
 
@@ -56,10 +56,7 @@ async def test_home_assistant_loads_the_icons(
     hass: HomeAssistant, category: str
 ) -> None:
     """The file has to be readable by Home Assistant, not just by json.load."""
-    entry = make_entry(presets=[make_preset("Lamp", [BRIGHTNESS])])
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await async_setup_one(hass, presets=[make_preset("Lamp", [BRIGHTNESS])])
 
     icons = await icon_helper.async_get_icons(hass, category, integrations=[DOMAIN])
     assert icons[DOMAIN] == _load("icons.json")[category]

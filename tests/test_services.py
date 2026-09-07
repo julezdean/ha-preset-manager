@@ -13,7 +13,6 @@ from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers import area_registry as ar
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.preset_manager.const import (
     DOMAIN,
@@ -28,9 +27,15 @@ from custom_components.preset_manager.services import (
 
 from .conftest import (
     PRESET_ID,
+    PRESET_MODE_ID,
+    Hubs,
+    async_add_object,
     async_set_active_mode,
-    make_entry,
+    async_setup_hubs,
+    async_setup_one,
     make_preset,
+    make_preset_mode,
+    runtime_of,
 )
 
 NIGHT_BRIGHTNESS = "number.motion_sensor_living_room_night_brightness"
@@ -57,9 +62,7 @@ def _preset_device(hass: HomeAssistant, subentry_id: str) -> dr.DeviceEntry:
     return device
 
 
-async def test_set_value_by_entity(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
-) -> None:
+async def test_set_value_by_entity(hass: HomeAssistant, motion: Hubs) -> None:
     """A value can be written by targeting an entity of the preset."""
     await hass.services.async_call(
         DOMAIN,
@@ -72,7 +75,7 @@ async def test_set_value_by_entity(
 
 
 async def test_set_value_by_device(
-    hass: HomeAssistant, motion_entry: MockConfigEntry, subentry_id: str
+    hass: HomeAssistant, motion: Hubs, subentry_id: str
 ) -> None:
     """A value can be written by targeting the preset device."""
     await hass.services.async_call(
@@ -90,7 +93,7 @@ async def test_set_value_by_device(
 
 async def test_set_value_by_area(
     hass: HomeAssistant,
-    motion_entry: MockConfigEntry,
+    motion: Hubs,
     subentry_id: str,
     area_registry: ar.AreaRegistry,
 ) -> None:
@@ -110,10 +113,10 @@ async def test_set_value_by_area(
 
 
 async def test_the_preset_mode_device_addresses_no_preset(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
+    hass: HomeAssistant, motion: Hubs
 ) -> None:
     """Only a preset carries values; its preset mode is not a target."""
-    device = _preset_device(hass, motion_entry.entry_id)
+    device = _preset_device(hass, PRESET_MODE_ID)
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
             DOMAIN,
@@ -125,7 +128,7 @@ async def test_the_preset_mode_device_addresses_no_preset(
 
 
 async def test_set_value_without_a_target_is_refused(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
+    hass: HomeAssistant, motion: Hubs
 ) -> None:
     """A call that names no preset must not guess at one."""
     with pytest.raises(ServiceValidationError):
@@ -137,9 +140,7 @@ async def test_set_value_without_a_target_is_refused(
         )
 
 
-async def test_set_value_errors(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
-) -> None:
+async def test_set_value_errors(hass: HomeAssistant, motion: Hubs) -> None:
     """Unknown modes and parameters are reported."""
     for data in (
         {"mode": "Party", "parameter": "brightness", "value": 15},
@@ -187,10 +188,7 @@ async def test_set_value_keeps_the_type_of_the_parameter(
     Coercing to float in the schema stored "15.0" in a text parameter and made
     a select parameter with numeric options unreachable.
     """
-    entry = make_entry(presets=[make_preset("Lamp", [parameter])])
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    hubs = await async_setup_one(hass, presets=[make_preset("Lamp", [parameter])])
 
     await hass.services.async_call(
         DOMAIN,
@@ -200,7 +198,7 @@ async def test_set_value_keeps_the_type_of_the_parameter(
         blocking=True,
     )
 
-    store = entry.runtime_data.store
+    store = hubs.runtime.store
     assert store.get_value(PRESET_ID, "night", parameter["key"]) == expected
 
 
@@ -212,19 +210,26 @@ async def test_set_value_applies_to_every_target_or_to_none(
     The write used to happen while walking the targets, so the first preset
     was already changed when the second one raised.
     """
-    house = make_entry(
-        presets=[make_preset("Heating", [BRIGHTNESS_PARAM], subentry_id="a" * 32)]
+    await async_setup_hubs(
+        hass,
+        preset_modes=[
+            make_preset_mode(),
+            make_preset_mode(
+                title="Window State",
+                modes=[{"key": "closed", "name": "Closed"}],
+                subentry_id="2" * 32,
+            ),
+        ],
+        presets=[
+            make_preset("Heating", [BRIGHTNESS_PARAM], subentry_id="a" * 32),
+            make_preset(
+                "Shutter",
+                [BRIGHTNESS_PARAM],
+                subentry_id="b" * 32,
+                preset_mode="2" * 32,
+            ),
+        ],
     )
-    window = make_entry(
-        title="Window State",
-        modes=[{"key": "closed", "name": "Closed"}],
-        entry_id="2" * 32,
-        presets=[make_preset("Shutter", [BRIGHTNESS_PARAM], subentry_id="b" * 32)],
-    )
-    for entry in (house, window):
-        entry.add_to_hass(hass)
-        assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
 
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
@@ -240,13 +245,13 @@ async def test_set_value_applies_to_every_target_or_to_none(
             blocking=True,
         )
 
-    store = house.runtime_data.store
+    store = runtime_of(hass).store
     # "night" exists in the house mode, but the shutter never heard of it -
     # so nothing at all was written.
     assert store.get_value("a" * 32, "night", "brightness") is None
 
 
-async def test_get_values(hass: HomeAssistant, motion_entry: MockConfigEntry) -> None:
+async def test_get_values(hass: HomeAssistant, motion: Hubs) -> None:
     """The response service returns the values of a preset."""
     await hass.services.async_call(
         DOMAIN,
@@ -281,17 +286,26 @@ async def test_get_values(hass: HomeAssistant, motion_entry: MockConfigEntry) ->
 
 
 async def test_get_values_needs_exactly_one_preset(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
+    hass: HomeAssistant, motion: Hubs
 ) -> None:
     """A response carries the values of one preset, so two are refused."""
-    entry = make_entry(
-        title="Window State",
-        entry_id="2" * 32,
-        presets=[make_preset("Shutter", [BRIGHTNESS_PARAM], subentry_id="b" * 32)],
+    await async_add_object(
+        hass,
+        motion,
+        "preset_modes",
+        make_preset_mode(title="Window State", subentry_id="2" * 32),
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await async_add_object(
+        hass,
+        motion,
+        "presets",
+        make_preset(
+            "Shutter",
+            [BRIGHTNESS_PARAM],
+            subentry_id="b" * 32,
+            preset_mode="2" * 32,
+        ),
+    )
 
     with pytest.raises(ServiceValidationError):
         await hass.services.async_call(
@@ -320,7 +334,7 @@ async def test_value_services_without_setup(hass: HomeAssistant) -> None:
 
 
 async def test_set_active_mode_is_an_entity_service(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
+    hass: HomeAssistant, motion: Hubs
 ) -> None:
     """The mode is set on the selector, not on a preset mode looked up by name."""
     assert hass.services.has_service(DOMAIN, SERVICE_SET_ACTIVE_MODE)

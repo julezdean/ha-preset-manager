@@ -10,8 +10,14 @@ from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers import entity_platform
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import ATTR_MODE, SERVICE_SET_ACTIVE_MODE, UID_ACTIVE_MODE
-from .coordinator import PresetModeConfigEntry, PresetModeCoordinator
+from . import hubs
+from .const import (
+    ATTR_MODE,
+    HUB_PRESET_MODES,
+    SERVICE_SET_ACTIVE_MODE,
+    UID_ACTIVE_MODE,
+)
+from .coordinator import PresetManagerConfigEntry, PresetModeCoordinator
 from .entity import ModeValueEditorEntity, PresetModeEntity
 from .parameter_types import get_parameter_type
 
@@ -24,27 +30,32 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: PresetModeConfigEntry,
+    entry: PresetManagerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the mode selectors and the enum editors."""
     runtime = entry.runtime_data
 
-    # The mode selector is what a preset mode is set on, so setting it by its
-    # stable key is a service on that entity rather than a service of the
-    # domain looking the preset mode up by its (renameable) display name.
-    entity_platform.async_get_current_platform().async_register_entity_service(
-        SERVICE_SET_ACTIVE_MODE,
-        {vol.Required(ATTR_MODE): cv.string},
-        "async_set_active_mode",
-    )
+    if hubs.hub_kind(entry) == HUB_PRESET_MODES:
+        # The mode selector is what a preset mode is set on, so setting it by
+        # its stable key is a service on that entity rather than a service of
+        # the domain looking the preset mode up by its (renameable) name.
+        entity_platform.async_get_current_platform().async_register_entity_service(
+            SERVICE_SET_ACTIVE_MODE,
+            {vol.Required(ATTR_MODE): cv.string},
+            "async_set_active_mode",
+        )
 
-    # The selector exists for every preset mode that can be set by hand at all: it
-    # would otherwise appear and disappear with the automatic switch, taking its
-    # entity id and history with it. A preset mode following another entity is the
-    # exception - there is nothing to select.
-    if not runtime.preset_mode.external:
-        async_add_entities([ActiveModeSelect(runtime.preset_mode)])
+        # The selector exists for every preset mode that can be set by hand at
+        # all: it would otherwise appear and disappear with the automatic
+        # switch, taking its entity id and history with it. A preset mode
+        # following another entity is the exception - nothing to select there.
+        for subentry_id, preset_mode in runtime.preset_modes.items():
+            if not preset_mode.external:
+                async_add_entities(
+                    [ActiveModeSelect(preset_mode)], config_subentry_id=subentry_id
+                )
+        return
 
     for subentry_id, coordinator in runtime.presets.items():
         entities = [

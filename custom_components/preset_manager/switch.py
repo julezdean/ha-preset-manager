@@ -9,8 +9,9 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .const import UID_AUTOMATIC
-from .coordinator import PresetModeConfigEntry, PresetModeCoordinator
+from . import hubs
+from .const import HUB_PRESET_MODES, UID_AUTOMATIC
+from .coordinator import PresetManagerConfigEntry, PresetModeCoordinator
 from .entity import ModeValueEditorEntity, PresetModeEntity
 from .parameter_types import get_parameter_type
 
@@ -23,15 +24,20 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: PresetModeConfigEntry,
+    entry: PresetManagerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the automatic switches and the switch editors."""
     runtime = entry.runtime_data
 
-    # Without a source there is nothing to switch between.
-    if runtime.preset_mode.has_source:
-        async_add_entities([AutomaticSwitch(runtime.preset_mode)])
+    if hubs.hub_kind(entry) == HUB_PRESET_MODES:
+        for subentry_id, preset_mode in runtime.preset_modes.items():
+            # Without a source there is nothing to switch between.
+            if preset_mode.has_source:
+                async_add_entities(
+                    [AutomaticSwitch(preset_mode)], config_subentry_id=subentry_id
+                )
+        return
 
     for subentry_id, coordinator in runtime.presets.items():
         entities = [

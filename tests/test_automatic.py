@@ -5,48 +5,52 @@ from __future__ import annotations
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from .conftest import BRIGHTNESS, async_set_active_mode, make_entry, make_preset
+from .conftest import (
+    BRIGHTNESS,
+    Hubs,
+    async_set_active_mode,
+    async_setup_hubs,
+    make_preset,
+    make_preset_mode,
+)
 
 SELECT = "select.house_mode_active_mode"
 SWITCH = "switch.house_mode_automatic"
 SENSOR = "sensor.house_mode_mode"
 
 
-async def _entity_driven(hass: HomeAssistant) -> MockConfigEntry:
+async def _entity_driven(hass: HomeAssistant) -> Hubs:
     """A preset mode whose modes follow sensor.mode_source."""
     hass.states.async_set("sensor.mode_source", "Night")
-    entry = make_entry(
-        conditions={
-            key: [
-                {
-                    "condition": "state",
-                    "entity_id": "sensor.mode_source",
-                    "state": name,
+    return await async_setup_hubs(
+        hass,
+        preset_modes=[
+            make_preset_mode(
+                conditions={
+                    key: [
+                        {
+                            "condition": "state",
+                            "entity_id": "sensor.mode_source",
+                            "state": name,
+                        }
+                    ]
+                    for key, name in (
+                        ("home", "Home"),
+                        ("away", "Away"),
+                        ("night", "Night"),
+                        ("window_open", "Window open"),
+                    )
                 }
-            ]
-            for key, name in (
-                ("home", "Home"),
-                ("away", "Away"),
-                ("night", "Night"),
-                ("window_open", "Window open"),
             )
-        },
+        ],
         presets=[make_preset("Heating", [BRIGHTNESS])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
-    return entry
 
 
 async def test_switch_exists_only_with_conditions(hass: HomeAssistant) -> None:
     """A preset mode without any conditions has nothing to switch."""
-    entry = make_entry()
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await async_setup_hubs(hass, preset_modes=[make_preset_mode()])
 
     assert hass.states.get(SELECT) is not None
     assert hass.states.get(SWITCH) is None
@@ -121,7 +125,7 @@ async def test_select_is_refused_while_automatic(hass: HomeAssistant) -> None:
 
 async def test_automatic_survives_a_restart(hass: HomeAssistant) -> None:
     """The switch position is persisted."""
-    entry = await _entity_driven(hass)
+    hubs = await _entity_driven(hass)
 
     await hass.services.async_call(
         "switch", "turn_off", {"entity_id": SWITCH}, blocking=True
@@ -133,7 +137,7 @@ async def test_automatic_survives_a_restart(hass: HomeAssistant) -> None:
         blocking=True,
     )
 
-    await hass.config_entries.async_reload(entry.entry_id)
+    await hass.config_entries.async_reload(hubs.entry("preset_modes").entry_id)
     await hass.async_block_till_done()
 
     assert hass.states.get(SWITCH).state == "off"

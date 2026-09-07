@@ -4,6 +4,38 @@ All notable changes to this project are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 versioning [Semantic Versioning](https://semver.org/).
 
+## [0.2.0b1] - 2026-09-07
+
+Beta. The layout of the config entries changes; the migration runs once at
+startup and keeps every id, so an existing installation moves over without
+being touched. A backup beforehand is what a beta is for all the same.
+
+### Changed
+
+- Preset modes, presets and preset blueprints now each live in a hub of their
+  own and are subentries of it. With that, every object says what kind it is, a
+  blueprint is no longer offered where a preset is expected, and the model says
+  what it means: a blueprint belongs to no preset mode.
+- A preset survives the deletion of its preset mode. It keeps its parameters,
+  its values and the modes it had, and a repair issue asks for a new preset
+  mode; until it gets one it has no active mode and its values do not resolve.
+- Assigning another preset mode is a field on the preset rather than a move
+  between config entries — its entities are not rebuilt at all.
+- A rename, a changed condition and another source entity no longer cost a
+  reload of everything the hub holds.
+
+### Added
+
+- Duplicating, in the menu of every object: a preset with its stored values, a
+  preset mode with its modes and conditions, a blueprint with its parameters.
+- A preset can be created without a preset mode and be assigned one later.
+
+### Migration
+
+Config entry schema 1.1 → 2.1, in one step at startup. Entity ids, unique ids,
+device identifiers and the whole value store stay untouched, and so do the
+names, areas and icons you gave those entities. There is nothing to do by hand.
+
 ## [0.1.0] - 2026-09-07
 
 First release. Preset Manager creates the helpers for mode-dependent values

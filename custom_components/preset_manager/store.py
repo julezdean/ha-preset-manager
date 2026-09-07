@@ -10,8 +10,7 @@ only holds the *structure* (modes, presets, parameters).
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterable, Iterator, Mapping
-from contextlib import contextmanager
+from collections.abc import Iterable, Mapping
 from typing import Any
 
 from homeassistant.core import HomeAssistant, callback
@@ -83,7 +82,6 @@ class PresetValueStore:
         self._values: ValueMap = {}
         self._active_modes: dict[str, str] = {}
         self._automatic: dict[str, bool] = {}
-        self._protected: set[str] = set()
 
     async def async_load(self) -> None:
         """Load persisted data."""
@@ -204,21 +202,6 @@ class PresetValueStore:
 
     # Housekeeping ------------------------------------------------------------
 
-    @contextmanager
-    def protect_preset(self, preset_id: str) -> Iterator[None]:
-        """Keep the values of a preset while it changes owner.
-
-        Moving a preset to another preset mode removes its subentry from
-        one config entry and adds it to another. Home Assistant reloads the
-        first entry in between, and that reload would see a preset that belongs
-        to nobody and drop its values.
-        """
-        self._protected.add(preset_id)
-        try:
-            yield
-        finally:
-            self._protected.discard(preset_id)
-
     def remove_parameter(self, preset_id: str, parameter_key: str) -> None:
         """Drop the stored values of one parameter across all modes.
 
@@ -231,6 +214,21 @@ class PresetValueStore:
                 changed = True
         if changed:
             self._schedule_save()
+
+    def copy_preset(self, source_id: str, target_id: str) -> None:
+        """Copy every stored value of one preset onto another.
+
+        Duplicating a preset without its values would hand back an empty
+        shell - the values are what the work went into, and the copy is made
+        to have them.
+        """
+        values = self._values.get(source_id)
+        if not values:
+            return
+        self._values[target_id] = {
+            mode_key: dict(parameters) for mode_key, parameters in values.items()
+        }
+        self._schedule_save()
 
     def remove_preset(self, preset_id: str) -> None:
         """Drop all values of a preset."""
@@ -249,7 +247,7 @@ class PresetValueStore:
         ``known_presets`` lists the presets of *every* config entry - a preset
         of another, possibly not loaded, preset mode has to keep its values.
         """
-        known = set(known_presets) | self._protected
+        known = set(known_presets)
         changed = False
         for preset_id in list(self._values):
             if preset_id not in known:

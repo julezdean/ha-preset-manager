@@ -11,6 +11,7 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.event import async_track_time_change
 
+from . import hubs
 from .const import (
     ATTR_AUTOMATIC,
     ATTR_BLUEPRINT,
@@ -19,12 +20,14 @@ from .const import (
     ATTR_MODES,
     ATTR_SOURCE_ENTITY,
     ATTR_VALUES,
+    HUB_BLUEPRINTS,
+    HUB_PRESET_MODES,
     UID_ACTIVE_MODE,
     UID_PRESET_MODE_SENSOR,
 )
 from .coordinator import (
     PresetCoordinator,
-    PresetModeConfigEntry,
+    PresetManagerConfigEntry,
     PresetModeCoordinator,
 )
 from .entity import (
@@ -51,13 +54,18 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: PresetModeConfigEntry,
+    entry: PresetManagerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the sensor entities of every preset mode and preset."""
     runtime = entry.runtime_data
 
-    async_add_entities([ActiveModeSensor(runtime.preset_mode)])
+    if hubs.hub_kind(entry) == HUB_PRESET_MODES:
+        for subentry_id, preset_mode in runtime.preset_modes.items():
+            async_add_entities(
+                [ActiveModeSensor(preset_mode)], config_subentry_id=subentry_id
+            )
+        return
 
     for subentry_id, coordinator in runtime.presets.items():
         entities: list[SensorEntity] = [PresetActiveModeSensor(coordinator)]
@@ -145,8 +153,10 @@ class PresetActiveModeSensor(PresetEntity, SensorEntity):
             # Where the parameters come from is not visible anywhere else on
             # the preset - its own parameter editor is closed while it follows
             # a set.
-            entry = self.hass.config_entries.async_get_entry(config.blueprint)
-            attributes[ATTR_BLUEPRINT] = entry.title if entry is not None else None
+            blueprint = hubs.async_object(self.hass, HUB_BLUEPRINTS, config.blueprint)
+            attributes[ATTR_BLUEPRINT] = (
+                blueprint.title if blueprint is not None else None
+            )
         return attributes
 
 

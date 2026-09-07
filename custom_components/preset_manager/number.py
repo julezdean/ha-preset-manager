@@ -7,7 +7,7 @@ from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
-from .coordinator import PresetCoordinator, PresetModeConfigEntry
+from .coordinator import PresetCoordinator, PresetManagerConfigEntry
 from .entity import ModeValueEditorEntity
 from .models import ModeDef, ParameterDef
 from .parameter_types import MODE_SLIDER, get_parameter_type, number_device_class
@@ -21,7 +21,7 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: PresetModeConfigEntry,
+    entry: PresetManagerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the number editors of every preset."""
