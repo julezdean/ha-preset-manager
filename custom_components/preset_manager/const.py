@@ -38,12 +38,6 @@ HUB_TITLES: Final[dict[str, str]] = {
     HUB_BLUEPRINTS: "Preset Blueprints",
 }
 
-#: Kind of a config entry in 0.1.0, when a preset mode and a blueprint were
-#: each a config entry of their own. Only ``migration`` still reads these.
-CONF_ENTRY_TYPE: Final = "entry_type"
-ENTRY_TYPE_PRESET_MODE: Final = "preset_mode"
-ENTRY_TYPE_BLUEPRINT: Final = "blueprint"
-
 # Preset mode (config entry) keys
 CONF_MODES: Final = "modes"
 #: Conditions of a mode; the first mode whose conditions match wins.
@@ -97,8 +91,6 @@ CONF_PATTERN: Final = "pattern"
 DATA_STORE: Final = "store"
 #: The runtime of the whole domain, see ``coordinator.PresetManagerRuntime``.
 DATA_RUNTIME: Final = "runtime"
-#: Serialises the migration of the 0.1.0 entries, see ``migration``.
-DATA_MIGRATION_LOCK: Final = "migration_lock"
 
 STORAGE_KEY: Final = f"{DOMAIN}.values"
 #: Bumped when the shape of the value store changes; see
@@ -107,7 +99,8 @@ STORAGE_VERSION: Final = 1
 #: Bumped for changes an older version could still read.
 STORAGE_MINOR_VERSION: Final = 1
 #: Config entry version. 1 was one entry per preset mode and per blueprint,
-#: 2 is the three hubs; see ``migration``. Every bump needs a step there.
+#: 2 is the three hubs. Every bump needs a step in ``async_migrate_entry``;
+#: the step from 1 to 2 is not one - such an entry is refused, see there.
 ENTRY_VERSION: Final = 2
 #: Bumped for additive changes to the entry data, which an older version of the
 #: integration can still load.

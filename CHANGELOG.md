@@ -4,11 +4,12 @@ All notable changes to this project are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 versioning [Semantic Versioning](https://semver.org/).
 
-## [0.2.0b1] - 2026-09-07
+## [0.2.0b2] - 2026-09-07
 
-Beta. The layout of the config entries changes; the migration runs once at
-startup and keeps every id, so an existing installation moves over without
-being touched. A backup beforehand is what a beta is for all the same.
+Beta. The layout of the config entries changes. Entries written by 0.1.0 are
+**not** migrated: that release was withdrawn without anybody running it, so
+such an entry is refused and has to be deleted and set up again. A backup
+beforehand is what a beta is for all the same.
 
 ### Changed
 
@@ -30,11 +31,11 @@ being touched. A backup beforehand is what a beta is for all the same.
   preset mode with its modes and conditions, a blueprint with its parameters.
 - A preset can be created without a preset mode and be assigned one later.
 
-### Migration
+### Removed
 
-Config entry schema 1.1 → 2.1, in one step at startup. Entity ids, unique ids,
-device identifiers and the whole value store stay untouched, and so do the
-names, areas and icons you gave those entities. There is nothing to do by hand.
+- The config entry schema of 0.1.0. There is no path from it - a migration
+  nobody needs is a path nobody tests - so an entry at schema 1.1 is refused
+  with an error on the entry instead of being read half way.
 
 ## [0.1.0] - 2026-09-07
 

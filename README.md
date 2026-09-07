@@ -629,11 +629,11 @@ blueprint used to be a config entry of its own, with the presets as subentries
 of their preset mode. From 0.2.0 on there are three hubs and every object is a
 subentry of the one that collects its kind.
 
-Nothing you can see changes with it, and there is nothing to do. The migration
-runs once at startup and keeps every id: entity ids, unique ids, device
-identifiers and every stored value stay exactly as they are, and so do the
-names, areas and icons you gave them. The value store is not touched at all.
-Config entries move from schema **1.1** to **2.1**.
+There is **no migration** from 0.1.0. That release was withdrawn without
+anybody running it, and a migration nobody needs is a path nobody tests. An
+entry at schema 1.1 is refused with an error on the entry; delete it and add
+the integration again. From 2.1 on every change of either shape comes with a
+migration and is listed here.
 
 A migration is only ever needed in one direction: an entry written by a *newer*
 version than the one reading it is refused outright rather than guessed at.

@@ -7,6 +7,7 @@ import logging
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.const import Platform
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import (
     config_validation as cv,
 )
@@ -19,7 +20,7 @@ from homeassistant.helpers import (
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceEntryType
 from homeassistant.helpers.typing import ConfigType
 
-from . import following, hubs, migration
+from . import following, hubs
 from .const import (
     CONF_MODES,
     CONF_PARAMETERS,
@@ -86,10 +87,12 @@ async def async_migrate_entry(
 ) -> bool:
     """Bring a config entry up to the current schema.
 
-    The step from 1 to 2 - one entry per preset mode and blueprint, to three
-    hubs - is not taken here: it dissolves the entry instead of updating it,
-    and it needs every legacy entry at once. ``async_setup_entry`` hands those
-    to ``migration`` and this stays the place for everything after.
+    Version 1 held one config entry per preset mode and per blueprint. It is
+    not migrated: 0.1.0 was released and withdrawn without anybody running it,
+    so the only entries at that version are from a development install, and a
+    migration nobody needs is a path nobody tests. Such an entry is refused
+    rather than half read - Home Assistant then says so on the entry instead
+    of leaving the user with a setup that looks fine and is not.
     """
     if entry.version > ENTRY_VERSION:
         # Written by a newer version of the integration; its keys are unknown
@@ -97,6 +100,17 @@ async def async_migrate_entry(
         _LOGGER.error(
             "Config entry '%s' was created by a newer version of %s "
             "(%s.%s); downgrading is not supported",
+            entry.title,
+            DOMAIN,
+            entry.version,
+            entry.minor_version,
+        )
+        return False
+
+    if entry.version < ENTRY_VERSION:
+        _LOGGER.error(
+            "Config entry '%s' was created by %s before its objects moved into "
+            "hubs (schema %s.%s). Delete it and add the integration again",
             entry.title,
             DOMAIN,
             entry.version,
@@ -113,10 +127,9 @@ async def async_setup_entry(
     """Set up one of the three hubs."""
     kind = hubs.hub_kind(entry)
     if kind is None:
-        # A 0.1.0 entry: its objects move into the hubs, and it is removed as
-        # soon as this setup is over. Nothing is set up from it.
-        await migration.async_migrate_legacy_entries(hass)
-        return True
+        # Refused by async_migrate_entry already; nothing reaches this but an
+        # entry someone built by hand.
+        raise ConfigEntryError(f"'{entry.title}' is not a hub of {DOMAIN}")
 
     runtime = await async_setup_runtime(hass)
     entry.runtime_data = runtime

@@ -3,11 +3,10 @@
 from __future__ import annotations
 
 import importlib
-from typing import Any
 from unittest.mock import AsyncMock, patch
 
 import pytest
-from homeassistant.config_entries import ConfigEntryState, ConfigSubentryData
+from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 from homeassistant.helpers import entity_registry as er
@@ -19,17 +18,13 @@ from custom_components.preset_manager import (
 )
 from custom_components.preset_manager.const import (
     CONF_MODES,
-    CONF_PARAMETERS,
     CONF_PRESET_MODE,
     DOMAIN,
     ENTRY_MINOR_VERSION,
     ENTRY_VERSION,
-    HUB_BLUEPRINTS,
     HUB_PRESET_MODES,
-    HUB_PRESETS,
     STORAGE_KEY,
     STORAGE_VERSION,
-    SUBENTRY_TYPE_PRESET,
 )
 from custom_components.preset_manager.entity import async_expected_preset_ids
 from custom_components.preset_manager.sources import ConditionSource
@@ -126,113 +121,29 @@ async def test_the_first_object_creates_its_hub(hass: HomeAssistant) -> None:
     assert [item["key"] for item in subentry.data[CONF_MODES]] == ["home", "night"]
 
 
-# Migration --------------------------------------------------------------------
+# The schema before the hubs -----------------------------------------------------
 
 
-def _legacy_preset_mode() -> MockConfigEntry:
-    """Build a 0.1.0 preset mode entry with one preset in it."""
-    preset: dict[str, Any] = {
-        "data": {CONF_PARAMETERS: [BRIGHTNESS]},
-        "subentry_id": PRESET_ID,
-        "subentry_type": SUBENTRY_TYPE_PRESET,
-        "title": "Motion Sensor Living Room",
-        "unique_id": None,
-    }
-    return MockConfigEntry(
+async def test_an_entry_from_before_the_hubs_is_refused(hass: HomeAssistant) -> None:
+    """Version 1 held one entry per preset mode and per blueprint.
+
+    It is not migrated - 0.1.0 was released and withdrawn without anybody
+    running it - so such an entry has to fail visibly instead of being read
+    half way into a setup that looks fine and is not.
+    """
+    entry = MockConfigEntry(
         domain=DOMAIN,
         title="House Mode",
-        entry_id=PRESET_MODE_ID,
         data={CONF_MODES: [dict(item) for item in MODES]},
         version=1,
         minor_version=1,
-        subentries_data=[ConfigSubentryData(**preset)],
     )
+    entry.add_to_hass(hass)
 
-
-async def test_migration_moves_the_objects_into_the_hubs(
-    hass: HomeAssistant,
-) -> None:
-    """A 0.1.0 entry is dissolved into subentries, and containment becomes a
-    reference."""
-    legacy = _legacy_preset_mode()
-    legacy.add_to_hass(hass)
-
-    await hass.config_entries.async_setup(legacy.entry_id)
-    await hass.async_block_till_done()
+    assert not await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
 
-    entries = {
-        entry.unique_id: entry for entry in hass.config_entries.async_entries(DOMAIN)
-    }
-    # The legacy entry is gone, and nothing else was created.
-    assert set(entries) == {HUB_PRESET_MODES, HUB_PRESETS}
-    # Every object keeps the id it had, which is what the entity unique ids,
-    # the device identifiers and the value store are built from.
-    assert PRESET_MODE_ID in entries[HUB_PRESET_MODES].subentries
-    preset = entries[HUB_PRESETS].subentries[PRESET_ID]
-    assert preset.data[CONF_PRESET_MODE] == PRESET_MODE_ID
-    assert hass.states.get("select.house_mode_active_mode") is not None
-
-
-async def test_migration_keeps_what_the_user_configured(
-    hass: HomeAssistant, entity_registry: er.EntityRegistry
-) -> None:
-    """Entities survive the migration with their id and their settings.
-
-    They are not re-created: the platforms register the same unique ids, and
-    Home Assistant moves the existing registry entry to the hub that provides
-    it now. Getting the order wrong here would strip every entity of its name,
-    its area, its icon and its history.
-    """
-    legacy = _legacy_preset_mode()
-    legacy.add_to_hass(hass)
-
-    editor = entity_registry.async_get_or_create(
-        "number",
-        DOMAIN,
-        f"{PRESET_ID}_cfg_home-brightness",
-        config_entry=legacy,
-        config_subentry_id=PRESET_ID,
-        suggested_object_id="motion_sensor_living_room_home_brightness",
-    )
-    entity_registry.async_update_entity(editor.entity_id, name="Cosy")
-
-    await hass.config_entries.async_setup(legacy.entry_id)
-    await hass.async_block_till_done()
-    await hass.async_block_till_done()
-
-    kept = entity_registry.async_get(editor.entity_id)
-    assert kept is not None
-    assert kept.name == "Cosy"
-    presets = next(
-        entry
-        for entry in hass.config_entries.async_entries(DOMAIN)
-        if entry.unique_id == HUB_PRESETS
-    )
-    assert kept.config_entry_id == presets.entry_id
-    assert kept.config_subentry_id == PRESET_ID
-
-
-async def test_migration_moves_a_blueprint_too(hass: HomeAssistant) -> None:
-    """A blueprint was an entry of its own and becomes a subentry."""
-    legacy = MockConfigEntry(
-        domain=DOMAIN,
-        title="Heating",
-        data={"entry_type": "blueprint", CONF_PARAMETERS: [BRIGHTNESS]},
-        version=1,
-        minor_version=1,
-    )
-    legacy.add_to_hass(hass)
-
-    await hass.config_entries.async_setup(legacy.entry_id)
-    await hass.async_block_till_done()
-    await hass.async_block_till_done()
-
-    entries = hass.config_entries.async_entries(DOMAIN)
-    assert [entry.unique_id for entry in entries] == [HUB_BLUEPRINTS]
-    subentry = entries[0].subentries[legacy.entry_id]
-    assert subentry.title == "Heating"
-    assert subentry.data[CONF_PARAMETERS] == [BRIGHTNESS]
+    assert entry.state is ConfigEntryState.MIGRATION_ERROR
 
 
 # Deleting ---------------------------------------------------------------------

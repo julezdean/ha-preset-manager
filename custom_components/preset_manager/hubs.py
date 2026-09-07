@@ -22,10 +22,9 @@ whether the Preset Modes hub happened to be set up first.
 from __future__ import annotations
 
 from collections.abc import Mapping
-from types import MappingProxyType
 from typing import Any
 
-from homeassistant.config_entries import ConfigEntry, ConfigSubentry, DiscoveryKey
+from homeassistant.config_entries import ConfigEntry, ConfigSubentry
 from homeassistant.core import HomeAssistant, callback
 
 from .const import (
@@ -40,20 +39,10 @@ from .const import (
     HUB_SUBENTRY_TYPES,
 )
 
-#: A hub is created by the config flow or by the migration, never found: it
-#: has no discovery keys, and Home Assistant wants the mapping spelled out.
-NO_DISCOVERY_KEYS: MappingProxyType[str, tuple[DiscoveryKey, ...]] = MappingProxyType(
-    {}
-)
-
 
 @callback
 def hub_kind(entry: ConfigEntry) -> str | None:
-    """Return which hub ``entry`` is, or ``None`` if it is not one.
-
-    An entry of an older version has no unique id yet; it is migrated into a
-    hub before it is ever set up.
-    """
+    """Return which hub ``entry`` is, or ``None`` if it is not one."""
     if entry.unique_id in HUB_SUBENTRY_TYPES:
         return entry.unique_id
     return None
