@@ -131,8 +131,9 @@ under *Devices*.
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=julezdean&repository=ha-preset-manager&category=integration)
 
-The button opens this repository straight in your own HACS. Install it there and
-restart Home Assistant. By hand instead:
+The button opens your own HACS and offers to add this repository as a custom
+one; confirm, then download it from the page that opens and restart Home
+Assistant. By hand instead:
 
 1. HACS → Integrations → ⋮ → *Custom repositories*.
 2. Add the repository URL, category *Integration*.
