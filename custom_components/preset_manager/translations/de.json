@@ -1,0 +1,431 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Was möchtest du anlegen?",
+        "description": "Ein Preset Mode hält die Modes und die Presets, die ihnen folgen. Ein Preset Blueprint ist eine Parameterliste, die sich beliebig viele Presets teilen können.",
+        "menu_options": {
+          "preset_mode": "Preset Mode",
+          "blueprint": "Preset Blueprint"
+        }
+      },
+      "preset_mode": {
+        "title": "Neuer Preset Mode",
+        "description": "Ein Preset Mode bündelt Modes, die zusammengehören, zum Beispiel Zuhause, Abwesend und Nacht. Die Presets kommen danach dazu, und jeder weitere Preset Mode wird ein eigener Eintrag.",
+        "data": {
+          "name": "Name des Preset Modes",
+          "modes": "Modes"
+        },
+        "data_description": {
+          "name": "Zum Beispiel \"Hausmodus\" oder \"Fensterstatus\".",
+          "modes": "Namen eintippen und mit Enter bestätigen, um eigene Modes anzulegen."
+        }
+      },
+      "blueprint": {
+        "title": "Neuer Preset Blueprint",
+        "description": "Ein Preset Blueprint definiert Parameter einmal – Zieltemperatur, Boost-Dauer – und gibt sie an jedes Preset weiter, das ihm folgt. Diese Presets übernehmen jede spätere Änderung des Blueprints und haben keine eigenen Parameter; ihre Werte pro Mode bleiben ihre eigenen.",
+        "data": {
+          "name": "Name des Preset Blueprints"
+        },
+        "data_description": {
+          "name": "Zum Beispiel „Heizungen“ oder „Rollläden“."
+        }
+      },
+      "manage_parameters": {
+        "title": "Parameter des Preset Blueprints",
+        "description": "Eine Zeile pro Parameter. Über den Stift umbenennen, den Typ ändern oder ein Symbol vergeben, über den Mülleimer löschen. Die Reihenfolge der Zeilen ist die Reihenfolge der Entitäten.\n\nJedes Preset, das diesem Blueprint folgt, wird sofort aktualisiert. Wird ein Parameter gelöscht, werden auch seine gespeicherten Werte in diesen Presets gelöscht. Beim Ändern des Typs passiert dasselbe, weil die alten Werte nicht mehr passen.",
+        "data": {
+          "parameters": "Parameter",
+          "parameter": "Details bearbeiten von"
+        },
+        "data_description": {
+          "parameter": "Wertebereich, Einheit, Optionen und Standardwert werden im nächsten Schritt abgefragt. Neue Parameter landen dort automatisch."
+        }
+      },
+      "parameter_details": {
+        "title": "Parameter-Details",
+        "description": "Einstellungen für \"{parameter}\".",
+        "data": {
+          "minimum": "Minimum",
+          "maximum": "Maximum",
+          "step": "Schrittweite",
+          "unit": "Einheit",
+          "device_class": "Geräteklasse",
+          "display_mode": "Darstellung",
+          "min_length": "Mindestlänge",
+          "max_length": "Maximallänge",
+          "pattern": "Muster",
+          "options": "Optionen",
+          "default": "Standardwert"
+        },
+        "data_description": {
+          "device_class": "Sagt Home Assistant, was die Zahl bedeutet, und ermöglicht damit Einheitenumrechnung und Langzeitstatistik. Es sind nur Einheiten erlaubt, die zur Geräteklasse passen.",
+          "pattern": "Regulärer Ausdruck, dem jeder Wert entsprechen muss.",
+          "default": "Wird verwendet, wenn ein Mode keinen Wert für diesen Parameter hat."
+        }
+      }
+    },
+    "error": {
+      "no_modes": "Bitte mindestens einen Mode anlegen.",
+      "duplicate_mode": "Mode-Namen müssen eindeutig sein.",
+      "duplicate_parameter": "Parameternamen müssen eindeutig sein.",
+      "no_options": "Bitte mindestens eine Option angeben.",
+      "invalid_range": "Das Minimum muss kleiner als das Maximum sein.",
+      "invalid_default": "Der Standardwert passt nicht zum Parameter.",
+      "invalid_unit": "Die Einheit passt nicht zur gewählten Geräteklasse. Erlaubt sind: {units}.",
+      "unit_not_allowed": "Diese Geräteklasse wird ohne Einheit verwendet.",
+      "no_parameters": "Bitte mindestens einen Parameter anlegen.",
+      "duplicate_mode_key": "Zwei Modes tragen denselben Key. Entferne die doppelte Zeile und lege den Mode neu an.",
+      "duplicate_parameter_key": "Zwei Parameter tragen denselben Key. Entferne die doppelte Zeile und lege den Parameter neu an."
+    }
+  },
+  "config_subentries": {
+    "preset": {
+      "title": "Preset",
+      "entry_type": "Preset",
+      "initiate_flow": {
+        "user": "Preset hinzufügen",
+        "reconfigure": "Preset bearbeiten"
+      },
+      "step": {
+        "user": {
+          "title": "Neues Preset",
+          "description": "Das Preset gehört zum Preset Mode „{preset_mode}“ und speichert seine Parameterwerte für jeden Mode dieses Preset Modes.",
+          "data": {
+            "name": "Name",
+            "blueprint": "Preset Blueprint"
+          },
+          "data_description": {
+            "blueprint": "Mit einem Preset Blueprint übernimmt das Preset dessen Parameter und bleibt mit ihm verbunden: Jede spätere Änderung des Blueprints kommt von selbst an, und eigene Parameter kann das Preset dann nicht mehr definieren. Für eigene Parameter „-“ wählen."
+          }
+        },
+        "parameter_details": {
+          "title": "Parameter-Details",
+          "description": "Einstellungen für \"{parameter}\".",
+          "data": {
+            "minimum": "Minimum",
+            "maximum": "Maximum",
+            "step": "Schrittweite",
+            "unit": "Einheit",
+            "device_class": "Geräteklasse",
+            "display_mode": "Darstellung",
+            "min_length": "Mindestlänge",
+            "max_length": "Maximallänge",
+            "pattern": "Muster",
+            "options": "Optionen",
+            "default": "Standardwert"
+          },
+          "data_description": {
+            "device_class": "Sagt Home Assistant, was die Zahl bedeutet, und ermöglicht damit Einheitenumrechnung und Langzeitstatistik. Es sind nur Einheiten erlaubt, die zur Geräteklasse passen.",
+            "pattern": "Regulärer Ausdruck, dem jeder Wert entsprechen muss.",
+            "default": "Wird verwendet, wenn ein Mode keinen Wert für diesen Parameter hat."
+          }
+        },
+        "reconfigure": {
+          "title": "Preset bearbeiten",
+          "menu_options": {
+            "manage_parameters": "Parameter verwalten",
+            "blueprint": "Preset Blueprint",
+            "rename_preset": "Preset umbenennen",
+            "assign_preset_mode": "Preset Mode zuweisen"
+          }
+        },
+        "manage_parameters": {
+          "title": "Parameter",
+          "description": "Eine Zeile pro Parameter. Über den Stift umbenennen, den Typ ändern oder ein Symbol vergeben, über den Mülleimer löschen. Die Reihenfolge der Zeilen ist die Reihenfolge der Entitäten.\n\nWird ein Parameter gelöscht, werden auch seine gespeicherten Werte gelöscht. Beim Ändern des Typs passiert dasselbe, weil die alten Werte nicht mehr passen.",
+          "data": {
+            "parameters": "Parameter",
+            "parameter": "Details bearbeiten von"
+          },
+          "data_description": {
+            "parameter": "Wertebereich, Einheit, Optionen und Standardwert werden im nächsten Schritt abgefragt. Neue Parameter landen dort automatisch."
+          }
+        },
+        "rename_preset": {
+          "title": "Preset umbenennen",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "assign_preset_mode": {
+          "title": "Preset Mode zuweisen",
+          "data": {
+            "preset_mode": "Preset Mode"
+          },
+          "data_description": {
+            "preset_mode": "Beim Verschieben in einen anderen Preset Mode behält das Preset seine Parameter, Werte und Entitäten."
+          }
+        },
+        "blueprint": {
+          "title": "Preset Blueprint",
+          "description": "Mit einem Preset Blueprint übernimmt das Preset dessen Parameter und folgt jeder Änderung daran. Mit „-“ löst es sich wieder: Es behält die Parameter, die es gerade hat, als eigene und kann sie wieder bearbeiten.\n\nEin Wechsel des Blueprints ersetzt die Parameter des Presets. Werte bleiben überall dort erhalten, wo es im neuen Blueprint einen Parameter mit demselben Schlüssel gibt.",
+          "data": {
+            "blueprint": "Preset Blueprint"
+          }
+        }
+      },
+      "error": {
+        "no_modes": "Bitte mindestens einen Mode auswählen.",
+        "duplicate_parameter": "Parameternamen müssen eindeutig sein.",
+        "no_options": "Bitte mindestens eine Option angeben.",
+        "invalid_range": "Das Minimum muss kleiner als das Maximum sein.",
+        "invalid_default": "Der Standardwert passt nicht zum Parameter.",
+        "invalid_unit": "Die Einheit passt nicht zur gewählten Geräteklasse. Erlaubt sind: {units}.",
+        "unit_not_allowed": "Diese Geräteklasse wird ohne Einheit verwendet.",
+        "no_parameters": "Bitte mindestens einen Parameter anlegen.",
+        "duplicate_parameter_key": "Zwei Parameter tragen denselben Key. Entferne die doppelte Zeile und lege den Parameter neu an."
+      },
+      "abort": {
+        "reconfigure_successful": "Preset aktualisiert.",
+        "preset_moved": "Preset in den anderen Preset Mode verschoben.",
+        "unknown_preset_mode": "Dieser Preset Mode existiert nicht mehr.",
+        "blueprint_locked": "Die Parameter dieses Presets gehören zu seinem Preset Blueprint und werden dort bearbeitet."
+      }
+    }
+  },
+  "selector": {
+    "parameter_type": {
+      "options": {
+        "number": "Zahl",
+        "boolean": "Schalter",
+        "text": "Text",
+        "select": "Auswahl",
+        "datetime": "Datum und Uhrzeit",
+        "date": "Datum",
+        "time": "Uhrzeit"
+      }
+    },
+    "display_mode": {
+      "options": {
+        "box": "Eingabefeld",
+        "slider": "Schieberegler",
+        "text": "Text",
+        "password": "Passwort"
+      }
+    },
+    "device_class": {
+      "options": {
+        "absolute_humidity": "Absolute Luftfeuchtigkeit",
+        "apparent_power": "Scheinleistung",
+        "aqi": "Luftqualitätsindex",
+        "area": "Fläche",
+        "atmospheric_pressure": "Atmosphärischer Druck",
+        "battery": "Batterie",
+        "blood_glucose_concentration": "Blutzuckerspiegel",
+        "carbon_monoxide": "Kohlenmonoxid",
+        "carbon_dioxide": "Kohlendioxid",
+        "conductivity": "Leitfähigkeit",
+        "current": "Stromstärke",
+        "data_rate": "Datenrate",
+        "data_size": "Datenmenge",
+        "distance": "Strecke",
+        "duration": "Dauer",
+        "energy": "Energie",
+        "energy_distance": "Energie je Strecke",
+        "energy_storage": "Gespeicherte Energie",
+        "frequency": "Frequenz",
+        "gas": "Gasmenge",
+        "humidity": "Luftfeuchtigkeit",
+        "illuminance": "Beleuchtungsstärke",
+        "irradiance": "Sonneneinstrahlung",
+        "moisture": "Feuchtigkeit",
+        "monetary": "Geldsaldo",
+        "nitrogen_dioxide": "Stickstoffdioxid",
+        "nitrogen_monoxide": "Stickstoffmonoxid",
+        "nitrous_oxide": "Lachgas",
+        "ozone": "Ozon",
+        "ph": "pH",
+        "pm1": "PM1",
+        "pm10": "PM10",
+        "pm25": "PM2,5",
+        "pm4": "PM4",
+        "power_factor": "Leistungsfaktor",
+        "power": "Leistung",
+        "precipitation": "Niederschlagsmenge",
+        "precipitation_intensity": "Niederschlagsintensität",
+        "pressure": "Druck",
+        "reactive_energy": "Blindenergie",
+        "reactive_power": "Blindleistung",
+        "signal_strength": "Signalstärke",
+        "sound_pressure": "Schalldruck",
+        "speed": "Geschwindigkeit",
+        "sulphur_dioxide": "Schwefeldioxid",
+        "temperature": "Temperatur",
+        "temperature_delta": "Temperatur-Delta",
+        "volatile_organic_compounds": "VOC",
+        "volatile_organic_compounds_parts": "VOC-Teile",
+        "voltage": "Spannung",
+        "volume": "Volumen",
+        "volume_storage": "Gespeichertes Volumen",
+        "volume_flow_rate": "Volumenstrom",
+        "water": "Wassermenge",
+        "weight": "Gewicht",
+        "wind_direction": "Windrichtung",
+        "wind_speed": "Windgeschwindigkeit"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "mode": {
+        "name": "Mode"
+      },
+      "active_mode": {
+        "name": "Aktiver Mode"
+      }
+    },
+    "select": {
+      "active_mode": {
+        "name": "Aktiver Mode"
+      }
+    },
+    "switch": {
+      "automatic": {
+        "name": "Automatik"
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_mode": {
+      "message": "Unbekannter Mode \"{mode}\". Verfügbare Modes: {modes}."
+    },
+    "unsupported_mode": {
+      "message": "Das Preset \"{preset}\" unterstützt den Mode \"{mode}\" nicht. Unterstützte Modes: {modes}."
+    },
+    "unknown_parameter": {
+      "message": "Das Preset \"{preset}\" hat keinen Parameter \"{parameter}\". Verfügbare Parameter: {parameters}."
+    },
+    "invalid_value": {
+      "message": "\"{value}\" ist kein gültiger Wert für \"{parameter}\": {error}"
+    },
+    "not_loaded": {
+      "message": "Preset Manager ist nicht eingerichtet."
+    },
+    "no_preset": {
+      "message": "Es wurde kein Preset angegeben. Verfügbare Presets: {presets}."
+    },
+    "single_preset_required": {
+      "message": "Dieser Dienst kann nur für genau ein Preset aufgerufen werden."
+    },
+    "automatic_active": {
+      "message": "Der Mode von \"{preset_mode}\" folgt seiner Quelle. Schalte die Automatik aus, um den Mode von Hand zu setzen."
+    },
+    "external_source": {
+      "message": "Der Mode von „{preset_mode}“ folgt {entity_id} und kann nicht von Hand gesetzt werden. Dafür zuerst die Entität in den Einstellungen des Preset Modes entfernen."
+    }
+  },
+  "services": {
+    "set_active_mode": {
+      "name": "Aktiven Mode setzen",
+      "description": "Aktiviert einen Mode des ausgewählten Mode-Selectors über seinen stabilen Key, der eine Umbenennung des Modes überlebt.",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "Schlüssel oder Anzeigename des Modes."
+        }
+      }
+    },
+    "set_value": {
+      "name": "Wert setzen",
+      "description": "Setzt den Wert eines Parameters in einem Mode des ausgewählten Presets.",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "Schlüssel oder Anzeigename des Modes."
+        },
+        "parameter": {
+          "name": "Parameter",
+          "description": "Schlüssel des Parameters."
+        },
+        "value": {
+          "name": "Wert",
+          "description": "Der neue Wert."
+        }
+      }
+    },
+    "get_values": {
+      "name": "Werte abfragen",
+      "description": "Gibt die Werte des ausgewählten Presets als Response zurück.",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "Abzufragender Mode; standardmäßig der aktuell wirksame Mode."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Preset Mode",
+        "menu_options": {
+          "manage_modes": "Modes verwalten",
+          "preset_mode_settings": "Preset Mode einstellen"
+        }
+      },
+      "manage_modes": {
+        "title": "Modes",
+        "description": "Die Liste wird von oben nach unten abgearbeitet: Der erste Mode, dessen Bedingungen zutreffen, wird aktiv. Zum Ändern der Priorität eine Zeile am Griff verschieben, über den Stift umbenennen oder Bedingungen setzen, über den Mülleimer löschen.\n\nEin Mode ohne Bedingungen trifft immer zu und fängt damit alles darunter ab – einen ans Ende der Liste stellen, um einen Auffang-Mode zu haben. Trifft gar nichts zu, ist kein Mode aktiv und alle Presets melden „unbekannt“.",
+        "data": {
+          "modes": "Modes in Prioritätsreihenfolge"
+        }
+      },
+      "preset_mode_settings": {
+        "title": "Preset Mode einstellen",
+        "data": {
+          "name": "Name",
+          "source_entity": "Dieser Entität folgen"
+        },
+        "data_description": {
+          "source_entity": "Leer lassen, damit der Preset Mode selbst entscheidet. Mit einer Entität benennt deren Zustand den aktiven Mode – verglichen wird mit den Mode-Namen, Groß- und Kleinschreibung egal – und sonst wird nichts ausgewertet: Die Bedingungen werden ignoriert, es gibt keinen Automatik-Schalter und keine Auswahl. Ein Zustand, der keinen Mode benennt, lässt den Preset Mode ohne aktiven Mode. Dafür braucht es also eine Entität, deren Zustand wörtlich einer deiner Mode-Namen ist – ein Dropdown-Helper mit den Modes als Optionen ist der typische Fall. Ein Sensor, der eine Zahl oder einen Messwert liefert, passt nie zu einem."
+        }
+      },
+      "manage_parameters": {
+        "title": "Parameter des Preset Blueprints",
+        "description": "Eine Zeile pro Parameter. Über den Stift umbenennen, den Typ ändern oder ein Symbol vergeben, über den Mülleimer löschen. Die Reihenfolge der Zeilen ist die Reihenfolge der Entitäten.\n\nJedes Preset, das diesem Blueprint folgt, wird sofort aktualisiert. Wird ein Parameter gelöscht, werden auch seine gespeicherten Werte in diesen Presets gelöscht. Beim Ändern des Typs passiert dasselbe, weil die alten Werte nicht mehr passen.",
+        "data": {
+          "parameters": "Parameter",
+          "parameter": "Details bearbeiten von"
+        },
+        "data_description": {
+          "parameter": "Wertebereich, Einheit, Optionen und Standardwert werden im nächsten Schritt abgefragt. Neue Parameter landen dort automatisch."
+        }
+      },
+      "parameter_details": {
+        "title": "Parameter-Details",
+        "description": "Einstellungen für \"{parameter}\".",
+        "data": {
+          "minimum": "Minimum",
+          "maximum": "Maximum",
+          "step": "Schrittweite",
+          "unit": "Einheit",
+          "device_class": "Geräteklasse",
+          "display_mode": "Darstellung",
+          "min_length": "Mindestlänge",
+          "max_length": "Maximallänge",
+          "pattern": "Muster",
+          "options": "Optionen",
+          "default": "Standardwert"
+        },
+        "data_description": {
+          "device_class": "Sagt Home Assistant, was die Zahl bedeutet, und ermöglicht damit Einheitenumrechnung und Langzeitstatistik. Es sind nur Einheiten erlaubt, die zur Geräteklasse passen.",
+          "pattern": "Regulärer Ausdruck, dem jeder Wert entsprechen muss.",
+          "default": "Wird verwendet, wenn ein Mode keinen Wert für diesen Parameter hat."
+        }
+      }
+    },
+    "error": {
+      "no_modes": "Bitte mindestens einen Mode anlegen.",
+      "duplicate_mode": "Mode-Namen müssen eindeutig sein.",
+      "duplicate_parameter": "Parameternamen müssen eindeutig sein.",
+      "no_options": "Bitte mindestens eine Option angeben.",
+      "invalid_range": "Das Minimum muss kleiner als das Maximum sein.",
+      "invalid_default": "Der Standardwert passt nicht zum Parameter.",
+      "invalid_unit": "Die Einheit passt nicht zur gewählten Geräteklasse. Erlaubt sind: {units}.",
+      "unit_not_allowed": "Diese Geräteklasse wird ohne Einheit verwendet.",
+      "no_parameters": "Bitte mindestens einen Parameter anlegen.",
+      "duplicate_mode_key": "Zwei Modes tragen denselben Key. Entferne die doppelte Zeile und lege den Mode neu an.",
+      "duplicate_parameter_key": "Zwei Parameter tragen denselben Key. Entferne die doppelte Zeile und lege den Parameter neu an."
+    }
+  }
+}

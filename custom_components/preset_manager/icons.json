@@ -1,0 +1,22 @@
+{
+  "entity": {
+    "sensor": {
+      "mode": { "default": "mdi:state-machine" },
+      "active_mode": { "default": "mdi:state-machine" }
+    },
+    "select": {
+      "active_mode": { "default": "mdi:form-select" }
+    },
+    "switch": {
+      "automatic": {
+        "default": "mdi:robot",
+        "state": { "off": "mdi:robot-off" }
+      }
+    }
+  },
+  "services": {
+    "set_active_mode": { "service": "mdi:form-select" },
+    "set_value": { "service": "mdi:pencil" },
+    "get_values": { "service": "mdi:format-list-bulleted" }
+  }
+}

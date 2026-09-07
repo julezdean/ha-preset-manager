@@ -1,0 +1,431 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "What would you like to add?",
+        "description": "A preset mode holds the modes and the presets that follow them. A blueprint is a parameter list that any number of presets can share.",
+        "menu_options": {
+          "preset_mode": "Preset mode",
+          "blueprint": "Preset blueprint"
+        }
+      },
+      "preset_mode": {
+        "title": "New preset mode",
+        "description": "A preset mode holds a set of modes that belong together, for example Home, Away and Night. Its presets are added afterwards, and every further preset mode becomes an entry of its own.",
+        "data": {
+          "name": "Name of the preset mode",
+          "modes": "Modes"
+        },
+        "data_description": {
+          "name": "For example \"House Mode\" or \"Window State\".",
+          "modes": "Type a name and press enter to add your own modes."
+        }
+      },
+      "blueprint": {
+        "title": "New preset blueprint",
+        "description": "A blueprint defines parameters once - a target temperature, a boost duration - and hands them to every preset that follows it. Those presets follow every later change of the blueprint and have no parameters of their own; their values per mode stay their own.",
+        "data": {
+          "name": "Name of the preset blueprint"
+        },
+        "data_description": {
+          "name": "For example “Heating” or “Shutters”."
+        }
+      },
+      "manage_parameters": {
+        "title": "Parameters of the preset blueprint",
+        "description": "One row per parameter. Use the pencil to rename a parameter, to change its type or to give it an icon, the bin to delete it. The order of the rows is the order of the entities.\n\nEvery preset following this set is updated right away. Deleting a parameter also deletes its stored values in those presets, and changing its type does the same, because the old values no longer fit.",
+        "data": {
+          "parameters": "Parameters",
+          "parameter": "Edit details of"
+        },
+        "data_description": {
+          "parameter": "Range, unit, options and default value are asked for in the next step. New parameters go there automatically."
+        }
+      },
+      "parameter_details": {
+        "title": "Parameter details",
+        "description": "Settings for \"{parameter}\".",
+        "data": {
+          "minimum": "Minimum",
+          "maximum": "Maximum",
+          "step": "Step size",
+          "unit": "Unit",
+          "device_class": "Device class",
+          "display_mode": "Display",
+          "min_length": "Minimum length",
+          "max_length": "Maximum length",
+          "pattern": "Pattern",
+          "options": "Options",
+          "default": "Default value"
+        },
+        "data_description": {
+          "device_class": "Tells Home Assistant what the number means, which enables unit conversion and long-term statistics. Only units matching the device class are allowed.",
+          "pattern": "Regular expression every value has to match.",
+          "default": "Used when a mode has no value for this parameter."
+        }
+      }
+    },
+    "error": {
+      "no_modes": "Please define at least one mode.",
+      "duplicate_mode": "Mode names have to be unique.",
+      "duplicate_parameter": "Parameter names have to be unique.",
+      "no_options": "Please define at least one option.",
+      "invalid_range": "The minimum has to be smaller than the maximum.",
+      "invalid_default": "The default value does not fit the parameter.",
+      "invalid_unit": "The unit does not fit the selected device class. Allowed units: {units}.",
+      "unit_not_allowed": "This device class is used without a unit.",
+      "no_parameters": "Please add at least one parameter.",
+      "duplicate_mode_key": "Two modes carry the same key. Remove the duplicated row and add the mode again.",
+      "duplicate_parameter_key": "Two parameters carry the same key. Remove the duplicated row and add the parameter again."
+    }
+  },
+  "config_subentries": {
+    "preset": {
+      "title": "Preset",
+      "entry_type": "Preset",
+      "initiate_flow": {
+        "user": "Add preset",
+        "reconfigure": "Edit preset"
+      },
+      "step": {
+        "user": {
+          "title": "New preset",
+          "description": "The preset belongs to the preset mode “{preset_mode}” and stores its parameter values for every mode of that preset mode.",
+          "data": {
+            "name": "Name",
+            "blueprint": "Preset blueprint"
+          },
+          "data_description": {
+            "blueprint": "With a blueprint the preset takes over its parameters and stays tied to it: every later change of the blueprint arrives on its own, and the preset cannot define parameters of its own any more. Pick “-” to define them here instead."
+          }
+        },
+        "parameter_details": {
+          "title": "Parameter details",
+          "description": "Settings for \"{parameter}\".",
+          "data": {
+            "minimum": "Minimum",
+            "maximum": "Maximum",
+            "step": "Step size",
+            "unit": "Unit",
+            "device_class": "Device class",
+            "display_mode": "Display",
+            "min_length": "Minimum length",
+            "max_length": "Maximum length",
+            "pattern": "Pattern",
+            "options": "Options",
+            "default": "Default value"
+          },
+          "data_description": {
+            "device_class": "Tells Home Assistant what the number means, which enables unit conversion and long-term statistics. Only units matching the device class are allowed.",
+            "pattern": "Regular expression every value has to match.",
+            "default": "Used when a mode has no value for this parameter."
+          }
+        },
+        "reconfigure": {
+          "title": "Edit preset",
+          "menu_options": {
+            "manage_parameters": "Manage parameters",
+            "blueprint": "Preset blueprint",
+            "rename_preset": "Rename preset",
+            "assign_preset_mode": "Assign preset mode"
+          }
+        },
+        "manage_parameters": {
+          "title": "Parameters",
+          "description": "One row per parameter. Use the pencil to rename a parameter, to change its type or to give it an icon, the bin to delete it. The order of the rows is the order of the entities.\n\nDeleting a parameter also deletes its stored values. Changing the type does the same, because the old values no longer fit.",
+          "data": {
+            "parameters": "Parameters",
+            "parameter": "Edit details of"
+          },
+          "data_description": {
+            "parameter": "Range, unit, options and default value are asked for in the next step. New parameters go there automatically."
+          }
+        },
+        "rename_preset": {
+          "title": "Rename preset",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "assign_preset_mode": {
+          "title": "Assign preset mode",
+          "data": {
+            "preset_mode": "Preset mode"
+          },
+          "data_description": {
+            "preset_mode": "Moving the preset to another preset mode keeps its parameters, values and entities."
+          }
+        },
+        "blueprint": {
+          "title": "Preset blueprint",
+          "description": "With a blueprint the preset takes over its parameters and follows every change of it. Pick “-” to leave the blueprint: the preset keeps the parameters it has right now as its own and can edit them again.\n\nSwitching blueprints replaces the parameters of the preset. Values are kept wherever a parameter of the same key exists in the new blueprint.",
+          "data": {
+            "blueprint": "Preset blueprint"
+          }
+        }
+      },
+      "error": {
+        "no_modes": "Please select at least one mode.",
+        "duplicate_parameter": "Parameter names have to be unique.",
+        "no_options": "Please define at least one option.",
+        "invalid_range": "The minimum has to be smaller than the maximum.",
+        "invalid_default": "The default value does not fit the parameter.",
+        "invalid_unit": "The unit does not fit the selected device class. Allowed units: {units}.",
+        "unit_not_allowed": "This device class is used without a unit.",
+        "no_parameters": "Please add at least one parameter.",
+        "duplicate_parameter_key": "Two parameters carry the same key. Remove the duplicated row and add the parameter again."
+      },
+      "abort": {
+        "reconfigure_successful": "Preset updated.",
+        "preset_moved": "Preset moved to the other preset mode.",
+        "unknown_preset_mode": "That preset mode no longer exists.",
+        "blueprint_locked": "The parameters of this preset belong to its preset blueprint and are edited there."
+      }
+    }
+  },
+  "selector": {
+    "parameter_type": {
+      "options": {
+        "number": "Number",
+        "boolean": "Toggle",
+        "text": "Text",
+        "select": "Dropdown",
+        "datetime": "Date and time",
+        "date": "Date",
+        "time": "Time"
+      }
+    },
+    "display_mode": {
+      "options": {
+        "box": "Input field",
+        "slider": "Slider",
+        "text": "Text",
+        "password": "Password"
+      }
+    },
+    "device_class": {
+      "options": {
+        "absolute_humidity": "Absolute humidity",
+        "apparent_power": "Apparent power",
+        "aqi": "Air quality index",
+        "area": "Area",
+        "atmospheric_pressure": "Atmospheric pressure",
+        "battery": "Battery",
+        "blood_glucose_concentration": "Blood glucose concentration",
+        "carbon_monoxide": "Carbon monoxide",
+        "carbon_dioxide": "Carbon dioxide",
+        "conductivity": "Conductivity",
+        "current": "Current",
+        "data_rate": "Data rate",
+        "data_size": "Data size",
+        "distance": "Distance",
+        "duration": "Duration",
+        "energy": "Energy",
+        "energy_distance": "Energy per distance",
+        "energy_storage": "Stored energy",
+        "frequency": "Frequency",
+        "gas": "Gas",
+        "humidity": "Humidity",
+        "illuminance": "Illuminance",
+        "irradiance": "Irradiance",
+        "moisture": "Moisture",
+        "monetary": "Monetary balance",
+        "nitrogen_dioxide": "Nitrogen dioxide",
+        "nitrogen_monoxide": "Nitrogen monoxide",
+        "nitrous_oxide": "Nitrous oxide",
+        "ozone": "Ozone",
+        "ph": "pH",
+        "pm1": "PM1",
+        "pm10": "PM10",
+        "pm25": "PM2.5",
+        "pm4": "PM4",
+        "power_factor": "Power factor",
+        "power": "Power",
+        "precipitation": "Precipitation",
+        "precipitation_intensity": "Precipitation intensity",
+        "pressure": "Pressure",
+        "reactive_energy": "Reactive energy",
+        "reactive_power": "Reactive power",
+        "signal_strength": "Signal strength",
+        "sound_pressure": "Sound pressure",
+        "speed": "Speed",
+        "sulphur_dioxide": "Sulphur dioxide",
+        "temperature": "Temperature",
+        "temperature_delta": "Temperature delta",
+        "volatile_organic_compounds": "Volatile organic compounds",
+        "volatile_organic_compounds_parts": "Volatile organic compounds parts",
+        "voltage": "Voltage",
+        "volume": "Volume",
+        "volume_storage": "Stored volume",
+        "volume_flow_rate": "Volume flow rate",
+        "water": "Water",
+        "weight": "Weight",
+        "wind_direction": "Wind direction",
+        "wind_speed": "Wind speed"
+      }
+    }
+  },
+  "entity": {
+    "sensor": {
+      "mode": {
+        "name": "Mode"
+      },
+      "active_mode": {
+        "name": "Active mode"
+      }
+    },
+    "select": {
+      "active_mode": {
+        "name": "Active mode"
+      }
+    },
+    "switch": {
+      "automatic": {
+        "name": "Automatic"
+      }
+    }
+  },
+  "exceptions": {
+    "unknown_mode": {
+      "message": "Unknown mode \"{mode}\". Available modes: {modes}."
+    },
+    "unsupported_mode": {
+      "message": "Preset \"{preset}\" does not support the mode \"{mode}\". Supported modes: {modes}."
+    },
+    "unknown_parameter": {
+      "message": "Preset \"{preset}\" has no parameter \"{parameter}\". Available parameters: {parameters}."
+    },
+    "invalid_value": {
+      "message": "\"{value}\" is not a valid value for \"{parameter}\": {error}"
+    },
+    "not_loaded": {
+      "message": "Preset Manager is not set up."
+    },
+    "no_preset": {
+      "message": "No preset was targeted. Available presets: {presets}."
+    },
+    "single_preset_required": {
+      "message": "This service can only be called for exactly one preset."
+    },
+    "automatic_active": {
+      "message": "The mode of \"{preset_mode}\" follows its source. Turn the automatic switch off to set the mode by hand."
+    },
+    "external_source": {
+      "message": "The mode of “{preset_mode}” follows {entity_id} and cannot be set by hand. Clear that entity in the settings of the preset mode first."
+    }
+  },
+  "services": {
+    "set_active_mode": {
+      "name": "Set active mode",
+      "description": "Activates a mode of the targeted mode selector by its stable key, which survives a rename of the mode.",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "Key or display name of the mode."
+        }
+      }
+    },
+    "set_value": {
+      "name": "Set value",
+      "description": "Sets the value of a parameter in one mode of the targeted preset.",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "Key or display name of the mode."
+        },
+        "parameter": {
+          "name": "Parameter",
+          "description": "Key of the parameter."
+        },
+        "value": {
+          "name": "Value",
+          "description": "The new value."
+        }
+      }
+    },
+    "get_values": {
+      "name": "Get values",
+      "description": "Returns the values of the targeted preset as a response.",
+      "fields": {
+        "mode": {
+          "name": "Mode",
+          "description": "Mode to read; defaults to the currently effective mode."
+        }
+      }
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Preset mode",
+        "menu_options": {
+          "manage_modes": "Manage modes",
+          "preset_mode_settings": "Preset mode settings"
+        }
+      },
+      "manage_modes": {
+        "title": "Modes",
+        "description": "The list is worked through from top to bottom: the first mode whose conditions match becomes active. Drag a row by its handle to change the priority, use the pencil to rename it or set its conditions, and the bin to delete it.\n\nA mode without conditions always matches, so it catches everything below it - put one at the bottom to have a fallback mode. If nothing matches at all, no mode is active and every preset reports “unknown”.",
+        "data": {
+          "modes": "Modes in priority order"
+        }
+      },
+      "preset_mode_settings": {
+        "title": "Preset mode settings",
+        "data": {
+          "name": "Name",
+          "source_entity": "Follow this entity"
+        },
+        "data_description": {
+          "source_entity": "Leave empty to let the preset mode decide for itself. With an entity, its state names the active mode - matched against the mode names, case insensitive - and nothing else is evaluated: the conditions are ignored, there is no automatic switch and no selector. A state that names no mode leaves the preset mode without an active mode. So this needs an entity whose state is literally one of your mode names - a dropdown helper with the modes as its options is the typical case. A sensor reporting a number or a measurement will never match one."
+        }
+      },
+      "manage_parameters": {
+        "title": "Parameters of the preset blueprint",
+        "description": "One row per parameter. Use the pencil to rename a parameter, to change its type or to give it an icon, the bin to delete it. The order of the rows is the order of the entities.\n\nEvery preset following this set is updated right away. Deleting a parameter also deletes its stored values in those presets, and changing its type does the same, because the old values no longer fit.",
+        "data": {
+          "parameters": "Parameters",
+          "parameter": "Edit details of"
+        },
+        "data_description": {
+          "parameter": "Range, unit, options and default value are asked for in the next step. New parameters go there automatically."
+        }
+      },
+      "parameter_details": {
+        "title": "Parameter details",
+        "description": "Settings for \"{parameter}\".",
+        "data": {
+          "minimum": "Minimum",
+          "maximum": "Maximum",
+          "step": "Step size",
+          "unit": "Unit",
+          "device_class": "Device class",
+          "display_mode": "Display",
+          "min_length": "Minimum length",
+          "max_length": "Maximum length",
+          "pattern": "Pattern",
+          "options": "Options",
+          "default": "Default value"
+        },
+        "data_description": {
+          "device_class": "Tells Home Assistant what the number means, which enables unit conversion and long-term statistics. Only units matching the device class are allowed.",
+          "pattern": "Regular expression every value has to match.",
+          "default": "Used when a mode has no value for this parameter."
+        }
+      }
+    },
+    "error": {
+      "no_modes": "Please define at least one mode.",
+      "duplicate_mode": "Mode names have to be unique.",
+      "duplicate_parameter": "Parameter names have to be unique.",
+      "no_options": "Please define at least one option.",
+      "invalid_range": "The minimum has to be smaller than the maximum.",
+      "invalid_default": "The default value does not fit the parameter.",
+      "invalid_unit": "The unit does not fit the selected device class. Allowed units: {units}.",
+      "unit_not_allowed": "This device class is used without a unit.",
+      "no_parameters": "Please add at least one parameter.",
+      "duplicate_mode_key": "Two modes carry the same key. Remove the duplicated row and add the mode again.",
+      "duplicate_parameter_key": "Two parameters carry the same key. Remove the duplicated row and add the parameter again."
+    }
+  }
+}

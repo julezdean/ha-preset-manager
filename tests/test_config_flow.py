@@ -1,0 +1,890 @@
+"""Tests for the config and subentry flows."""
+
+from __future__ import annotations
+
+from contextlib import nullcontext
+from unittest.mock import patch
+
+from homeassistant import config_entries
+from homeassistant.core import HomeAssistant
+from homeassistant.data_entry_flow import FlowResultType
+from homeassistant.helpers import entity_registry as er
+from pytest_homeassistant_custom_component.common import MockConfigEntry
+
+from custom_components.preset_manager.const import (
+    CONF_MODES,
+    CONF_PARAMETERS,
+    CONF_PRESET_MODE,
+    CONF_SOURCE_ENTITY,
+    DOMAIN,
+    SUBENTRY_TYPE_PRESET,
+    UID_CONFIG,
+    UID_SEPARATOR,
+)
+from custom_components.preset_manager.store import PresetValueStore, async_get_store
+
+from .conftest import BRIGHTNESS, PRESET_ID, make_entry, make_preset
+
+
+async def _setup(hass: HomeAssistant, entry: MockConfigEntry) -> MockConfigEntry:
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+    return entry
+
+
+# Config flow ------------------------------------------------------------------
+
+
+async def test_config_flow_creates_a_preset_mode(hass: HomeAssistant) -> None:
+    """Every config entry is one preset mode."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    # The first step picks the kind of entry: a preset mode or a blueprint.
+    assert result["type"] is FlowResultType.MENU
+    assert result["menu_options"] == ["preset_mode", "blueprint"]
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "preset_mode"}
+    )
+    assert result["step_id"] == "preset_mode"
+
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"name": "House Mode", CONF_MODES: ["Home", "Away", "Night"]},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    entry = hass.config_entries.async_entries(DOMAIN)[0]
+    assert entry.title == "House Mode"
+    assert [item["key"] for item in entry.data[CONF_MODES]] == [
+        "home",
+        "away",
+        "night",
+    ]
+    assert hass.states.get("select.house_mode_active_mode").state == "Home"
+
+
+async def test_config_flow_rejects_duplicates(hass: HomeAssistant) -> None:
+    """Duplicate mode names are refused."""
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "preset_mode"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"name": "House Mode", CONF_MODES: ["Night", "night"]}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_MODES: "duplicate_mode"}
+
+
+async def test_second_preset_mode_is_a_second_entry(hass: HomeAssistant) -> None:
+    """A further preset mode is added as its own config entry."""
+    await _setup(hass, make_entry())
+
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": config_entries.SOURCE_USER}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"], {"next_step_id": "preset_mode"}
+    )
+    result = await hass.config_entries.flow.async_configure(
+        result["flow_id"],
+        {"name": "Window State", CONF_MODES: ["Closed", "Open"]},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert len(hass.config_entries.async_entries(DOMAIN)) == 2
+    assert hass.states.get("sensor.window_state_mode").state == "Closed"
+    assert hass.states.get("select.window_state_active_mode") is not None
+    # The first preset mode is untouched.
+    assert hass.states.get("sensor.house_mode_mode").state == "Home"
+
+
+# Options flow -----------------------------------------------------------------
+
+
+async def _manage_modes(hass: HomeAssistant, entry: MockConfigEntry) -> dict:
+    """Open the mode list of a preset mode."""
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+    assert result["step_id"] == "init"
+    return await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "manage_modes"}
+    )
+
+
+async def test_preset_mode_settings_set_and_clear_the_source_entity(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """Naming an entity hands the preset mode over to it, clearing it hands it back."""
+    hass.states.async_set("input_select.house", "Night")
+
+    result = await hass.config_entries.options.async_init(motion_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "preset_mode_settings"}
+    )
+    assert result["step_id"] == "preset_mode_settings"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {"name": "House Mode", CONF_SOURCE_ENTITY: "input_select.house"},
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert hass.states.get("sensor.house_mode_mode").state == "Night"
+    assert hass.states.get("select.house_mode_active_mode") is None
+
+    result = await hass.config_entries.options.async_init(motion_entry.entry_id)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"next_step_id": "preset_mode_settings"}
+    )
+    # The form is seeded with the entity that is set.
+    suggested = {
+        str(item): (item.description or {}).get("suggested_value")
+        for item in result["data_schema"].schema
+    }
+    assert suggested[CONF_SOURCE_ENTITY] == "input_select.house"
+
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {"name": "House Mode"}
+    )
+    await hass.async_block_till_done()
+
+    # Without an entity the preset mode is its own again, selector included.
+    assert hass.states.get("select.house_mode_active_mode") is not None
+
+
+async def test_manage_modes_renames_and_keeps_values(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """Renaming a row keeps its key, and therefore its stored values."""
+    coordinator = next(iter(motion_entry.runtime_data.presets.values()))
+    coordinator.async_set_value("night", "brightness", 15)
+    await hass.async_block_till_done()
+
+    result = await _manage_modes(hass, motion_entry)
+    assert result["step_id"] == "manage_modes"
+
+    # The list is seeded with the current modes, keys included.
+    schema = result["data_schema"].schema
+    key = next(item for item in schema if str(item) == CONF_MODES)
+    seeded = key.description["suggested_value"]
+    assert [row["key"] for row in seeded] == ["home", "away", "night", "window_open"]
+
+    renamed = [dict(row) for row in seeded]
+    renamed[2]["name"] = "Sleep"
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_MODES: renamed}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    preset_mode = motion_entry.runtime_data.preset_mode
+    assert preset_mode.config.mode("night").name == "Sleep"
+    assert (
+        hass.states.get("number.motion_sensor_living_room_night_brightness").state
+        == "15.0"
+    )
+
+
+async def test_manage_modes_adds_reorders_and_deletes(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """One list handles adding, ordering and deleting."""
+    result = await _manage_modes(hass, motion_entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_MODES: [
+                # Reordered, "away" deleted, a new row without a key added.
+                {"key": "night", "name": "Night"},
+                {"name": "Vacation"},
+                {"key": "home", "name": "Home"},
+                {"key": "window_open", "name": "Window open"},
+            ]
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    assert [row["key"] for row in motion_entry.data[CONF_MODES]] == [
+        "night",
+        "vacation",
+        "home",
+        "window_open",
+    ]
+    # The order is also the order of the select options.
+    assert hass.states.get("select.house_mode_active_mode").attributes["options"] == [
+        "Night",
+        "Vacation",
+        "Home",
+        "Window open",
+    ]
+    # The deleted mode takes its editor entities with it.
+    assert hass.states.get("number.motion_sensor_living_room_away_brightness") is None
+    assert hass.states.get("number.motion_sensor_living_room_vacation_brightness")
+
+
+async def test_a_new_mode_never_takes_the_key_of_a_renamed_one(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """A key is only free once no row keeps it, wherever that row sits.
+
+    Adding "Night" above the mode that is renamed to "Evening" in the very
+    same submit used to hand the new row the key the old one keeps: two modes
+    with the key "night", sharing their values and colliding in their unique
+    ids.
+    """
+    result = await _manage_modes(hass, motion_entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_MODES: [
+                {"key": "home", "name": "Home"},
+                # New row, named like the mode two rows below it.
+                {"name": "Night"},
+                {"key": "away", "name": "Away"},
+                {"key": "night", "name": "Evening"},
+                {"key": "window_open", "name": "Window open"},
+            ]
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    keys = [row["key"] for row in motion_entry.data[CONF_MODES]]
+    assert len(keys) == len(set(keys))
+    assert keys == ["home", "night_2", "away", "night", "window_open"]
+
+    # Both modes got an editor entity of their own. They are checked by unique
+    # id: the renamed mode keeps the entity id it already had, so the new
+    # "Night" is the one that has to move out of the way.
+    registry = er.async_get(hass)
+    unique_ids = {
+        item.unique_id
+        for item in er.async_entries_for_config_entry(registry, motion_entry.entry_id)
+    }
+    cfg = f"{PRESET_ID}_{UID_CONFIG}"
+    assert f"{cfg}_night{UID_SEPARATOR}brightness" in unique_ids
+    assert f"{cfg}_night_2{UID_SEPARATOR}brightness" in unique_ids
+
+
+async def test_two_rows_with_the_same_mode_key_are_refused(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """The key field is read_only in the form, but not in its YAML editor."""
+    result = await _manage_modes(hass, motion_entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_MODES: [
+                {"key": "home", "name": "Home"},
+                {"key": "home", "name": "Copy of home"},
+            ]
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_MODES: "duplicate_mode_key"}
+
+
+async def test_manage_modes_sets_conditions(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """Conditions are set in the same list, and drive the preset mode."""
+    hass.states.async_set("binary_sensor.window", "on")
+
+    result = await _manage_modes(hass, motion_entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"],
+        {
+            CONF_MODES: [
+                {
+                    "key": "window_open",
+                    "name": "Window open",
+                    "conditions": [
+                        {
+                            "condition": "state",
+                            "entity_id": "binary_sensor.window",
+                            "state": "on",
+                        }
+                    ],
+                },
+                {"key": "home", "name": "Home"},
+            ]
+        },
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    # Conditions turn the preset mode automatic.
+    assert hass.states.get("switch.house_mode_automatic").state == "on"
+    assert hass.states.get("sensor.house_mode_mode").state == "Window open"
+
+    hass.states.async_set("binary_sensor.window", "off")
+    await hass.async_block_till_done()
+    # Nothing matches any more -> the default mode takes over.
+    assert hass.states.get("sensor.house_mode_mode").state == "Home"
+
+
+async def test_manage_modes_rejects_an_empty_list(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """At least one mode has to remain."""
+    result = await _manage_modes(hass, motion_entry)
+    result = await hass.config_entries.options.async_configure(
+        result["flow_id"], {CONF_MODES: []}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_MODES: "no_modes"}
+
+
+async def test_create_preset_inside_its_preset_mode(hass: HomeAssistant) -> None:
+    """A preset is created inside the preset mode it is added to."""
+    entry = await _setup(
+        hass,
+        make_entry(
+            title="Window State",
+            modes=[
+                {"key": "closed", "name": "Closed"},
+                {"key": "open", "name": "Open"},
+            ],
+            entry_id="2" * 32,
+        ),
+    )
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_PRESET),
+        context={"source": config_entries.SOURCE_USER},
+    )
+    assert result["step_id"] == "user"
+    # The preset mode is not asked for - it is the entry the preset lives in.
+    assert set(result["data_schema"].schema) == {"name"}
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": "Shutter Living Room"}
+    )
+    assert result["step_id"] == "manage_parameters"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PARAMETERS: [{"name": "Position", "type": "number"}]}
+    )
+    # A new row goes straight into its type specific details.
+    assert result["step_id"] == "parameter_details"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"default": 50}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    await hass.async_block_till_done()
+
+    subentry = next(
+        item
+        for item in entry.subentries.values()
+        if item.title == "Shutter Living Room"
+    )
+    assert subentry.data[CONF_PARAMETERS][0]["key"] == "position"
+
+    # It follows the window state preset mode and covers every mode of it.
+    assert hass.states.get("sensor.shutter_living_room_active_mode").state == "Closed"
+    assert hass.states.get("number.shutter_living_room_open_position") is not None
+    assert hass.states.get("number.shutter_living_room_closed_position") is not None
+
+
+async def test_move_preset_to_another_preset_mode(hass: HomeAssistant) -> None:
+    """A preset can be moved to another preset mode without losing anything."""
+    house = await _setup(
+        hass,
+        make_entry(
+            presets=[
+                make_preset(
+                    "Heating",
+                    [
+                        {
+                            "key": "brightness",
+                            "name": "Brightness",
+                            "type": "number",
+                            "minimum": 0,
+                            "maximum": 100,
+                            "step": 1,
+                            "unit": "%",
+                        }
+                    ],
+                )
+            ]
+        ),
+    )
+    window = await _setup(
+        hass,
+        make_entry(
+            title="Window State",
+            modes=[
+                {"key": "closed", "name": "Closed"},
+                {"key": "night", "name": "Night"},
+            ],
+            entry_id="2" * 32,
+        ),
+    )
+    coordinator = next(iter(house.runtime_data.presets.values()))
+    coordinator.async_set_value("night", "brightness", 15)
+    await hass.async_block_till_done()
+    editor = hass.states.get("number.heating_night_brightness")
+    assert editor.state == "15.0"
+
+    result = await hass.config_entries.subentries.async_init(
+        (house.entry_id, SUBENTRY_TYPE_PRESET),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": PRESET_ID,
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "assign_preset_mode"}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PRESET_MODE: window.entry_id}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    assert result["reason"] == "preset_moved"
+    await hass.async_block_till_done()
+
+    # The subentry changed hands, keeping its id.
+    assert PRESET_ID not in house.subentries
+    assert PRESET_ID in window.subentries
+
+    # It follows the window state preset mode now.
+    assert hass.states.get("sensor.heating_active_mode").state == "Closed"
+    # Entity ids and the value of the "night" mode survived the move.
+    assert hass.states.get("number.heating_night_brightness").state == "15.0"
+    # "away" belongs to the old preset mode and is gone.
+    assert hass.states.get("number.heating_away_brightness") is None
+
+
+async def test_moving_a_preset_needs_the_value_protection(
+    hass: HomeAssistant,
+) -> None:
+    """The protection around the move is load bearing, not decoration.
+
+    Removing the subentry from one entry reloads it, and that reload sees a
+    preset belonging to nobody - without ``protect_preset`` its values are
+    pruned before the target entry has taken it over.
+    """
+    house = await _setup(
+        hass, make_entry(presets=[make_preset("Heating", [BRIGHTNESS])])
+    )
+    window = await _setup(
+        hass,
+        make_entry(
+            title="Window State",
+            modes=[{"key": "night", "name": "Night"}],
+            entry_id="2" * 32,
+        ),
+    )
+    coordinator = next(iter(house.runtime_data.presets.values()))
+    coordinator.async_set_value("night", "brightness", 15)
+    await hass.async_block_till_done()
+
+    with patch.object(
+        PresetValueStore, "protect_preset", lambda self, preset_id: nullcontext()
+    ):
+        await _move_preset(hass, house, window)
+
+    assert async_get_store(hass).get_value(PRESET_ID, "night", "brightness") is None
+
+
+async def _move_preset(
+    hass: HomeAssistant, source: MockConfigEntry, target: MockConfigEntry
+) -> None:
+    """Run the reconfigure flow that moves a preset to another preset mode."""
+    result = await hass.config_entries.subentries.async_init(
+        (source.entry_id, SUBENTRY_TYPE_PRESET),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": PRESET_ID,
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "assign_preset_mode"}
+    )
+    await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PRESET_MODE: target.entry_id}
+    )
+    await hass.async_block_till_done()
+
+
+async def test_moved_preset_keeps_its_registry_entry(
+    hass: HomeAssistant, entity_registry: er.EntityRegistry
+) -> None:
+    """The move reuses the registry entries instead of creating new ones."""
+    house = await _setup(
+        hass, make_entry(presets=[make_preset("Heating", [BRIGHTNESS])])
+    )
+    window = await _setup(
+        hass,
+        make_entry(
+            title="Window State",
+            modes=[{"key": "night", "name": "Night"}],
+            entry_id="2" * 32,
+        ),
+    )
+    before = entity_registry.async_get("number.heating_night_brightness")
+    entity_registry.async_update_entity(before.entity_id, name="My name")
+    await hass.async_block_till_done()
+
+    result = await hass.config_entries.subentries.async_init(
+        (house.entry_id, SUBENTRY_TYPE_PRESET),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": PRESET_ID,
+        },
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "assign_preset_mode"}
+    )
+    await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PRESET_MODE: window.entry_id}
+    )
+    await hass.async_block_till_done()
+
+    after = entity_registry.async_get("number.heating_night_brightness")
+    # Same registry entry, same customisation, new owner.
+    assert after.id == before.id
+    assert after.name == "My name"
+    assert after.config_entry_id == window.entry_id
+
+
+async def _manage_parameters(
+    hass: HomeAssistant, entry: MockConfigEntry, subentry_id: str
+) -> dict:
+    """Open the parameter list of a preset."""
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_PRESET),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": subentry_id,
+        },
+    )
+    return await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "manage_parameters"}
+    )
+
+
+def _preset_id(entry: MockConfigEntry) -> str:
+    """Return the subentry id of the single preset of an entry."""
+    return next(
+        item.subentry_id
+        for item in entry.subentries.values()
+        if item.subentry_type == SUBENTRY_TYPE_PRESET
+    )
+
+
+async def test_preset_add_and_remove_parameter(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """One list handles adding and deleting parameters."""
+    preset_id = _preset_id(motion_entry)
+
+    result = await _manage_parameters(hass, motion_entry, preset_id)
+    assert result["step_id"] == "manage_parameters"
+
+    # The list is seeded with the current parameters, keys included.
+    schema = result["data_schema"].schema
+    key = next(item for item in schema if str(item) == CONF_PARAMETERS)
+    seeded = key.description["suggested_value"]
+    assert [row["key"] for row in seeded] == [
+        "brightness",
+        "color_temperature",
+        "off_delay",
+    ]
+
+    rows = [dict(row) for row in seeded if row["key"] != "off_delay"]
+    rows.append({"name": "Active", "type": "boolean"})
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PARAMETERS: rows}
+    )
+    # Only the new row needs its details.
+    assert result["step_id"] == "parameter_details"
+    assert result["description_placeholders"]["parameter"] == "Active"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"default": True}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    assert (
+        hass.states.get("binary_sensor.motion_sensor_living_room_active").state == "on"
+    )
+    assert hass.states.get("sensor.motion_sensor_living_room_off_delay") is None
+    assert hass.states.get("number.motion_sensor_living_room_night_off_delay") is None
+
+
+async def test_renaming_a_parameter_keeps_its_values(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """A renamed row keeps its key, and therefore its stored values."""
+    coordinator = next(iter(motion_entry.runtime_data.presets.values()))
+    coordinator.async_set_value("night", "brightness", 15)
+    await hass.async_block_till_done()
+
+    result = await _manage_parameters(hass, motion_entry, _preset_id(motion_entry))
+    schema = result["data_schema"].schema
+    key = next(item for item in schema if str(item) == CONF_PARAMETERS)
+    rows = [dict(row) for row in key.description["suggested_value"]]
+    rows[0]["name"] = "Dim level"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PARAMETERS: rows}
+    )
+    # Nothing was retyped, so the flow is done without a detail step.
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    assert (
+        hass.states.get("number.motion_sensor_living_room_night_brightness").state
+        == "15.0"
+    )
+
+
+async def test_changing_the_type_drops_the_stored_values(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """The old values of a retyped parameter no longer fit and are dropped."""
+    coordinator = next(iter(motion_entry.runtime_data.presets.values()))
+    coordinator.async_set_value("night", "brightness", 15)
+    await hass.async_block_till_done()
+
+    result = await _manage_parameters(hass, motion_entry, _preset_id(motion_entry))
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_PARAMETERS: [
+                {"key": "brightness", "name": "Brightness", "type": "select"}
+            ]
+        },
+    )
+    assert result["step_id"] == "parameter_details"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"options": ["low", "high"], "default": "low"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    # The editor is a select now, and the stored 15 is gone.
+    assert async_get_store(hass).get_value(PRESET_ID, "night", "brightness") is None
+    assert (
+        hass.states.get("select.motion_sensor_living_room_night_brightness").state
+        == "low"
+    )
+
+
+async def test_two_rows_with_the_same_parameter_key_are_refused(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """Two parameters with one key would share their values and unique ids."""
+    result = await _manage_parameters(hass, motion_entry, PRESET_ID)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_PARAMETERS: [
+                {"key": "brightness", "name": "Brightness", "type": "number"},
+                {"key": "brightness", "name": "Copy", "type": "number"},
+            ]
+        },
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_PARAMETERS: "duplicate_parameter_key"}
+
+
+async def test_a_new_parameter_never_takes_the_key_of_a_renamed_one(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """Same rule as for the modes, in the parameter list."""
+    result = await _manage_parameters(hass, motion_entry, PRESET_ID)
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_PARAMETERS: [
+                # New row named like the parameter below it, which is renamed.
+                {"name": "Brightness", "type": "boolean"},
+                {"key": "brightness", "name": "Dim level", "type": "number"},
+            ]
+        },
+    )
+    # The new row needs its type specific details; the number keeps its own.
+    assert result["step_id"] == "parameter_details"
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {})
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    subentry = motion_entry.subentries[PRESET_ID]
+    keys = [row["key"] for row in subentry.data[CONF_PARAMETERS]]
+    assert len(keys) == len(set(keys))
+    assert keys == ["brightness_2", "brightness"]
+
+
+async def test_edit_details_of_an_existing_parameter(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """The field below the list opens the details of one parameter."""
+    result = await _manage_parameters(hass, motion_entry, _preset_id(motion_entry))
+    schema = result["data_schema"].schema
+    key = next(item for item in schema if str(item) == CONF_PARAMETERS)
+    rows = [dict(row) for row in key.description["suggested_value"]]
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PARAMETERS: rows, "parameter": "brightness"}
+    )
+    assert result["step_id"] == "parameter_details"
+    assert result["description_placeholders"]["parameter"] == "Brightness"
+    # The form is seeded with the current details.
+    suggested = {
+        str(item): (item.description or {}).get("suggested_value")
+        for item in result["data_schema"].schema
+    }
+    assert suggested["maximum"] == 100
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"minimum": 0, "maximum": 255, "step": 1, "unit": "%"}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    subentry = motion_entry.subentries[_preset_id(motion_entry)]
+    assert subentry.data[CONF_PARAMETERS][0]["maximum"] == 255
+
+
+async def test_an_empty_parameter_list_is_refused(
+    hass: HomeAssistant, motion_entry: MockConfigEntry
+) -> None:
+    """A preset without parameters would have nothing to publish."""
+    result = await _manage_parameters(hass, motion_entry, _preset_id(motion_entry))
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PARAMETERS: []}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {CONF_PARAMETERS: "no_parameters"}
+
+
+async def test_parameter_details_defaults(hass: HomeAssistant) -> None:
+    """Leaving the range empty applies the defaults of the type."""
+    entry = await _setup(hass, make_entry())
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_PRESET),
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"name": "Kitchen Light"},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PARAMETERS: [{"name": "Brightness", "type": "number"}]}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"unit": "%"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+    parameter = result["data"][CONF_PARAMETERS][0]
+    assert parameter["minimum"] == 0
+    assert parameter["maximum"] == 100
+    assert parameter["step"] == 1
+    assert parameter["display_mode"] == "box"
+    assert parameter["unit"] == "%"
+
+
+async def test_invalid_parameter_range(hass: HomeAssistant) -> None:
+    """An invalid range is refused."""
+    entry = await _setup(hass, make_entry())
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_PRESET),
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"name": "Test"},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {CONF_PARAMETERS: [{"name": "Value", "type": "number"}]}
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"minimum": 100, "maximum": 10}
+    )
+    assert result["type"] is FlowResultType.FORM
+    assert result["errors"] == {"base": "invalid_range"}
+
+
+async def test_unit_has_to_fit_the_device_class(hass: HomeAssistant) -> None:
+    """A unit the device class does not accept is refused."""
+    entry = await _setup(hass, make_entry())
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_PRESET),
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"name": "Test"},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {CONF_PARAMETERS: [{"name": "Temperature", "type": "number"}]},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"minimum": 0, "maximum": 100, "device_class": "temperature"}
+    )
+    assert result["errors"] == {"base": "invalid_unit"}
+    # The message names the units that would work.
+    assert result["description_placeholders"]["units"] == "K, \u00b0C, \u00b0F"
+    # What was entered survives the error instead of being reset.
+    schema = result["data_schema"].schema
+    suggested = {
+        str(key): (key.description or {}).get("suggested_value") for key in schema
+    }
+    assert suggested["device_class"] == "temperature"
+    assert suggested["maximum"] == 100
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"device_class": "temperature", "unit": "\u00b0C"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+
+
+async def test_create_a_time_parameter(hass: HomeAssistant) -> None:
+    """A time parameter needs no further configuration."""
+    entry = await _setup(hass, make_entry())
+
+    result = await hass.config_entries.subentries.async_init(
+        (entry.entry_id, SUBENTRY_TYPE_PRESET),
+        context={"source": config_entries.SOURCE_USER},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {"name": "Alarm Clock"},
+    )
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {CONF_PARAMETERS: [{"name": "Wake up", "type": "time", "icon": "mdi:alarm"}]},
+    )
+    # The icon is a field of the list row, so only the default value is left.
+    assert set(result["data_schema"].schema) == {"default"}
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"default": "06:30:00"}
+    )
+    assert result["type"] is FlowResultType.CREATE_ENTRY
+    assert result["data"][CONF_PARAMETERS][0] == {
+        "key": "wake_up",
+        "name": "Wake up",
+        "type": "time",
+        "default": "06:30:00",
+        "icon": "mdi:alarm",
+    }

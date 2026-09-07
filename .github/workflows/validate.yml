@@ -1,0 +1,32 @@
+name: Validate
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+  schedule:
+    # Home Assistant moves; a manifest that was valid in March can be invalid
+    # in June without anything here changing.
+    - cron: "0 4 * * 1"
+
+jobs:
+  hassfest:
+    name: hassfest
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+
+  hacs:
+    name: HACS
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # The brands check looks for the domain in home-assistant/brands.
+          # Since HA 2026.3 custom integrations ship their own images in
+          # custom_components/<domain>/brand/, which is what this repo does.
+          ignore: brands

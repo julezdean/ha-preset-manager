@@ -1,0 +1,52 @@
+# set_active_mode is an entity service on the mode selector: the preset mode
+# is picked the way every other entity is, instead of being looked up by its
+# display name, which the user is free to change at any time.
+set_active_mode:
+  target:
+    entity:
+      integration: preset_manager
+      domain: select
+  fields:
+    mode:
+      required: true
+      example: night
+      selector:
+        text:
+
+# A preset is a device, so both value services take a standard target: its
+# device, its entities, or the area, floor or label either sits in.
+set_value:
+  target:
+    device:
+      integration: preset_manager
+    entity:
+      integration: preset_manager
+  fields:
+    mode:
+      required: true
+      example: "Night"
+      selector:
+        text:
+    parameter:
+      required: true
+      example: "brightness"
+      selector:
+        text:
+    value:
+      required: true
+      example: 15
+      selector:
+        text:
+
+get_values:
+  target:
+    device:
+      integration: preset_manager
+    entity:
+      integration: preset_manager
+  fields:
+    mode:
+      required: false
+      example: "Night"
+      selector:
+        text:
