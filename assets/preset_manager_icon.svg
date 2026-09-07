@@ -1,30 +1,53 @@
 <svg width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg" color="#F97316">
-  <!-- Simplified variant for the brand PNGs, tuned to read on light and dark backgrounds. Drops the dashed selection ring
-       and the dashed connectors: below ~128px both collapse into grey mush. -->
+  <!-- The derivation chain the integration is about: the Preset Blueprint with its parameters (the pill, full
+       opacity plus glow, the one focus element) drops into the Preset (the wide box), the Preset sits next to
+       the Mode it is selected by (the narrow box, joined sideways), and out of that pair fall the values below.
+
+       Two ranks only, so opacity carries little: pair 0.60, values 0.50. Mode and Preset are the same rank and
+       are told apart by width instead - 248 against 376, because the Preset is the thing that holds parameters
+       while the Mode is a single choice. The values bar is 704 wide, exactly the pair's total width, so the mark
+       reads as "these two together produce this" rather than as three stacked bars.
+
+       Simplified for the brand PNGs the same way the previous icon was: no dashed selection ring, no dashed
+       connectors - below ~128px both collapse into grey mush. -->
   <defs>
     <filter id="softBlur" x="-50%" y="-50%" width="200%" height="200%">
       <feGaussianBlur stdDeviation="16"/>
     </filter>
+    <!-- The four parameter slots are knocked out of the pill rather than painted on: monochrome leaves no second
+         opaque tone to draw them with, and white would vanish on a light background. -->
+    <mask id="slots">
+      <rect x="0" y="0" width="1024" height="1024" fill="white"/>
+      <rect x="156" y="110" width="140" height="76" rx="24" fill="black"/>
+      <rect x="347" y="110" width="140" height="76" rx="24" fill="black"/>
+      <rect x="537" y="110" width="140" height="76" rx="24" fill="black"/>
+      <rect x="728" y="110" width="140" height="76" rx="24" fill="black"/>
+    </mask>
   </defs>
 
-  <!-- content bounds are 104..976 vertically; shift to centre on the 1024 canvas -->
-  <g transform="translate(0,-28)">
+  <!-- Solid geometry spans 64..976 vertically, centre 520; scaled to leave the same 76px margin the previous icon had -->
+  <g transform="translate(512,512) scale(0.956) translate(-512,-520)">
 
-  <rect x="96" y="112" width="832" height="680" rx="88"
-        fill="currentColor" fill-opacity="0.14"
-        stroke="currentColor" stroke-opacity="0.48" stroke-width="16"/>
+    <rect x="112" y="64" width="800" height="168" rx="56"
+          fill="currentColor" opacity="0.30" filter="url(#softBlur)"/>
+    <rect x="112" y="64" width="800" height="168" rx="56"
+          fill="currentColor" mask="url(#slots)"/>
 
-  <rect x="192" y="208" width="640" height="128" rx="64"
-        fill="currentColor" opacity="0.3" filter="url(#softBlur)"/>
-  <rect x="192" y="208" width="640" height="128" rx="64" fill="currentColor"/>
+    <rect x="96" y="288" width="832" height="680" rx="88"
+          fill="currentColor" fill-opacity="0.14"
+          stroke="currentColor" stroke-opacity="0.48" stroke-width="16"/>
 
-  <rect x="192" y="432" width="296" height="264" rx="56" fill="currentColor" fill-opacity="0.60"/>
-  <rect x="536" y="432" width="296" height="264" rx="56" fill="currentColor" fill-opacity="0.60"/>
+    <!-- into the Preset, not into the Mode: the blueprint hangs off the preset -->
+    <line x1="676" y1="232" x2="676" y2="376" stroke="currentColor" stroke-opacity="0.66"
+          stroke-width="18" stroke-linecap="round"/>
+    <!-- the 80px gap is the minimum that still reads as two boxes at 48px -->
+    <line x1="408" y1="500" x2="488" y2="500" stroke="currentColor" stroke-opacity="0.66"
+          stroke-width="18" stroke-linecap="round"/>
+    <rect x="160" y="376" width="248" height="248" rx="56" fill="currentColor" fill-opacity="0.60"/>
+    <rect x="488" y="376" width="376" height="248" rx="56" fill="currentColor" fill-opacity="0.60"/>
 
-  <line x1="340" y1="856" x2="340" y2="672" stroke="currentColor" stroke-opacity="0.66"
-        stroke-width="18" stroke-linecap="round"/>
-  <line x1="684" y1="856" x2="684" y2="672" stroke="currentColor" stroke-opacity="0.66"
-        stroke-width="18" stroke-linecap="round"/>
-  <rect x="288" y="848" width="448" height="128" rx="64" fill="currentColor" fill-opacity="0.78"/>
+    <line x1="676" y1="624" x2="676" y2="680" stroke="currentColor" stroke-opacity="0.66"
+          stroke-width="18" stroke-linecap="round"/>
+    <rect x="160" y="680" width="704" height="200" rx="60" fill="currentColor" fill-opacity="0.50"/>
   </g>
 </svg>
