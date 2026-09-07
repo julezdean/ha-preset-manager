@@ -17,8 +17,6 @@ set_active_mode:
 # device, its entities, or the area, floor or label either sits in.
 set_value:
   target:
-    device:
-      integration: preset_manager
     entity:
       integration: preset_manager
   fields:
@@ -40,8 +38,6 @@ set_value:
 
 get_values:
   target:
-    device:
-      integration: preset_manager
     entity:
       integration: preset_manager
   fields:
