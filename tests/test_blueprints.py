@@ -69,11 +69,8 @@ async def _edit_blueprint(hass: HomeAssistant, hubs: Hubs) -> dict:
         },
     )
     assert result["type"] is FlowResultType.MENU
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"next_step_id": "edit_blueprint"}
-    )
     return await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"name": "Heating"}
+        result["flow_id"], {"next_step_id": "manage_parameters"}
     )
 
 
@@ -363,7 +360,7 @@ async def test_bound_preset_has_no_parameter_editor(hass: HomeAssistant) -> None
     result = await _reconfigure_preset(hass, hubs)
     assert result["type"] is FlowResultType.MENU
     assert result["menu_options"] == [
-        "rename_preset",
+        "rename",
         "assign_preset_mode",
         "assign_blueprint",
         "duplicate",
@@ -412,10 +409,10 @@ async def test_free_preset_keeps_its_editor(hass: HomeAssistant) -> None:
 
     result = await _reconfigure_preset(hass, hubs)
     assert result["menu_options"] == [
-        "rename_preset",
+        "manage_parameters",
+        "rename",
         "assign_preset_mode",
         "assign_blueprint",
-        "manage_parameters",
         "duplicate",
     ]
 
@@ -432,9 +429,9 @@ async def test_menu_hides_the_blueprint_step_without_any(
 
     result = await _reconfigure_preset(hass, hubs)
     assert result["menu_options"] == [
-        "rename_preset",
-        "assign_preset_mode",
         "manage_parameters",
+        "rename",
+        "assign_preset_mode",
         "duplicate",
     ]
 

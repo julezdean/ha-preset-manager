@@ -4,6 +4,32 @@ All notable changes to this project are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 versioning [Semantic Versioning](https://semver.org/).
 
+## [0.2.0b3] - 2026-09-08
+
+Beta, on top of 0.2.0b2. Menus only - nothing about the stored data changes.
+
+### Added
+
+- **Assign presets**, in the menu of a preset mode and of a blueprint: which
+  presets follow it, editable from there as well as from each preset. It is
+  the same key either way - the reference lives on the preset - and it is the
+  only place that answers "what follows this?" without opening every preset in
+  turn.
+
+### Changed
+
+- Renaming is its own entry in the menu of every object, in the same place.
+  It used to be a field on the settings of the one kind that had settings, and
+  the first step of the blueprint editor for another, so the way to rename
+  something depended on what it was. The menus now read the same everywhere:
+  what the object is, its name, the rest, and duplicating last.
+- The parameter editor of a blueprint opens directly instead of behind a name
+  form.
+- Menu entries say what they do to what: "Manage parameters" for a blueprint
+  as well as for a preset, "Assign preset blueprint" rather than "Preset
+  blueprint", and "Assign external entity" for the entity a preset mode
+  follows - which is what those settings are.
+
 ## [0.2.0b2] - 2026-09-07
 
 Beta. The layout of the config entries changes. Entries written by 0.1.0 are

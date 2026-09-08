@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import patch
 
+import pytest
 from homeassistant import config_entries
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -17,6 +18,7 @@ from custom_components.preset_manager.const import (
     CONF_PRESET_MODE,
     CONF_SOURCE_ENTITY,
     DOMAIN,
+    SUBENTRY_TYPE_BLUEPRINT,
     SUBENTRY_TYPE_PRESET,
     SUBENTRY_TYPE_PRESET_MODE,
     UID_CONFIG,
@@ -25,12 +27,14 @@ from custom_components.preset_manager.const import (
 from custom_components.preset_manager.store import async_get_store
 
 from .conftest import (
+    BLUEPRINT_ID,
     BRIGHTNESS,
     PRESET_ID,
     PRESET_MODE_ID,
     Hubs,
     async_setup_hubs,
     async_setup_one,
+    make_blueprint,
     make_preset,
     make_preset_mode,
 )
@@ -164,10 +168,11 @@ async def test_preset_mode_settings_set_and_clear_the_source_entity(
         result["flow_id"], {"next_step_id": "preset_mode_settings"}
     )
     assert result["step_id"] == "preset_mode_settings"
+    # The name is not in here; renaming has its own entry in every menu.
+    assert set(result["data_schema"].schema) == {CONF_SOURCE_ENTITY}
 
     result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"],
-        {"name": "House Mode", CONF_SOURCE_ENTITY: "input_select.house"},
+        result["flow_id"], {CONF_SOURCE_ENTITY: "input_select.house"}
     )
     assert result["type"] is FlowResultType.ABORT
     await hass.async_block_till_done()
@@ -186,9 +191,7 @@ async def test_preset_mode_settings_set_and_clear_the_source_entity(
     }
     assert suggested[CONF_SOURCE_ENTITY] == "input_select.house"
 
-    result = await hass.config_entries.subentries.async_configure(
-        result["flow_id"], {"name": "House Mode"}
-    )
+    result = await hass.config_entries.subentries.async_configure(result["flow_id"], {})
     await hass.async_block_till_done()
 
     # Without an entity the preset mode is its own again, selector included.
@@ -897,7 +900,7 @@ async def test_a_rename_does_not_reload_the_hub(
     ) as reload:
         result = await _reconfigure_preset(hass, motion)
         result = await hass.config_entries.subentries.async_configure(
-            result["flow_id"], {"next_step_id": "rename_preset"}
+            result["flow_id"], {"next_step_id": "rename"}
         )
         result = await hass.config_entries.subentries.async_configure(
             result["flow_id"], {"name": "Motion Sensor Hall"}
@@ -966,3 +969,104 @@ async def test_changed_conditions_take_effect_when_they_are_saved(
 
     # No state change of the window was needed to get there.
     assert hass.states.get("sensor.house_mode_mode").state == "Away"
+
+
+# One rename, everywhere the same ----------------------------------------------
+
+
+@pytest.mark.parametrize(
+    ("kind", "subentry_type", "subentry_id", "name"),
+    [
+        ("preset_modes", SUBENTRY_TYPE_PRESET_MODE, PRESET_MODE_ID, "Window State"),
+        ("presets", SUBENTRY_TYPE_PRESET, PRESET_ID, "Motion Sensor Hall"),
+        ("blueprints", SUBENTRY_TYPE_BLUEPRINT, BLUEPRINT_ID, "Cooling"),
+    ],
+)
+async def test_every_object_is_renamed_the_same_way(
+    hass: HomeAssistant,
+    kind: str,
+    subentry_type: str,
+    subentry_id: str,
+    name: str,
+) -> None:
+    """Renaming sits in the same place in every menu, and it is its own step.
+
+    It used to be a field on the settings of the one kind that had settings,
+    and the first step of the blueprint editor for another - so the way to
+    rename something depended on what it was.
+    """
+    hubs = await async_setup_hubs(
+        hass,
+        preset_modes=[make_preset_mode()],
+        blueprints=[make_blueprint()],
+        presets=[make_preset("Motion Sensor Living Room", [BRIGHTNESS])],
+    )
+
+    result = await hass.config_entries.subentries.async_init(
+        (hubs.entry(kind).entry_id, subentry_type),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": subentry_id,
+        },
+    )
+    assert result["type"] is FlowResultType.MENU
+    # Always the second entry: what the object is comes first, its name second.
+    assert result["menu_options"][1] == "rename"
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "rename"}
+    )
+    assert result["step_id"] == "rename"
+    assert set(result["data_schema"].schema) == {"name"}
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"name": name}
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    assert hubs.entry(kind).subentries[subentry_id].title == name
+
+
+async def test_the_blueprint_menu_opens_its_parameters_directly(
+    hass: HomeAssistant,
+) -> None:
+    """The first entry is the parameter list, not a name form in front of it."""
+    hubs = await async_setup_hubs(hass, blueprints=[make_blueprint()])
+
+    result = await hass.config_entries.subentries.async_init(
+        (hubs.entry("blueprints").entry_id, SUBENTRY_TYPE_BLUEPRINT),
+        context={
+            "source": config_entries.SOURCE_RECONFIGURE,
+            "subentry_id": BLUEPRINT_ID,
+        },
+    )
+    assert result["menu_options"] == [
+        "manage_parameters",
+        "rename",
+        "assign_presets",
+        "duplicate",
+    ]
+
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"], {"next_step_id": "manage_parameters"}
+    )
+    assert result["step_id"] == "manage_parameters"
+
+    # And saving from there keeps the name it has.
+    result = await hass.config_entries.subentries.async_configure(
+        result["flow_id"],
+        {
+            CONF_PARAMETERS: [
+                {
+                    "key": "target_temperature",
+                    "name": "Target temperature",
+                    "type": "number",
+                }
+            ]
+        },
+    )
+    assert result["type"] is FlowResultType.ABORT
+    await hass.async_block_till_done()
+
+    assert hubs.entry("blueprints").subentries[BLUEPRINT_ID].title == "Heating"

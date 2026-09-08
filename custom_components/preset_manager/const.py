@@ -62,6 +62,9 @@ CONF_ICON: Final = "icon"
 #: of one and waits to be assigned another.
 CONF_PRESET_MODE: Final = "preset_mode"
 CONF_PARAMETERS: Final = "parameters"
+#: The presets following one preset mode or one blueprint, in the step that
+#: edits the same reference from the other side.
+CONF_PRESETS: Final = "presets"
 #: Subentry id of the blueprint a preset follows. While it is set the preset
 #: has no parameters of its own: they are resolved from the blueprint on every setup,
 #: and its parameter editor stays closed.

@@ -63,6 +63,23 @@ def _async_update_preset(
 
 
 @callback
+def async_follow(
+    hass: HomeAssistant, preset: ConfigSubentry, key: str, subentry_id: str
+) -> None:
+    """Let one preset follow a preset mode or a blueprint.
+
+    What it followed before is dropped, and so is what it carried for itself:
+    the parameters of a preset are the blueprint's while it follows one, and
+    its modes are the preset mode's. Both are read on every setup, so a copy
+    left behind would only be a copy that could disagree.
+    """
+    dropped = CONF_PARAMETERS if key == CONF_BLUEPRINT else CONF_MODES
+    data = {item: value for item, value in preset.data.items() if item != dropped}
+    data[key] = subentry_id
+    _async_update_preset(hass, preset, data)
+
+
+@callback
 def async_detach_from_blueprint(
     hass: HomeAssistant, blueprint_id: str, parameters: Iterable[Mapping[str, Any]]
 ) -> None:
@@ -72,16 +89,19 @@ def async_detach_from_blueprint(
     so deleting a blueprint costs its presets their lock, not their
     configuration and not their values.
     """
-    snapshot = [dict(item) for item in parameters]
     for preset in async_presets_following(hass, CONF_BLUEPRINT, blueprint_id).values():
-        data = {
-            key: value for key, value in preset.data.items() if key != CONF_BLUEPRINT
-        }
-        data[CONF_PARAMETERS] = [dict(item) for item in snapshot]
-        _async_update_preset(hass, preset, data)
-        _LOGGER.debug(
-            "Preset '%s' kept the parameters of the deleted blueprint", preset.title
-        )
+        async_unfollow_blueprint(hass, preset, parameters)
+
+
+@callback
+def async_unfollow_blueprint(
+    hass: HomeAssistant, preset: ConfigSubentry, parameters: Iterable[Mapping[str, Any]]
+) -> None:
+    """Turn one preset back into a free-standing one."""
+    data = {key: value for key, value in preset.data.items() if key != CONF_BLUEPRINT}
+    data[CONF_PARAMETERS] = [dict(item) for item in parameters]
+    _async_update_preset(hass, preset, data)
+    _LOGGER.debug("Preset '%s' kept the parameters of its blueprint", preset.title)
 
 
 @callback
@@ -96,20 +116,24 @@ def async_detach_from_preset_mode(
     icon. What the preset loses is the active mode, and therefore every
     resolved value; a repair issue asks for a new preset mode.
     """
-    snapshot = [dict(item) for item in modes]
-    for preset_id, preset in async_presets_following(
+    for preset in async_presets_following(
         hass, CONF_PRESET_MODE, preset_mode_id
-    ).items():
-        data = {
-            key: value for key, value in preset.data.items() if key != CONF_PRESET_MODE
-        }
-        data[CONF_MODES] = [dict(item) for item in snapshot]
-        _async_update_preset(hass, preset, data)
-        async_create_orphan_issue(hass, preset_id, preset.title)
-        _LOGGER.debug(
-            "Preset '%s' outlived its preset mode and waits for a new one",
-            preset.title,
-        )
+    ).values():
+        async_unfollow_preset_mode(hass, preset, modes)
+
+
+@callback
+def async_unfollow_preset_mode(
+    hass: HomeAssistant, preset: ConfigSubentry, modes: Iterable[Mapping[str, Any]]
+) -> None:
+    """Keep one preset without its dimension."""
+    data = {key: value for key, value in preset.data.items() if key != CONF_PRESET_MODE}
+    data[CONF_MODES] = [dict(item) for item in modes]
+    _async_update_preset(hass, preset, data)
+    async_create_orphan_issue(hass, preset.subentry_id, preset.title)
+    _LOGGER.debug(
+        "Preset '%s' outlived its preset mode and waits for a new one", preset.title
+    )
 
 
 @callback

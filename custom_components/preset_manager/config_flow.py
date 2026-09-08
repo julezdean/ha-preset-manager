@@ -56,6 +56,7 @@ from .const import (
     CONF_PARAMETERS,
     CONF_PATTERN,
     CONF_PRESET_MODE,
+    CONF_PRESETS,
     CONF_SOURCE_ENTITY,
     CONF_STEP,
     CONF_TYPE,
@@ -951,7 +952,118 @@ class PresetManagerConfigFlow(ParameterListFlow, ConfigFlow, domain=DOMAIN):
 # Subentry flows ---------------------------------------------------------------
 
 
-class DuplicateFlow(ConfigSubentryFlow):
+class RenameFlow(ConfigSubentryFlow):
+    """Renames one object, whatever kind it is.
+
+    Its own menu entry everywhere rather than a field on the settings of the
+    kind that happens to have settings: renaming is the one thing every object
+    can do, and looking for it in a different place per kind is the kind of
+    inconsistency a user only notices by not finding it.
+    """
+
+    async def async_step_rename(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Ask for a new name and write it back."""
+        subentry = self._get_reconfigure_subentry()
+        if user_input is not None:
+            return self.async_update_and_abort(
+                self._get_entry(), subentry, title=user_input[CONF_NAME].strip()
+            )
+
+        return self.async_show_form(
+            step_id="rename",
+            data_schema=vol.Schema(
+                {
+                    vol.Required(
+                        CONF_NAME, description={"suggested_value": subentry.title}
+                    ): selector.TextSelector()
+                }
+            ),
+        )
+
+
+class AssignPresetsFlow(ConfigSubentryFlow):
+    """Edits from the other side which presets follow this object.
+
+    The reference lives on the preset either way - this writes the same key
+    that the preset's own menu writes, only for several presets at once. It is
+    the only place that answers "what follows this?" without opening every
+    preset in turn.
+    """
+
+    #: The key on the preset that this object is referenced by.
+    reference: str
+
+    @callback
+    def _async_follow(self, preset: ConfigSubentry, subentry_id: str) -> None:
+        """Let one preset follow this object."""
+        following.async_follow(self.hass, preset, self.reference, subentry_id)
+
+    @callback
+    def _async_unfollow(self, preset: ConfigSubentry) -> None:
+        """Let one preset stop following this object."""
+        raise NotImplementedError
+
+    def _label(self, preset: ConfigSubentry) -> str:
+        """Return the label of one preset in the picker."""
+        raise NotImplementedError
+
+    async def async_step_assign_presets(
+        self, user_input: dict[str, Any] | None = None
+    ) -> SubentryFlowResult:
+        """Add presets to this object and take others off it."""
+        subentry = self._get_reconfigure_subentry()
+        presets = hubs.async_presets(self.hass)
+        mine = {
+            preset_id
+            for preset_id, preset in presets.items()
+            if preset.data.get(self.reference) == subentry.subentry_id
+        }
+
+        if user_input is not None:
+            chosen = set(user_input.get(CONF_PRESETS) or ())
+            for preset_id in chosen - mine:
+                self._async_follow(presets[preset_id], subentry.subentry_id)
+            for preset_id in mine - chosen:
+                self._async_unfollow(presets[preset_id])
+            return self.async_abort(reason="reconfigure_successful")
+
+        schema = vol.Schema(
+            {
+                vol.Optional(
+                    CONF_PRESETS, description={"suggested_value": sorted(mine)}
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=[
+                            selector.SelectOptionDict(
+                                value=preset_id, label=self._label(preset)
+                            )
+                            for preset_id, preset in presets.items()
+                        ],
+                        multiple=True,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                        sort=True,
+                    )
+                )
+            }
+        )
+        return self.async_show_form(
+            step_id="assign_presets",
+            data_schema=schema,
+            description_placeholders={"name": subentry.title},
+        )
+
+
+def _followed_title(
+    hass: HomeAssistant, preset: ConfigSubentry, key: str, kind: str
+) -> str | None:
+    """Return the title of what a preset follows, if it follows anything."""
+    subentry = hubs.async_object(hass, kind, preset.data.get(key))
+    return None if subentry is None else subentry.title
+
+
+class DuplicateFlow(RenameFlow):
     """Copies one object, whatever kind it is.
 
     Everything an object is stands in its subentry data, so a copy is that
@@ -1005,7 +1117,7 @@ class DuplicateFlow(ConfigSubentryFlow):
         )
 
 
-class PresetModeSubentryFlowHandler(DuplicateFlow):
+class PresetModeSubentryFlowHandler(AssignPresetsFlow, DuplicateFlow):
     """Creates and edits one preset mode.
 
     Its modes live in the *data* of the subentry, not in options: an option is
@@ -1043,8 +1155,36 @@ class PresetModeSubentryFlowHandler(DuplicateFlow):
         """Show what can be changed about a preset mode."""
         return self.async_show_menu(
             step_id="reconfigure",
-            menu_options=["manage_modes", "preset_mode_settings", "duplicate"],
+            menu_options=[
+                "manage_modes",
+                "rename",
+                "assign_presets",
+                "preset_mode_settings",
+                "duplicate",
+            ],
         )
+
+    reference = CONF_PRESET_MODE
+
+    @callback
+    def _async_unfollow(self, preset: ConfigSubentry) -> None:
+        """Take a preset off this preset mode, with its modes.
+
+        It keeps them so that its editors keep existing - one entity per mode
+        and parameter - and a repair issue asks for a new preset mode.
+        """
+        following.async_unfollow_preset_mode(
+            self.hass, preset, modes_to_data(self._current.modes)
+        )
+
+    def _label(self, preset: ConfigSubentry) -> str:
+        """Name the preset mode a preset already follows, if it is another."""
+        title = _followed_title(self.hass, preset, CONF_PRESET_MODE, HUB_PRESET_MODES)
+        if title is None or preset.data.get(CONF_PRESET_MODE) == (
+            self._get_reconfigure_subentry().subentry_id
+        ):
+            return preset.title
+        return f"{preset.title} ({title})"
 
     def _duplicate_data(self, data: dict[str, Any]) -> dict[str, Any]:
         """Return the data of the copy, without the entity it follows.
@@ -1103,31 +1243,27 @@ class PresetModeSubentryFlowHandler(DuplicateFlow):
     async def async_step_preset_mode_settings(
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
-        """Change the name and the entity the preset mode follows."""
+        """Change the entity the preset mode follows."""
         current = self._current
         if user_input is not None:
             return self._save(
-                {CONF_SOURCE_ENTITY: user_input.get(CONF_SOURCE_ENTITY) or None},
-                title=user_input[CONF_NAME].strip(),
+                {CONF_SOURCE_ENTITY: user_input.get(CONF_SOURCE_ENTITY) or None}
             )
 
         schema = vol.Schema(
             {
-                vol.Required(
-                    CONF_NAME, description={"suggested_value": current.name}
-                ): selector.TextSelector(),
                 vol.Optional(
                     CONF_SOURCE_ENTITY,
                     description={"suggested_value": current.source_entity},
                 ): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain=SOURCE_ENTITY_DOMAINS)
-                ),
+                )
             }
         )
         return self.async_show_form(step_id="preset_mode_settings", data_schema=schema)
 
 
-class BlueprintSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
+class BlueprintSubentryFlowHandler(ParameterListFlow, AssignPresetsFlow, DuplicateFlow):
     """Creates and edits one blueprint."""
 
     def __init__(self) -> None:
@@ -1163,28 +1299,28 @@ class BlueprintSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
     ) -> SubentryFlowResult:
         """Show what can be done with a blueprint."""
         return self.async_show_menu(
-            step_id="reconfigure", menu_options=["edit_blueprint", "duplicate"]
+            step_id="reconfigure",
+            menu_options=["manage_parameters", "rename", "assign_presets", "duplicate"],
         )
 
-    async def async_step_edit_blueprint(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Ask for the name, then open the parameter editor."""
+    reference = CONF_BLUEPRINT
+
+    @callback
+    def _async_unfollow(self, preset: ConfigSubentry) -> None:
+        """Take a preset off this blueprint, with its parameters as its own."""
         subentry = self._get_reconfigure_subentry()
-        if user_input is not None:
-            self._name = user_input[CONF_NAME].strip()
-            return await self.async_step_manage_parameters()
-
-        return self.async_show_form(
-            step_id="edit_blueprint",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_NAME, description={"suggested_value": subentry.title}
-                    ): selector.TextSelector()
-                }
-            ),
+        following.async_unfollow_blueprint(
+            self.hass, preset, subentry.data.get(CONF_PARAMETERS, [])
         )
+
+    def _label(self, preset: ConfigSubentry) -> str:
+        """Name the blueprint a preset already follows, if it is another."""
+        title = _followed_title(self.hass, preset, CONF_BLUEPRINT, HUB_BLUEPRINTS)
+        if title is None or preset.data.get(CONF_BLUEPRINT) == (
+            self._get_reconfigure_subentry().subentry_id
+        ):
+            return preset.title
+        return f"{preset.title} ({title})"
 
     async def _async_parameters_done(self) -> SubentryFlowResult:
         """Write the finished parameter list back."""
@@ -1198,9 +1334,7 @@ class BlueprintSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
         following.async_forget_parameters(
             self.hass, subentry.subentry_id, self._retyped
         )
-        return self.async_update_and_abort(
-            self._get_entry(), subentry, data=data, title=self._name
-        )
+        return self.async_update_and_abort(self._get_entry(), subentry, data=data)
 
 
 class PresetSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
@@ -1255,11 +1389,11 @@ class PresetSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
         self, user_input: dict[str, Any] | None = None
     ) -> SubentryFlowResult:
         """Show what can be changed about a preset."""
-        options = ["rename_preset", "assign_preset_mode"]
+        options = [] if self._bound_to is not None else ["manage_parameters"]
+        options.append("rename")
+        options.append("assign_preset_mode")
         if self._bound_to is not None or hubs.async_blueprints(self.hass):
             options.append("assign_blueprint")
-        if self._bound_to is None:
-            options.append("manage_parameters")
         options.append("duplicate")
         return self.async_show_menu(step_id="reconfigure", menu_options=options)
 
@@ -1272,25 +1406,6 @@ class PresetSubentryFlowHandler(ParameterListFlow, DuplicateFlow):
         """
         if (store := async_get_store(self.hass)) is not None:
             store.copy_preset(source_id, copy_id)
-
-    async def async_step_rename_preset(
-        self, user_input: dict[str, Any] | None = None
-    ) -> SubentryFlowResult:
-        """Rename the preset."""
-        subentry = self._get_reconfigure_subentry()
-        if user_input is not None:
-            return self._save(title=user_input[CONF_NAME].strip())
-
-        return self.async_show_form(
-            step_id="rename_preset",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_NAME, description={"suggested_value": subentry.title}
-                    ): selector.TextSelector()
-                }
-            ),
-        )
 
     async def async_step_assign_preset_mode(
         self, user_input: dict[str, Any] | None = None

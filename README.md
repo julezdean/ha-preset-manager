@@ -459,7 +459,12 @@ Preset mode → **Edit**:
 
 * **Manage modes** — the sortable list: add, rename, reorder and delete
   modes, and set their conditions
-* **Preset mode settings** — the name, and the entity the preset mode follows
+* **Rename**
+* **Assign presets** — which presets follow this preset mode, editable from
+  here as well as from each preset. Taking one off leaves it with everything
+  but its active mode; adding one that follows another preset mode moves it,
+  and the picker says in brackets where it comes from
+* **Assign external entity** — the entity whose state names the active mode
 * **Duplicate** — a second preset mode with the same modes and conditions.
   Not with the same source entity: two preset modes reading the same entity
   would always hold the same mode.
@@ -473,13 +478,13 @@ do not resolve.
 
 Preset → **Edit**:
 
-* **Rename preset**
-* **Assign preset mode** — let it follow another one, or none
-* **Blueprint** — attach the preset to a blueprint, move it to another one, or
-  let it go again
 * **Manage parameters** — the sortable list: add, rename, retype, reorder and
   delete parameters; the field below the list opens the type specific details
   (range, unit, options, default value) of one of them
+* **Rename**
+* **Assign preset mode** — let it follow another one, or none
+* **Assign preset blueprint** — attach the preset to a blueprint, move it to
+  another one, or let it go again
 * **Duplicate** — a second preset with the same parameters *and the same
   values*, following the same preset mode and the same blueprint
 
@@ -525,9 +530,15 @@ blueprint" on the *Preset Blueprints* hub. It asks for a name and then for the
 parameters, in exactly the same list a preset uses. A blueprint creates no
 device and no entities — it is configuration and nothing else.
 
-Editing it later: **Blueprint → Edit → Edit parameters**. The same menu offers
-**Duplicate**, which is the quickest way to a variant: the copy gets the
-parameters, and the presets of the original keep following the original.
+**Blueprint → Edit → Assign presets** lists the presets that follow it and is
+the only place that answers "what follows this blueprint?" without opening
+every preset. Adding one there does what attaching does, for several at once —
+including the loss of their own parameter lists, so the step says so.
+
+Editing it later: **Blueprint → Edit → Manage parameters**. The menu is the same
+everywhere — what the object *is* first, **Rename** second, then the rest, and
+**Duplicate** last. Duplicating is the quickest way to a variant: the copy gets
+the parameters, and the presets of the original keep following the original.
 
 ### Using one
 

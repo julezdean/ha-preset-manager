@@ -146,10 +146,10 @@
         "reconfigure": {
           "title": "Edit preset",
           "menu_options": {
-            "rename_preset": "Rename preset",
-            "assign_preset_mode": "Assign preset mode",
-            "assign_blueprint": "Preset blueprint",
             "manage_parameters": "Manage parameters",
+            "rename": "Rename",
+            "assign_preset_mode": "Assign preset mode",
+            "assign_blueprint": "Assign preset blueprint",
             "duplicate": "Duplicate"
           }
         },
@@ -164,12 +164,6 @@
             "parameter": "Range, unit, options and default value are asked for in the next step. New parameters go there automatically."
           }
         },
-        "rename_preset": {
-          "title": "Rename preset",
-          "data": {
-            "name": "Name"
-          }
-        },
         "assign_preset_mode": {
           "title": "Assign preset mode",
           "data": {
@@ -180,7 +174,7 @@
           }
         },
         "assign_blueprint": {
-          "title": "Preset blueprint",
+          "title": "Assign preset blueprint",
           "description": "With a blueprint the preset takes over its parameters and follows every change of it. Pick “-” to leave the blueprint: the preset keeps the parameters it has right now as its own and can edit them again.\n\nSwitching blueprints replaces the parameters of the preset. Values are kept wherever a parameter of the same key exists in the new blueprint.",
           "data": {
             "blueprint": "Preset blueprint"
@@ -191,6 +185,12 @@
           "description": "The copy gets the parameters of \"{name}\" and the values stored for them, mode by mode. It follows the same preset mode and, if there is one, the same blueprint.",
           "data": {
             "copy_name": "Name of the copy"
+          }
+        },
+        "rename": {
+          "title": "Rename",
+          "data": {
+            "name": "Name"
           }
         }
       },
@@ -235,7 +235,9 @@
           "title": "Edit preset mode",
           "menu_options": {
             "manage_modes": "Manage modes",
-            "preset_mode_settings": "Preset mode settings",
+            "rename": "Rename",
+            "assign_presets": "Assign presets",
+            "preset_mode_settings": "Assign external entity",
             "duplicate": "Duplicate"
           }
         },
@@ -247,9 +249,8 @@
           }
         },
         "preset_mode_settings": {
-          "title": "Preset mode settings",
+          "title": "Assign external entity",
           "data": {
-            "name": "Name",
             "source_entity": "Follow this entity"
           },
           "data_description": {
@@ -261,6 +262,19 @@
           "description": "The copy gets the modes and the conditions of \"{name}\". It does not get the entity that one follows: two preset modes reading the same entity would always hold the same mode.",
           "data": {
             "copy_name": "Name of the copy"
+          }
+        },
+        "rename": {
+          "title": "Rename",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "assign_presets": {
+          "title": "Presets of “{name}”",
+          "description": "Every preset listed here follows this preset mode. Adding one moves it here if it followed another; the preset mode it currently follows is in brackets. Taking one off leaves it with its parameters, its values and its modes, but without an active mode - it then asks for a new preset mode in the repairs.",
+          "data": {
+            "presets": "Presets"
           }
         }
       },
@@ -295,7 +309,9 @@
         "reconfigure": {
           "title": "Preset blueprint",
           "menu_options": {
-            "edit_blueprint": "Edit parameters",
+            "manage_parameters": "Manage parameters",
+            "rename": "Rename",
+            "assign_presets": "Assign presets",
             "duplicate": "Duplicate"
           }
         },
@@ -339,10 +355,17 @@
             "copy_name": "Name of the copy"
           }
         },
-        "edit_blueprint": {
-          "title": "Preset blueprint",
+        "rename": {
+          "title": "Rename",
           "data": {
             "name": "Name"
+          }
+        },
+        "assign_presets": {
+          "title": "Presets of “{name}”",
+          "description": "Every preset listed here takes its parameters from this blueprint. Adding one replaces the parameters it has: its own list is gone, and the values it stored survive only where a parameter of the same key exists in both. Taking one off leaves it the parameters of this blueprint as its own, values included.",
+          "data": {
+            "presets": "Presets"
           }
         }
       },
