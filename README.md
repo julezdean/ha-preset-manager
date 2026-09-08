@@ -1,5 +1,11 @@
 # Preset Manager for Home Assistant
 
+[![HACS: custom repository](https://img.shields.io/badge/HACS-custom%20repository-41BDF5.svg)](https://github.com/hacs/integration)
+[![Release](https://img.shields.io/github/v/release/julezdean/ha-preset-manager?include_prereleases&sort=semver)](https://github.com/julezdean/ha-preset-manager/releases)
+[![Tests](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml)
+[![Validate](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Creates the helpers for mode-dependent values in one go — and keeps the
 mode logic out of your automations.
 
@@ -49,8 +55,27 @@ handed to an entity you already have.
 > preset's device page under *Configuration*, not under
 > Settings → Devices & Services → Helpers.
 
-Why each module is built the way it is — and which alternatives were tried and
-rejected — lives in its module docstring.
+## Installation
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=julezdean&repository=ha-preset-manager&category=integration)
+
+The button opens your own HACS and offers to add this repository as a custom
+one; confirm, then download it from the page that opens and restart Home
+Assistant. By hand instead:
+
+1. HACS → Integrations → ⋮ → *Custom repositories*.
+2. Add the repository URL, category *Integration*.
+3. Install "Preset Manager" and restart Home Assistant.
+
+Without HACS: copy the `custom_components/preset_manager` folder into
+`<config>/custom_components/` and restart Home Assistant.
+
+Then **Settings → Devices & Services → Add Integration → Preset Manager**, and
+carry on at [Setup step by step](#setup-step-by-step).
+
+Requires Home Assistant 2025.12 or newer (config subentries). The bundled brand
+images in `custom_components/preset_manager/brand/` are picked up from Home
+Assistant 2026.3 onwards.
 
 ## Features
 
@@ -118,36 +143,6 @@ follows and the blueprint it follows, both of which it can be given, changed
 and taken away — a blueprint is shared across preset modes and belongs to none
 of them, and a preset is worth keeping when its dimension goes. Every preset
 mode and every preset gets a device of its own.
-
-## Installation
-
-### Manual
-
-1. Copy the `custom_components/preset_manager` folder into your Home Assistant
-   configuration directory:
-
-   ```
-   <config>/custom_components/preset_manager/
-   ```
-
-2. Restart Home Assistant.
-3. **Settings → Devices & Services → Add Integration → Preset Manager**.
-
-### HACS (custom repository)
-
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=julezdean&repository=ha-preset-manager&category=integration)
-
-The button opens your own HACS and offers to add this repository as a custom
-one; confirm, then download it from the page that opens and restart Home
-Assistant. By hand instead:
-
-1. HACS → Integrations → ⋮ → *Custom repositories*.
-2. Add the repository URL, category *Integration*.
-3. Install "Preset Manager" and restart Home Assistant.
-
-Requires Home Assistant 2025.12 or newer (config subentries). The bundled brand
-images in `custom_components/preset_manager/brand/` are picked up from Home
-Assistant 2026.3 onwards.
 
 ## Setup step by step
 
@@ -682,4 +677,17 @@ wherever a logo would go.
 Adding a new parameter type: register a `ParameterType` in `parameter_types.py` —
 the config flow, the entities and the validation pick it up automatically.
 
-The logic that picks the active mode lives in `sources.py`.
+The logic that picks the active mode lives in `sources.py`. Why each module is
+built the way it is — and which alternatives were tried and rejected — lives in
+its module docstring.
+
+## Contributing
+
+Issues and pull requests are welcome. For a bug, the
+[diagnostics download](#reporting-a-problem) answers most of what I would ask
+anyway. For a change, the tests, `ruff`, `black` and `mypy` have to be clean —
+they run in CI on every pull request.
+
+## License
+
+[MIT](LICENSE) © Julien Streck
