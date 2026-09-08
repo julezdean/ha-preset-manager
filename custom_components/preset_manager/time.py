@@ -10,7 +10,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.util import dt as dt_util
 
-from .coordinator import PresetModeConfigEntry
+from .coordinator import PresetManagerConfigEntry
 from .entity import ModeValueEditorEntity
 from .parameter_types import get_parameter_type
 
@@ -23,7 +23,7 @@ PARALLEL_UPDATES = 0
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: PresetModeConfigEntry,
+    entry: PresetManagerConfigEntry,
     async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the time editors of every preset."""

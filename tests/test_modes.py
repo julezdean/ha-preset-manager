@@ -5,7 +5,6 @@ from __future__ import annotations
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
-from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.preset_manager.const import (
     DOMAIN,
@@ -15,9 +14,14 @@ from custom_components.preset_manager.const import (
 from .conftest import (
     BRIGHTNESS,
     OFF_DELAY,
+    PRESET_MODE_ID,
+    Hubs,
     async_set_active_mode,
-    make_entry,
+    async_setup_hubs,
+    async_setup_one,
     make_preset,
+    make_preset_mode,
+    to_subentry,
 )
 
 SELECT = "select.house_mode_active_mode"
@@ -26,9 +30,9 @@ BRIGHTNESS_SENSOR = "sensor.motion_sensor_living_room_brightness"
 MODE_SENSOR = "sensor.motion_sensor_living_room_active_mode"
 
 
-async def _set_values(hass: HomeAssistant, entry: MockConfigEntry) -> None:
+async def _set_values(hass: HomeAssistant, hubs: Hubs) -> None:
     """Fill the example values of the motion sensor instance."""
-    coordinator = next(iter(entry.runtime_data.presets.values()))
+    coordinator = hubs.preset
     for mode_key, brightness, color_temperature, delay in (
         ("home", 80, 3000, 120),
         ("away", 0, 2700, 0),
@@ -41,11 +45,9 @@ async def _set_values(hass: HomeAssistant, entry: MockConfigEntry) -> None:
     await hass.async_block_till_done()
 
 
-async def test_values_follow_active_mode(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
-) -> None:
+async def test_values_follow_active_mode(hass: HomeAssistant, motion: Hubs) -> None:
     """Switching the mode updates all value sensors immediately."""
-    await _set_values(hass, motion_entry)
+    await _set_values(hass, motion)
 
     await hass.services.async_call(
         "select",
@@ -72,11 +74,9 @@ async def test_values_follow_active_mode(
     assert hass.states.get(BRIGHTNESS_SENSOR).state == "80.0"
 
 
-async def test_mode_sensor_attributes(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
-) -> None:
+async def test_mode_sensor_attributes(hass: HomeAssistant, motion: Hubs) -> None:
     """The mode sensor exposes the resolved values as attributes."""
-    await _set_values(hass, motion_entry)
+    await _set_values(hass, motion)
     await hass.services.async_call(
         "select",
         "select_option",
@@ -99,17 +99,13 @@ async def test_mode_sensor_attributes(
     assert preset_mode_attributes["automatic"] is False
 
 
-async def test_initial_mode_is_default(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
-) -> None:
+async def test_initial_mode_is_default(hass: HomeAssistant, motion: Hubs) -> None:
     """Without a stored mode the default mode is active."""
     assert hass.states.get(SELECT).state == "Home"
     assert hass.states.get(MODE_SENSOR).state == "Home"
 
 
-async def test_set_active_mode_service(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
-) -> None:
+async def test_set_active_mode_service(hass: HomeAssistant, motion: Hubs) -> None:
     """The entity service accepts keys as well as display names."""
     await hass.services.async_call(
         DOMAIN,
@@ -150,7 +146,8 @@ def _state(entity: str, state: str) -> list[dict]:
 async def test_conditions_follow_an_entity(hass: HomeAssistant) -> None:
     """Following another entity is expressed as one condition per mode."""
     hass.states.async_set("sensor.mode_source", "Night")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         conditions={
             key: _state("sensor.mode_source", name)
             for key, name in (
@@ -162,9 +159,6 @@ async def test_conditions_follow_an_entity(hass: HomeAssistant) -> None:
         },
         presets=[make_preset("Heating", [BRIGHTNESS])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     assert hass.states.get(PRESET_MODE_SENSOR).state == "Night"
     assert hass.states.get("switch.house_mode_automatic").state == "on"
 
@@ -185,7 +179,8 @@ async def test_conditions_from_a_template(hass: HomeAssistant) -> None:
     """A template condition per mode reacts to state changes."""
     hass.states.async_set("binary_sensor.window", "off")
     hass.states.async_set("person.someone", "home")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         conditions={
             "window_open": [
                 {
@@ -207,9 +202,6 @@ async def test_conditions_from_a_template(hass: HomeAssistant) -> None:
         ],
         presets=[make_preset("Heating", [BRIGHTNESS])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     assert hass.states.get(PRESET_MODE_SENSOR).state == "Home"
 
     hass.states.async_set("person.someone", "not_home")
@@ -226,10 +218,9 @@ async def test_conditions_from_a_template(hass: HomeAssistant) -> None:
 async def test_automatic_preset_mode_is_not_writable(hass: HomeAssistant) -> None:
     """A preset mode with conditions refuses manual changes while automatic."""
     hass.states.async_set("binary_sensor.window", "off")
-    entry = make_entry(conditions={"night": _state("binary_sensor.window", "on")})
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await async_setup_one(
+        hass, conditions={"night": _state("binary_sensor.window", "on")}
+    )
 
     with pytest.raises(ServiceValidationError):
         await async_set_active_mode(hass, "Night")
@@ -239,7 +230,8 @@ async def test_conditions_priority_is_the_mode_order(hass: HomeAssistant) -> Non
     """The first mode whose conditions match wins."""
     hass.states.async_set("binary_sensor.window", "off")
     hass.states.async_set("input_boolean.vacation", "off")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         modes=[
             {"key": "window_open", "name": "Window open"},
             {"key": "away", "name": "Away"},
@@ -251,9 +243,6 @@ async def test_conditions_priority_is_the_mode_order(hass: HomeAssistant) -> Non
         },
         presets=[make_preset("Heating", [BRIGHTNESS])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     # Nothing matches -> "Home" catches it, because it has no conditions.
     assert hass.states.get(PRESET_MODE_SENSOR).state == "Home"
 
@@ -277,7 +266,8 @@ async def test_mode_without_conditions_catches_everything_below_it(
 ) -> None:
     """A mode without conditions is the fallback of the rows above it."""
     hass.states.async_set("binary_sensor.window", "off")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         modes=[
             {"key": "window_open", "name": "Window open"},
             {"key": "home", "name": "Home"},
@@ -286,9 +276,6 @@ async def test_mode_without_conditions_catches_everything_below_it(
         ],
         conditions={"window_open": _state("binary_sensor.window", "on")},
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     assert hass.states.get(PRESET_MODE_SENSOR).state == "Home"
 
     hass.states.async_set("binary_sensor.window", "on")
@@ -301,14 +288,12 @@ async def test_nothing_matches_leaves_the_preset_mode_unknown(
 ) -> None:
     """Without a catch-all row no mode is active."""
     hass.states.async_set("binary_sensor.window", "off")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         modes=[{"key": "window_open", "name": "Window open"}],
         conditions={"window_open": _state("binary_sensor.window", "on")},
         presets=[make_preset("Heating", [BRIGHTNESS])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     assert hass.states.get(PRESET_MODE_SENSOR).state == "unknown"
     assert hass.states.get("sensor.heating_active_mode").state == "unknown"
 
@@ -320,13 +305,11 @@ async def test_nothing_matches_leaves_the_preset_mode_unknown(
 async def test_external_entity_names_the_mode(hass: HomeAssistant) -> None:
     """The state of the source entity is the mode."""
     hass.states.async_set("input_select.house", "Night")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         source_entity="input_select.house",
         presets=[make_preset("Heating", [BRIGHTNESS])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     assert hass.states.get(PRESET_MODE_SENSOR).state == "Night"
     assert hass.states.get("sensor.heating_active_mode").state == "Night"
     # There is no automatic to report - the entity is the automatic.
@@ -349,13 +332,11 @@ async def test_external_state_without_a_mode_is_unknown(
 ) -> None:
     """A state naming no mode, and an unavailable entity, mean unknown."""
     hass.states.async_set("input_select.house", "Party")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         source_entity="input_select.house",
         presets=[make_preset("Heating", [BRIGHTNESS])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     assert hass.states.get(PRESET_MODE_SENSOR).state == "unknown"
     assert hass.states.get("sensor.heating_active_mode").state == "unknown"
 
@@ -373,13 +354,11 @@ async def test_external_preset_mode_has_no_switch_and_no_select(
 ) -> None:
     """Nothing is left to switch or to select from the outside."""
     hass.states.async_set("input_select.house", "Home")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         source_entity="input_select.house",
         conditions={"night": _state("binary_sensor.window", "on")},
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
 
     assert hass.states.get(SELECT) is None
     assert hass.states.get("switch.house_mode_automatic") is None
@@ -398,18 +377,15 @@ async def test_external_preset_mode_refuses_manual_changes(hass: HomeAssistant) 
     an external preset mode has no way in from the outside at all.
     """
     hass.states.async_set("input_select.house", "Home")
-    entry = make_entry(source_entity="input_select.house")
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    hubs = await async_setup_one(hass, source_entity="input_select.house")
 
     assert hass.states.get(SELECT) is None
     with pytest.raises(ServiceValidationError):
-        entry.runtime_data.preset_mode.async_set_active_mode("Night")
+        hubs.preset_mode.async_set_active_mode("Night")
 
 
 async def test_preset_mode_without_conditions_has_no_switch(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
+    hass: HomeAssistant, motion: Hubs
 ) -> None:
     """Without conditions a preset mode is purely manual."""
     assert hass.states.get("switch.house_mode_automatic") is None
@@ -418,22 +394,29 @@ async def test_preset_mode_without_conditions_has_no_switch(
 
 async def test_several_preset_modes_are_independent(hass: HomeAssistant) -> None:
     """Presets follow the preset mode they belong to."""
-    house = make_entry(
-        presets=[make_preset("Heating", [BRIGHTNESS], subentry_id="a" * 32)]
-    )
-    window = make_entry(
-        title="Window State",
-        modes=[
-            {"key": "closed", "name": "Closed"},
-            {"key": "open", "name": "Open"},
+    await async_setup_hubs(
+        hass,
+        preset_modes=[
+            make_preset_mode(),
+            make_preset_mode(
+                title="Window State",
+                modes=[
+                    {"key": "closed", "name": "Closed"},
+                    {"key": "open", "name": "Open"},
+                ],
+                subentry_id="2" * 32,
+            ),
         ],
-        entry_id="2" * 32,
-        presets=[make_preset("Shutter", [BRIGHTNESS], subentry_id="b" * 32)],
+        presets=[
+            make_preset("Heating", [BRIGHTNESS], subentry_id="a" * 32),
+            make_preset(
+                "Shutter",
+                [BRIGHTNESS],
+                subentry_id="b" * 32,
+                preset_mode="2" * 32,
+            ),
+        ],
     )
-    for entry in (house, window):
-        entry.add_to_hass(hass)
-        assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
 
     assert hass.states.get("sensor.house_mode_mode").state == "Home"
     assert hass.states.get("sensor.window_state_mode").state == "Closed"
@@ -451,7 +434,7 @@ async def test_several_preset_modes_are_independent(hass: HomeAssistant) -> None
 
 
 async def test_a_second_preset_mode_is_addressed_by_its_own_selector(
-    hass: HomeAssistant, motion_entry: MockConfigEntry
+    hass: HomeAssistant, motion: Hubs
 ) -> None:
     """Adding a second preset mode leaves calls to the first one working.
 
@@ -459,9 +442,10 @@ async def test_a_second_preset_mode_is_addressed_by_its_own_selector(
     named, so every existing call broke the moment a second one appeared.
     Targeting a selector cannot become ambiguous.
     """
-    entry = make_entry(title="Window State", entry_id="2" * 32)
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
+    hass.config_entries.async_add_subentry(
+        motion.entry("preset_modes"),
+        to_subentry(make_preset_mode(title="Window State", subentry_id="2" * 32)),
+    )
     await hass.async_block_till_done()
 
     await async_set_active_mode(hass, "Night")
@@ -480,12 +464,9 @@ async def test_a_second_preset_mode_is_addressed_by_its_own_selector(
 
 async def test_preset_covers_every_mode_of_its_mode(hass: HomeAssistant) -> None:
     """A preset follows the active mode whatever it is."""
-    entry = make_entry(presets=[make_preset("Heating", [BRIGHTNESS])])
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    hubs = await async_setup_one(hass, presets=[make_preset("Heating", [BRIGHTNESS])])
 
-    coordinator = next(iter(entry.runtime_data.presets.values()))
+    coordinator = next(iter(hubs.runtime.presets.values()))
     assert [mode.name for mode in coordinator.modes] == [
         "Home",
         "Away",
@@ -507,14 +488,15 @@ async def test_preset_covers_every_mode_of_its_mode(hass: HomeAssistant) -> None
 
 async def test_preset_picks_up_a_new_mode(hass: HomeAssistant) -> None:
     """Adding a mode to the preset mode extends every preset of it."""
-    entry = make_entry(presets=[make_preset("Heating", [BRIGHTNESS])])
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    hubs = await async_setup_one(hass, presets=[make_preset("Heating", [BRIGHTNESS])])
     assert hass.states.get("number.heating_vacation_brightness") is None
 
-    modes = [*entry.data["modes"], {"key": "vacation", "name": "Vacation"}]
-    hass.config_entries.async_update_entry(entry, data={**entry.data, "modes": modes})
+    hub = hubs.entry("preset_modes")
+    subentry = hub.subentries[PRESET_MODE_ID]
+    modes = [*subentry.data["modes"], {"key": "vacation", "name": "Vacation"}]
+    hass.config_entries.async_update_subentry(
+        hub, subentry, data={**subentry.data, "modes": modes}
+    )
     await hass.async_block_till_done()
 
     assert hass.states.get("number.heating_vacation_brightness") is not None
@@ -522,12 +504,10 @@ async def test_preset_picks_up_a_new_mode(hass: HomeAssistant) -> None:
 
 async def test_missing_parameter_value_uses_default(hass: HomeAssistant) -> None:
     """A parameter without a stored value falls back to its default."""
-    entry = make_entry(
-        presets=[make_preset("Heating", [{**BRIGHTNESS, "default": 42}, OFF_DELAY])]
+    await async_setup_one(
+        hass,
+        presets=[make_preset("Heating", [{**BRIGHTNESS, "default": 42}, OFF_DELAY])],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
 
     assert hass.states.get("sensor.heating_brightness").state == "42.0"
     # No default and no stored value -> unknown, and reported as unset.
@@ -538,10 +518,9 @@ async def test_missing_parameter_value_uses_default(hass: HomeAssistant) -> None
 
 async def test_preset_of_an_empty_preset_mode_is_unknown(hass: HomeAssistant) -> None:
     """A preset whose preset mode has no modes left reports unknown."""
-    entry = make_entry(modes=[], presets=[make_preset("Heating", [BRIGHTNESS])])
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
+    await async_setup_one(
+        hass, modes=[], presets=[make_preset("Heating", [BRIGHTNESS])]
+    )
 
     assert hass.states.get("sensor.heating_active_mode").state == "unknown"
     assert hass.states.get("sensor.heating_brightness").state == "unknown"
@@ -552,7 +531,8 @@ async def test_preset_of_an_empty_preset_mode_is_unknown(hass: HomeAssistant) ->
 async def test_template_condition_reacts_to_state(hass: HomeAssistant) -> None:
     """A stored template condition is turned back into a real template."""
     hass.states.async_set("input_number.brightness", "5")
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         modes=[
             {"key": "night", "name": "Night"},
             {"key": "home", "name": "Home"},
@@ -569,9 +549,6 @@ async def test_template_condition_reacts_to_state(hass: HomeAssistant) -> None:
             ]
         },
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
     assert hass.states.get(PRESET_MODE_SENSOR).state == "Night"
 
     hass.states.async_set("input_number.brightness", "80")

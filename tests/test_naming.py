@@ -9,18 +9,15 @@ from __future__ import annotations
 import pytest
 from homeassistant.core import HomeAssistant
 
-from .conftest import BRIGHTNESS, OFF_DELAY, make_entry, make_preset
+from .conftest import BRIGHTNESS, OFF_DELAY, async_setup_one, make_preset
 
 
 async def _setup(hass: HomeAssistant, language: str) -> None:
     """Set up an instance with the given UI language."""
     await hass.config.async_update(language=language)
-    entry = make_entry(
-        presets=[make_preset("Heating Living Room", [BRIGHTNESS, OFF_DELAY])]
+    await async_setup_one(
+        hass, presets=[make_preset("Heating Living Room", [BRIGHTNESS, OFF_DELAY])]
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
 
 
 @pytest.mark.parametrize("language", ["en", "de", "nl"])
@@ -79,7 +76,8 @@ async def test_editor_unique_ids_survive_underscores_in_both_keys(
     mode "night" with parameter "mode_brightness" build the same unique id, and
     Home Assistant drops one of the two editors instead of creating it.
     """
-    entry = make_entry(
+    await async_setup_one(
+        hass,
         modes=[
             {"key": "night_mode", "name": "Night mode"},
             {"key": "night", "name": "Night"},
@@ -98,9 +96,6 @@ async def test_editor_unique_ids_survive_underscores_in_both_keys(
             )
         ],
     )
-    entry.add_to_hass(hass)
-    assert await hass.config_entries.async_setup(entry.entry_id)
-    await hass.async_block_till_done()
 
     # Two modes x two parameters, none of them swallowed by a clashing id.
     assert len(hass.states.async_all("number")) == 4

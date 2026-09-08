@@ -20,8 +20,8 @@ from .const import (
 )
 from .coordinator import (
     PresetCoordinator,
+    PresetManagerRuntime,
     PresetModeCoordinator,
-    PresetModeRuntime,
     PresetState,
 )
 from .models import ModeDef, ParameterDef
@@ -59,7 +59,7 @@ class StableObjectIdMixin(Entity):
 def preset_mode_device_info(preset_mode: PresetModeCoordinator) -> DeviceInfo:
     """Return the device of a preset mode."""
     return DeviceInfo(
-        identifiers={(DOMAIN, preset_mode.config.entry_id)},
+        identifiers={(DOMAIN, preset_mode.config.subentry_id)},
         name=preset_mode.config.name,
         manufacturer=MANUFACTURER,
         model=MODEL_PRESET_MODE,
@@ -75,7 +75,7 @@ class PresetModeEntity(StableObjectIdMixin, CoordinatorEntity[PresetModeCoordina
     def __init__(self, preset_mode: PresetModeCoordinator, key: str) -> None:
         """Initialise the preset mode entity."""
         super().__init__(preset_mode)
-        self._attr_unique_id = f"{preset_mode.config.entry_id}_{key}"
+        self._attr_unique_id = f"{preset_mode.config.subentry_id}_{key}"
         self._attr_device_info = preset_mode_device_info(preset_mode)
 
     @property
@@ -94,12 +94,16 @@ class PresetEntity(StableObjectIdMixin, CoordinatorEntity[PresetCoordinator]):
         super().__init__(coordinator)
         subentry_id = coordinator.config.subentry_id
         self._attr_unique_id = f"{subentry_id}_{key}"
+        # No ``via_device``: a preset is not part of its preset mode, it
+        # follows one - it outlives its deletion, it may have none at all, and
+        # the two live in different hubs that are set up in either order. A
+        # device pointing at one that is not there yet is a warning today and
+        # an error in a coming Home Assistant version.
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, subentry_id)},
             name=coordinator.config.name,
             manufacturer=MANUFACTURER,
             model=MODEL_PRESET,
-            via_device=(DOMAIN, coordinator.preset_mode.config.entry_id),
         )
 
     @property
@@ -184,8 +188,8 @@ class ModeValueEditorEntity(PresetEntity):
 
 
 @callback
-def async_expected_unique_ids(runtime: PresetModeRuntime) -> set[str]:
-    """Return every unique id the current configuration produces.
+def async_expected_preset_mode_ids(runtime: PresetManagerRuntime) -> set[str]:
+    """Return every unique id the loaded preset modes produce.
 
     This is the single source of truth for "which entities may exist": the
     platforms build their entities from the same suffix constants, and
@@ -194,13 +198,20 @@ def async_expected_unique_ids(runtime: PresetModeRuntime) -> set[str]:
     mode sensor of a preset, which was then removed and restored on every
     single setup.
     """
-    entry_id = runtime.entry.entry_id
-    expected = {f"{entry_id}_{UID_PRESET_MODE_SENSOR}"}
-    if not runtime.preset_mode.external:
-        expected.add(f"{entry_id}_{UID_ACTIVE_MODE}")
-    if runtime.preset_mode.has_source:
-        expected.add(f"{entry_id}_{UID_AUTOMATIC}")
+    expected: set[str] = set()
+    for subentry_id, coordinator in runtime.preset_modes.items():
+        expected.add(f"{subentry_id}_{UID_PRESET_MODE_SENSOR}")
+        if not coordinator.external:
+            expected.add(f"{subentry_id}_{UID_ACTIVE_MODE}")
+        if coordinator.has_source:
+            expected.add(f"{subentry_id}_{UID_AUTOMATIC}")
+    return expected
 
+
+@callback
+def async_expected_preset_ids(runtime: PresetManagerRuntime) -> set[str]:
+    """Return every unique id the loaded presets produce."""
+    expected: set[str] = set()
     for subentry_id, coordinator in runtime.presets.items():
         expected.add(f"{subentry_id}_{UID_ACTIVE_MODE}")
         for parameter in coordinator.config.parameters:

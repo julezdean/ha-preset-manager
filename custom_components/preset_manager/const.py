@@ -8,21 +8,35 @@ DOMAIN: Final = "preset_manager"
 
 # Config entry / subentry structure -------------------------------------------------
 
-#: One config entry is one preset mode: a set of modes plus the rule
-#: picking the active one. Its presets are its subentries, which is what gives
-#: the integration page its hierarchy.
-#: A "preset" holds the parameters of one device, per mode.
-SUBENTRY_TYPE_PRESET: Final = "preset"
+#: The integration owns exactly three config entries, one per kind of object,
+#: and every object is a subentry of the hub that collects its kind. What an
+#: entry is stands in its ``unique_id``: it is the only field Home Assistant
+#: keeps unique per domain for us, so "there is one hub of each kind" is
+#: enforced by the config flow rather than by our own bookkeeping.
+HUB_PRESET_MODES: Final = "preset_modes"
+HUB_PRESETS: Final = "presets"
+HUB_BLUEPRINTS: Final = "blueprints"
 
-#: Kind of a config entry. Written explicitly from 0.1.0 on; an entry without
-#: the key is read as a preset mode, which is what ``blueprints.entry_type``
-#: does. A third kind is therefore an addition rather than a migration.
-CONF_ENTRY_TYPE: Final = "entry_type"
-#: A preset mode: a set of modes plus the presets that follow them.
-ENTRY_TYPE_PRESET_MODE: Final = "preset_mode"
-#: A blueprint: a config entry that holds nothing but parameter
-#: definitions, followed by any number of presets.
-ENTRY_TYPE_BLUEPRINT: Final = "blueprint"
+#: A preset mode: a set of modes plus the rule picking the active one.
+SUBENTRY_TYPE_PRESET_MODE: Final = "preset_mode"
+#: A preset: the parameters of one device, with one value per mode.
+SUBENTRY_TYPE_PRESET: Final = "preset"
+#: A blueprint: parameter definitions shared by any number of presets.
+SUBENTRY_TYPE_BLUEPRINT: Final = "blueprint"
+
+#: The one subentry type each hub holds, and the title it is created with.
+#: Titles are stored strings, not translations - the user may rename a hub,
+#: and renaming it back is not our business.
+HUB_SUBENTRY_TYPES: Final[dict[str, str]] = {
+    HUB_PRESET_MODES: SUBENTRY_TYPE_PRESET_MODE,
+    HUB_PRESETS: SUBENTRY_TYPE_PRESET,
+    HUB_BLUEPRINTS: SUBENTRY_TYPE_BLUEPRINT,
+}
+HUB_TITLES: Final[dict[str, str]] = {
+    HUB_PRESET_MODES: "Preset Modes",
+    HUB_PRESETS: "Presets",
+    HUB_BLUEPRINTS: "Preset Blueprints",
+}
 
 # Preset mode (config entry) keys
 CONF_MODES: Final = "modes"
@@ -43,14 +57,21 @@ CONF_NAME: Final = "name"
 CONF_ICON: Final = "icon"
 
 # Preset (subentry) keys
-#: Only used by the flow that moves a preset to another preset mode; a
-#: preset belongs to the config entry it is a subentry of.
+#: Subentry id of the preset mode a preset follows, or absent while it follows
+#: none. A preset is not contained in its preset mode: it survives the deletion
+#: of one and waits to be assigned another.
 CONF_PRESET_MODE: Final = "preset_mode"
 CONF_PARAMETERS: Final = "parameters"
-#: Entry id of the blueprint a preset follows. While it is set the preset
+#: The presets following one preset mode or one blueprint, in the step that
+#: edits the same reference from the other side.
+CONF_PRESETS: Final = "presets"
+#: Subentry id of the blueprint a preset follows. While it is set the preset
 #: has no parameters of its own: they are resolved from the blueprint on every setup,
 #: and its parameter editor stays closed.
 CONF_BLUEPRINT: Final = "blueprint"
+
+#: Name of the copy in the duplicate step of every object.
+CONF_COPY_NAME: Final = "copy_name"
 
 # Parameter definition keys
 CONF_TYPE: Final = "type"
@@ -71,6 +92,8 @@ CONF_PATTERN: Final = "pattern"
 # Storage ---------------------------------------------------------------------------
 
 DATA_STORE: Final = "store"
+#: The runtime of the whole domain, see ``coordinator.PresetManagerRuntime``.
+DATA_RUNTIME: Final = "runtime"
 
 STORAGE_KEY: Final = f"{DOMAIN}.values"
 #: Bumped when the shape of the value store changes; see
@@ -78,9 +101,10 @@ STORAGE_KEY: Final = f"{DOMAIN}.values"
 STORAGE_VERSION: Final = 1
 #: Bumped for changes an older version could still read.
 STORAGE_MINOR_VERSION: Final = 1
-#: Config entry version; bumped when the stored key names change. Every bump
-#: needs a step in ``async_migrate_entry``.
-ENTRY_VERSION: Final = 1
+#: Config entry version. 1 was one entry per preset mode and per blueprint,
+#: 2 is the three hubs. Every bump needs a step in ``async_migrate_entry``;
+#: the step from 1 to 2 is not one - such an entry is refused, see there.
+ENTRY_VERSION: Final = 2
 #: Bumped for additive changes to the entry data, which an older version of the
 #: integration can still load.
 ENTRY_MINOR_VERSION: Final = 1
@@ -145,3 +169,10 @@ DEFAULT_MODE_NAMES: Final = ["Home", "Away", "Night"]
 DEFAULT_PRESET_MODE_NAME: Final = "House Mode"
 #: Value of the blueprint selector standing for "no blueprint".
 BLUEPRINT_NONE: Final = "__none__"
+#: Value of the preset mode selector standing for "no preset mode".
+PRESET_MODE_NONE: Final = "__none__"
+
+# Repairs ---------------------------------------------------------------------------
+
+#: Issue id of a preset whose preset mode was deleted, per preset.
+ISSUE_ORPHANED_PRESET: Final = "orphaned_preset"

@@ -3,9 +3,10 @@
     "step": {
       "user": {
         "title": "What would you like to add?",
-        "description": "A preset mode holds the modes and the presets that follow them. A blueprint is a parameter list that any number of presets can share.",
+        "description": "Preset modes hold the modes, presets hold the values, and preset blueprints hold parameter definitions that presets share. Each kind lives in its own hub, and the hub appears with the first object you add to it.",
         "menu_options": {
           "preset_mode": "Preset mode",
+          "preset": "Preset",
           "blueprint": "Preset blueprint"
         }
       },
@@ -63,6 +64,19 @@
           "pattern": "Regular expression every value has to match.",
           "default": "Used when a mode has no value for this parameter."
         }
+      },
+      "preset": {
+        "title": "New preset",
+        "description": "A preset holds one set of values per mode, for one device or one scenario. It follows a preset mode, which decides which of its values are valid right now.",
+        "data": {
+          "name": "Name",
+          "preset_mode": "Preset mode",
+          "blueprint": "Preset blueprint"
+        },
+        "data_description": {
+          "preset_mode": "Which dimension decides the active mode. Can be left empty and assigned later.",
+          "blueprint": "With a blueprint the preset takes over its parameters and stays tied to it: they are then edited on the blueprint, for every preset following it at once."
+        }
       }
     },
     "error": {
@@ -77,6 +91,12 @@
       "no_parameters": "Please add at least one parameter.",
       "duplicate_mode_key": "Two modes carry the same key. Remove the duplicated row and add the mode again.",
       "duplicate_parameter_key": "Two parameters carry the same key. Remove the duplicated row and add the parameter again."
+    },
+    "abort": {
+      "preset_modes_added": "Preset mode added.",
+      "presets_added": "Preset added.",
+      "blueprints_added": "Preset blueprint added.",
+      "already_configured": "This hub already exists."
     }
   },
   "config_subentries": {
@@ -90,13 +110,15 @@
       "step": {
         "user": {
           "title": "New preset",
-          "description": "The preset belongs to the preset mode “{preset_mode}” and stores its parameter values for every mode of that preset mode.",
+          "description": "A preset holds one set of values per mode, for one device or one scenario. It follows a preset mode, which decides which of its values are valid right now.",
           "data": {
             "name": "Name",
+            "preset_mode": "Preset mode",
             "blueprint": "Preset blueprint"
           },
           "data_description": {
-            "blueprint": "With a blueprint the preset takes over its parameters and stays tied to it: every later change of the blueprint arrives on its own, and the preset cannot define parameters of its own any more. Pick “-” to define them here instead."
+            "preset_mode": "Which dimension decides the active mode. Can be left empty and assigned later.",
+            "blueprint": "With a blueprint the preset takes over its parameters and stays tied to it: they are then edited on the blueprint, for every preset following it at once."
           }
         },
         "parameter_details": {
@@ -125,9 +147,10 @@
           "title": "Edit preset",
           "menu_options": {
             "manage_parameters": "Manage parameters",
-            "blueprint": "Preset blueprint",
-            "rename_preset": "Rename preset",
-            "assign_preset_mode": "Assign preset mode"
+            "rename": "Rename",
+            "assign_preset_mode": "Assign preset mode",
+            "assign_blueprint": "Assign preset blueprint",
+            "duplicate": "Duplicate"
           }
         },
         "manage_parameters": {
@@ -141,26 +164,33 @@
             "parameter": "Range, unit, options and default value are asked for in the next step. New parameters go there automatically."
           }
         },
-        "rename_preset": {
-          "title": "Rename preset",
-          "data": {
-            "name": "Name"
-          }
-        },
         "assign_preset_mode": {
           "title": "Assign preset mode",
           "data": {
             "preset_mode": "Preset mode"
           },
           "data_description": {
-            "preset_mode": "Moving the preset to another preset mode keeps its parameters, values and entities."
+            "preset_mode": "A preset without a preset mode keeps its parameters, its values and its modes - only nothing decides which mode is active, so its values do not resolve. Switching to another preset mode keeps the values stored under the modes both have in common."
           }
         },
-        "blueprint": {
-          "title": "Preset blueprint",
+        "assign_blueprint": {
+          "title": "Assign preset blueprint",
           "description": "With a blueprint the preset takes over its parameters and follows every change of it. Pick “-” to leave the blueprint: the preset keeps the parameters it has right now as its own and can edit them again.\n\nSwitching blueprints replaces the parameters of the preset. Values are kept wherever a parameter of the same key exists in the new blueprint.",
           "data": {
             "blueprint": "Preset blueprint"
+          }
+        },
+        "duplicate": {
+          "title": "Duplicate preset",
+          "description": "The copy gets the parameters of \"{name}\" and the values stored for them, mode by mode. It follows the same preset mode and, if there is one, the same blueprint.",
+          "data": {
+            "copy_name": "Name of the copy"
+          }
+        },
+        "rename": {
+          "title": "Rename",
+          "data": {
+            "name": "Name"
           }
         }
       },
@@ -177,9 +207,181 @@
       },
       "abort": {
         "reconfigure_successful": "Preset updated.",
-        "preset_moved": "Preset moved to the other preset mode.",
-        "unknown_preset_mode": "That preset mode no longer exists.",
-        "blueprint_locked": "The parameters of this preset belong to its preset blueprint and are edited there."
+        "blueprint_locked": "The parameters of this preset belong to its preset blueprint and are edited there.",
+        "duplicated": "Copy created."
+      }
+    },
+    "preset_mode": {
+      "title": "Preset mode",
+      "entry_type": "Preset mode",
+      "initiate_flow": {
+        "user": "Add preset mode",
+        "reconfigure": "Edit preset mode"
+      },
+      "step": {
+        "user": {
+          "title": "New preset mode",
+          "description": "A preset mode holds a set of modes that belong together, for example Home, Away and Night. Its presets are added afterwards, and every further preset mode becomes an entry of its own.",
+          "data": {
+            "name": "Name of the preset mode",
+            "modes": "Modes"
+          },
+          "data_description": {
+            "name": "For example \"House Mode\" or \"Window State\".",
+            "modes": "Type a name and press enter to add your own modes."
+          }
+        },
+        "reconfigure": {
+          "title": "Edit preset mode",
+          "menu_options": {
+            "manage_modes": "Manage modes",
+            "rename": "Rename",
+            "assign_presets": "Assign presets",
+            "preset_mode_settings": "Assign external entity",
+            "duplicate": "Duplicate"
+          }
+        },
+        "manage_modes": {
+          "title": "Modes",
+          "description": "The list is worked through from top to bottom: the first mode whose conditions match becomes active. Drag a row by its handle to change the priority, use the pencil to rename it or set its conditions, and the bin to delete it.\n\nA mode without conditions always matches, so it catches everything below it - put one at the bottom to have a fallback mode. If nothing matches at all, no mode is active and every preset reports “unknown”.",
+          "data": {
+            "modes": "Modes in priority order"
+          }
+        },
+        "preset_mode_settings": {
+          "title": "Assign external entity",
+          "data": {
+            "source_entity": "Follow this entity"
+          },
+          "data_description": {
+            "source_entity": "Leave empty to let the preset mode decide for itself. With an entity, its state names the active mode - matched against the mode names, case insensitive - and nothing else is evaluated: the conditions are ignored, there is no automatic switch and no selector. A state that names no mode leaves the preset mode without an active mode. So this needs an entity whose state is literally one of your mode names - a dropdown helper with the modes as its options is the typical case. A sensor reporting a number or a measurement will never match one."
+          }
+        },
+        "duplicate": {
+          "title": "Duplicate preset mode",
+          "description": "The copy gets the modes and the conditions of \"{name}\". It does not get the entity that one follows: two preset modes reading the same entity would always hold the same mode.",
+          "data": {
+            "copy_name": "Name of the copy"
+          }
+        },
+        "rename": {
+          "title": "Rename",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "assign_presets": {
+          "title": "Presets of “{name}”",
+          "description": "Every preset listed here follows this preset mode. Adding one moves it here if it followed another; the preset mode it currently follows is in brackets. Taking one off leaves it with its parameters, its values and its modes, but without an active mode - it then asks for a new preset mode in the repairs.",
+          "data": {
+            "presets": "Presets"
+          }
+        }
+      },
+      "error": {
+        "no_modes": "Please define at least one mode.",
+        "duplicate_mode": "Mode names have to be unique.",
+        "duplicate_mode_key": "Two modes carry the same key. Remove the duplicated row and add the mode again."
+      },
+      "abort": {
+        "reconfigure_successful": "Preset mode updated.",
+        "duplicated": "Copy created."
+      }
+    },
+    "blueprint": {
+      "title": "Preset blueprint",
+      "entry_type": "Preset blueprint",
+      "initiate_flow": {
+        "user": "Add preset blueprint",
+        "reconfigure": "Edit preset blueprint"
+      },
+      "step": {
+        "user": {
+          "title": "New preset blueprint",
+          "description": "A blueprint defines parameters once - a target temperature, a boost duration - and hands them to every preset that follows it. Those presets follow every later change of the blueprint and have no parameters of their own; their values per mode stay their own.",
+          "data": {
+            "name": "Name of the preset blueprint"
+          },
+          "data_description": {
+            "name": "For example “Heating” or “Shutters”."
+          }
+        },
+        "reconfigure": {
+          "title": "Preset blueprint",
+          "menu_options": {
+            "manage_parameters": "Manage parameters",
+            "rename": "Rename",
+            "assign_presets": "Assign presets",
+            "duplicate": "Duplicate"
+          }
+        },
+        "manage_parameters": {
+          "title": "Parameters of the preset blueprint",
+          "description": "One row per parameter. Use the pencil to rename a parameter, to change its type or to give it an icon, the bin to delete it. The order of the rows is the order of the entities.\n\nEvery preset following this set is updated right away. Deleting a parameter also deletes its stored values in those presets, and changing its type does the same, because the old values no longer fit.",
+          "data": {
+            "parameters": "Parameters",
+            "parameter": "Edit details of"
+          },
+          "data_description": {
+            "parameter": "Range, unit, options and default value are asked for in the next step. New parameters go there automatically."
+          }
+        },
+        "parameter_details": {
+          "title": "Parameter details",
+          "description": "Settings for \"{parameter}\".",
+          "data": {
+            "minimum": "Minimum",
+            "maximum": "Maximum",
+            "step": "Step size",
+            "unit": "Unit",
+            "device_class": "Device class",
+            "display_mode": "Display",
+            "min_length": "Minimum length",
+            "max_length": "Maximum length",
+            "pattern": "Pattern",
+            "options": "Options",
+            "default": "Default value"
+          },
+          "data_description": {
+            "device_class": "Tells Home Assistant what the number means, which enables unit conversion and long-term statistics. Only units matching the device class are allowed.",
+            "pattern": "Regular expression every value has to match.",
+            "default": "Used when a mode has no value for this parameter."
+          }
+        },
+        "duplicate": {
+          "title": "Duplicate preset blueprint",
+          "description": "The copy gets the parameters of \"{name}\". The presets following \"{name}\" keep following it and are not touched.",
+          "data": {
+            "copy_name": "Name of the copy"
+          }
+        },
+        "rename": {
+          "title": "Rename",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "assign_presets": {
+          "title": "Presets of “{name}”",
+          "description": "Every preset listed here takes its parameters from this blueprint. Adding one replaces the parameters it has: its own list is gone, and the values it stored survive only where a parameter of the same key exists in both. Taking one off leaves it the parameters of this blueprint as its own, values included.",
+          "data": {
+            "presets": "Presets"
+          }
+        }
+      },
+      "error": {
+        "duplicate_parameter": "Parameter names have to be unique.",
+        "no_options": "Please define at least one option.",
+        "invalid_range": "The minimum has to be smaller than the maximum.",
+        "invalid_default": "The default value does not fit the parameter.",
+        "invalid_unit": "The unit does not fit the selected device class. Allowed units: {units}.",
+        "unit_not_allowed": "This device class is used without a unit.",
+        "no_parameters": "Please add at least one parameter.",
+        "duplicate_parameter_key": "Two parameters carry the same key. Remove the duplicated row and add the parameter again."
+      },
+      "abort": {
+        "reconfigure_successful": "Preset blueprint updated.",
+        "duplicated": "Copy created."
       }
     }
   },
@@ -354,78 +556,10 @@
       }
     }
   },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Preset mode",
-        "menu_options": {
-          "manage_modes": "Manage modes",
-          "preset_mode_settings": "Preset mode settings"
-        }
-      },
-      "manage_modes": {
-        "title": "Modes",
-        "description": "The list is worked through from top to bottom: the first mode whose conditions match becomes active. Drag a row by its handle to change the priority, use the pencil to rename it or set its conditions, and the bin to delete it.\n\nA mode without conditions always matches, so it catches everything below it - put one at the bottom to have a fallback mode. If nothing matches at all, no mode is active and every preset reports “unknown”.",
-        "data": {
-          "modes": "Modes in priority order"
-        }
-      },
-      "preset_mode_settings": {
-        "title": "Preset mode settings",
-        "data": {
-          "name": "Name",
-          "source_entity": "Follow this entity"
-        },
-        "data_description": {
-          "source_entity": "Leave empty to let the preset mode decide for itself. With an entity, its state names the active mode - matched against the mode names, case insensitive - and nothing else is evaluated: the conditions are ignored, there is no automatic switch and no selector. A state that names no mode leaves the preset mode without an active mode. So this needs an entity whose state is literally one of your mode names - a dropdown helper with the modes as its options is the typical case. A sensor reporting a number or a measurement will never match one."
-        }
-      },
-      "manage_parameters": {
-        "title": "Parameters of the preset blueprint",
-        "description": "One row per parameter. Use the pencil to rename a parameter, to change its type or to give it an icon, the bin to delete it. The order of the rows is the order of the entities.\n\nEvery preset following this set is updated right away. Deleting a parameter also deletes its stored values in those presets, and changing its type does the same, because the old values no longer fit.",
-        "data": {
-          "parameters": "Parameters",
-          "parameter": "Edit details of"
-        },
-        "data_description": {
-          "parameter": "Range, unit, options and default value are asked for in the next step. New parameters go there automatically."
-        }
-      },
-      "parameter_details": {
-        "title": "Parameter details",
-        "description": "Settings for \"{parameter}\".",
-        "data": {
-          "minimum": "Minimum",
-          "maximum": "Maximum",
-          "step": "Step size",
-          "unit": "Unit",
-          "device_class": "Device class",
-          "display_mode": "Display",
-          "min_length": "Minimum length",
-          "max_length": "Maximum length",
-          "pattern": "Pattern",
-          "options": "Options",
-          "default": "Default value"
-        },
-        "data_description": {
-          "device_class": "Tells Home Assistant what the number means, which enables unit conversion and long-term statistics. Only units matching the device class are allowed.",
-          "pattern": "Regular expression every value has to match.",
-          "default": "Used when a mode has no value for this parameter."
-        }
-      }
-    },
-    "error": {
-      "no_modes": "Please define at least one mode.",
-      "duplicate_mode": "Mode names have to be unique.",
-      "duplicate_parameter": "Parameter names have to be unique.",
-      "no_options": "Please define at least one option.",
-      "invalid_range": "The minimum has to be smaller than the maximum.",
-      "invalid_default": "The default value does not fit the parameter.",
-      "invalid_unit": "The unit does not fit the selected device class. Allowed units: {units}.",
-      "unit_not_allowed": "This device class is used without a unit.",
-      "no_parameters": "Please add at least one parameter.",
-      "duplicate_mode_key": "Two modes carry the same key. Remove the duplicated row and add the mode again.",
-      "duplicate_parameter_key": "Two parameters carry the same key. Remove the duplicated row and add the parameter again."
+  "issues": {
+    "orphaned_preset": {
+      "title": "Preset \"{preset}\" has no preset mode",
+      "description": "Nothing decides which mode is active for this preset, so its values do not resolve. Either it was created without a preset mode, or the one it followed was deleted - in which case it kept its parameters, its values and its modes.\n\nAssign it a preset mode: Settings > Devices & services > Preset Manager > Presets, then the preset, then “Assign preset mode”."
     }
   }
 }

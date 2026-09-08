@@ -3,9 +3,10 @@
     "step": {
       "user": {
         "title": "Was möchtest du anlegen?",
-        "description": "Ein Preset Mode hält die Modes und die Presets, die ihnen folgen. Ein Preset Blueprint ist eine Parameterliste, die sich beliebig viele Presets teilen können.",
+        "description": "Preset Modes halten die Modes, Presets die Werte, und Preset Blueprints die Parameterdefinitionen, die sich Presets teilen. Jede Art liegt in ihrem eigenen Hub, und der Hub entsteht mit dem ersten Objekt, das du anlegst.",
         "menu_options": {
           "preset_mode": "Preset Mode",
+          "preset": "Preset",
           "blueprint": "Preset Blueprint"
         }
       },
@@ -63,6 +64,19 @@
           "pattern": "Regulärer Ausdruck, dem jeder Wert entsprechen muss.",
           "default": "Wird verwendet, wenn ein Mode keinen Wert für diesen Parameter hat."
         }
+      },
+      "preset": {
+        "title": "Neues Preset",
+        "description": "Ein Preset hält einen Satz Werte pro Mode, für ein Gerät oder ein Szenario. Es folgt einem Preset Mode, der entscheidet, welche seiner Werte gerade gelten.",
+        "data": {
+          "name": "Name",
+          "preset_mode": "Preset Mode",
+          "blueprint": "Preset Blueprint"
+        },
+        "data_description": {
+          "preset_mode": "Welche Dimension den aktiven Mode bestimmt. Kann leer bleiben und später zugewiesen werden.",
+          "blueprint": "Mit einem Blueprint übernimmt das Preset dessen Parameter und bleibt an ihn gebunden: Sie werden dann am Blueprint bearbeitet, für alle Presets, die ihm folgen, auf einmal."
+        }
       }
     },
     "error": {
@@ -77,6 +91,12 @@
       "no_parameters": "Bitte mindestens einen Parameter anlegen.",
       "duplicate_mode_key": "Zwei Modes tragen denselben Key. Entferne die doppelte Zeile und lege den Mode neu an.",
       "duplicate_parameter_key": "Zwei Parameter tragen denselben Key. Entferne die doppelte Zeile und lege den Parameter neu an."
+    },
+    "abort": {
+      "preset_modes_added": "Preset Mode hinzugefügt.",
+      "presets_added": "Preset hinzugefügt.",
+      "blueprints_added": "Preset Blueprint hinzugefügt.",
+      "already_configured": "Diesen Hub gibt es bereits."
     }
   },
   "config_subentries": {
@@ -90,13 +110,15 @@
       "step": {
         "user": {
           "title": "Neues Preset",
-          "description": "Das Preset gehört zum Preset Mode „{preset_mode}“ und speichert seine Parameterwerte für jeden Mode dieses Preset Modes.",
+          "description": "Ein Preset hält einen Satz Werte pro Mode, für ein Gerät oder ein Szenario. Es folgt einem Preset Mode, der entscheidet, welche seiner Werte gerade gelten.",
           "data": {
             "name": "Name",
+            "preset_mode": "Preset Mode",
             "blueprint": "Preset Blueprint"
           },
           "data_description": {
-            "blueprint": "Mit einem Preset Blueprint übernimmt das Preset dessen Parameter und bleibt mit ihm verbunden: Jede spätere Änderung des Blueprints kommt von selbst an, und eigene Parameter kann das Preset dann nicht mehr definieren. Für eigene Parameter „-“ wählen."
+            "preset_mode": "Welche Dimension den aktiven Mode bestimmt. Kann leer bleiben und später zugewiesen werden.",
+            "blueprint": "Mit einem Blueprint übernimmt das Preset dessen Parameter und bleibt an ihn gebunden: Sie werden dann am Blueprint bearbeitet, für alle Presets, die ihm folgen, auf einmal."
           }
         },
         "parameter_details": {
@@ -125,9 +147,10 @@
           "title": "Preset bearbeiten",
           "menu_options": {
             "manage_parameters": "Parameter verwalten",
-            "blueprint": "Preset Blueprint",
-            "rename_preset": "Preset umbenennen",
-            "assign_preset_mode": "Preset Mode zuweisen"
+            "rename": "Umbenennen",
+            "assign_preset_mode": "Preset Mode zuweisen",
+            "assign_blueprint": "Preset Blueprint zuweisen",
+            "duplicate": "Duplizieren"
           }
         },
         "manage_parameters": {
@@ -141,26 +164,33 @@
             "parameter": "Wertebereich, Einheit, Optionen und Standardwert werden im nächsten Schritt abgefragt. Neue Parameter landen dort automatisch."
           }
         },
-        "rename_preset": {
-          "title": "Preset umbenennen",
-          "data": {
-            "name": "Name"
-          }
-        },
         "assign_preset_mode": {
           "title": "Preset Mode zuweisen",
           "data": {
             "preset_mode": "Preset Mode"
           },
           "data_description": {
-            "preset_mode": "Beim Verschieben in einen anderen Preset Mode behält das Preset seine Parameter, Werte und Entitäten."
+            "preset_mode": "Ein Preset ohne Preset Mode behält seine Parameter, seine Werte und seine Modes – nur bestimmt nichts mehr den aktiven Mode, also lösen seine Werte nicht auf. Der Wechsel zu einem anderen Preset Mode behält die Werte unter den Modes, die beide gemeinsam haben."
           }
         },
-        "blueprint": {
-          "title": "Preset Blueprint",
+        "assign_blueprint": {
+          "title": "Preset Blueprint zuweisen",
           "description": "Mit einem Preset Blueprint übernimmt das Preset dessen Parameter und folgt jeder Änderung daran. Mit „-“ löst es sich wieder: Es behält die Parameter, die es gerade hat, als eigene und kann sie wieder bearbeiten.\n\nEin Wechsel des Blueprints ersetzt die Parameter des Presets. Werte bleiben überall dort erhalten, wo es im neuen Blueprint einen Parameter mit demselben Schlüssel gibt.",
           "data": {
             "blueprint": "Preset Blueprint"
+          }
+        },
+        "duplicate": {
+          "title": "Preset duplizieren",
+          "description": "Die Kopie bekommt die Parameter von „{name}“ und die dafür gespeicherten Werte, Mode für Mode. Sie folgt demselben Preset Mode und, falls vorhanden, demselben Blueprint.",
+          "data": {
+            "copy_name": "Name der Kopie"
+          }
+        },
+        "rename": {
+          "title": "Umbenennen",
+          "data": {
+            "name": "Name"
           }
         }
       },
@@ -177,9 +207,181 @@
       },
       "abort": {
         "reconfigure_successful": "Preset aktualisiert.",
-        "preset_moved": "Preset in den anderen Preset Mode verschoben.",
-        "unknown_preset_mode": "Dieser Preset Mode existiert nicht mehr.",
-        "blueprint_locked": "Die Parameter dieses Presets gehören zu seinem Preset Blueprint und werden dort bearbeitet."
+        "blueprint_locked": "Die Parameter dieses Presets gehören zu seinem Preset Blueprint und werden dort bearbeitet.",
+        "duplicated": "Kopie erstellt."
+      }
+    },
+    "preset_mode": {
+      "title": "Preset Mode",
+      "entry_type": "Preset Mode",
+      "initiate_flow": {
+        "user": "Preset Mode hinzufügen",
+        "reconfigure": "Preset Mode bearbeiten"
+      },
+      "step": {
+        "user": {
+          "title": "Neuer Preset Mode",
+          "description": "Ein Preset Mode bündelt Modes, die zusammengehören, zum Beispiel Zuhause, Abwesend und Nacht. Die Presets kommen danach dazu, und jeder weitere Preset Mode wird ein eigener Eintrag.",
+          "data": {
+            "name": "Name des Preset Modes",
+            "modes": "Modes"
+          },
+          "data_description": {
+            "name": "Zum Beispiel \"Hausmodus\" oder \"Fensterstatus\".",
+            "modes": "Namen eintippen und mit Enter bestätigen, um eigene Modes anzulegen."
+          }
+        },
+        "reconfigure": {
+          "title": "Preset Mode bearbeiten",
+          "menu_options": {
+            "manage_modes": "Modes verwalten",
+            "rename": "Umbenennen",
+            "assign_presets": "Presets zuweisen",
+            "preset_mode_settings": "Externe Entity zuweisen",
+            "duplicate": "Duplizieren"
+          }
+        },
+        "manage_modes": {
+          "title": "Modes",
+          "description": "Die Liste wird von oben nach unten abgearbeitet: Der erste Mode, dessen Bedingungen zutreffen, wird aktiv. Zum Ändern der Priorität eine Zeile am Griff verschieben, über den Stift umbenennen oder Bedingungen setzen, über den Mülleimer löschen.\n\nEin Mode ohne Bedingungen trifft immer zu und fängt damit alles darunter ab – einen ans Ende der Liste stellen, um einen Auffang-Mode zu haben. Trifft gar nichts zu, ist kein Mode aktiv und alle Presets melden „unbekannt“.",
+          "data": {
+            "modes": "Modes in Prioritätsreihenfolge"
+          }
+        },
+        "preset_mode_settings": {
+          "title": "Externe Entity zuweisen",
+          "data": {
+            "source_entity": "Dieser Entität folgen"
+          },
+          "data_description": {
+            "source_entity": "Leer lassen, damit der Preset Mode selbst entscheidet. Mit einer Entität benennt deren Zustand den aktiven Mode – verglichen wird mit den Mode-Namen, Groß- und Kleinschreibung egal – und sonst wird nichts ausgewertet: Die Bedingungen werden ignoriert, es gibt keinen Automatik-Schalter und keine Auswahl. Ein Zustand, der keinen Mode benennt, lässt den Preset Mode ohne aktiven Mode. Dafür braucht es also eine Entität, deren Zustand wörtlich einer deiner Mode-Namen ist – ein Dropdown-Helper mit den Modes als Optionen ist der typische Fall. Ein Sensor, der eine Zahl oder einen Messwert liefert, passt nie zu einem."
+          }
+        },
+        "duplicate": {
+          "title": "Preset Mode duplizieren",
+          "description": "Die Kopie bekommt die Modes und die Bedingungen von „{name}“. Die Entity, der dieser folgt, bekommt sie nicht: Zwei Preset Modes an derselben Entity hielten immer denselben Mode.",
+          "data": {
+            "copy_name": "Name der Kopie"
+          }
+        },
+        "rename": {
+          "title": "Umbenennen",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "assign_presets": {
+          "title": "Presets von „{name}“",
+          "description": "Jedes Preset in dieser Liste folgt diesem Preset Mode. Ein hinzugefügtes wird hierher verschoben, falls es einem anderen folgte — welchem, steht in Klammern. Ein entferntes behält seine Parameter, seine Werte und seine Modes, hat aber keinen aktiven Mode mehr und bittet in den Reparaturen um einen neuen Preset Mode.",
+          "data": {
+            "presets": "Presets"
+          }
+        }
+      },
+      "error": {
+        "no_modes": "Bitte mindestens einen Mode anlegen.",
+        "duplicate_mode": "Mode-Namen müssen eindeutig sein.",
+        "duplicate_mode_key": "Zwei Modes tragen denselben Key. Entferne die doppelte Zeile und lege den Mode neu an."
+      },
+      "abort": {
+        "reconfigure_successful": "Preset Mode aktualisiert.",
+        "duplicated": "Kopie erstellt."
+      }
+    },
+    "blueprint": {
+      "title": "Preset Blueprint",
+      "entry_type": "Preset Blueprint",
+      "initiate_flow": {
+        "user": "Preset Blueprint hinzufügen",
+        "reconfigure": "Preset Blueprint bearbeiten"
+      },
+      "step": {
+        "user": {
+          "title": "Neuer Preset Blueprint",
+          "description": "Ein Preset Blueprint definiert Parameter einmal – Zieltemperatur, Boost-Dauer – und gibt sie an jedes Preset weiter, das ihm folgt. Diese Presets übernehmen jede spätere Änderung des Blueprints und haben keine eigenen Parameter; ihre Werte pro Mode bleiben ihre eigenen.",
+          "data": {
+            "name": "Name des Preset Blueprints"
+          },
+          "data_description": {
+            "name": "Zum Beispiel „Heizungen“ oder „Rollläden“."
+          }
+        },
+        "reconfigure": {
+          "title": "Preset Blueprint",
+          "menu_options": {
+            "manage_parameters": "Parameter verwalten",
+            "rename": "Umbenennen",
+            "assign_presets": "Presets zuweisen",
+            "duplicate": "Duplizieren"
+          }
+        },
+        "manage_parameters": {
+          "title": "Parameter des Preset Blueprints",
+          "description": "Eine Zeile pro Parameter. Über den Stift umbenennen, den Typ ändern oder ein Symbol vergeben, über den Mülleimer löschen. Die Reihenfolge der Zeilen ist die Reihenfolge der Entitäten.\n\nJedes Preset, das diesem Blueprint folgt, wird sofort aktualisiert. Wird ein Parameter gelöscht, werden auch seine gespeicherten Werte in diesen Presets gelöscht. Beim Ändern des Typs passiert dasselbe, weil die alten Werte nicht mehr passen.",
+          "data": {
+            "parameters": "Parameter",
+            "parameter": "Details bearbeiten von"
+          },
+          "data_description": {
+            "parameter": "Wertebereich, Einheit, Optionen und Standardwert werden im nächsten Schritt abgefragt. Neue Parameter landen dort automatisch."
+          }
+        },
+        "parameter_details": {
+          "title": "Parameter-Details",
+          "description": "Einstellungen für \"{parameter}\".",
+          "data": {
+            "minimum": "Minimum",
+            "maximum": "Maximum",
+            "step": "Schrittweite",
+            "unit": "Einheit",
+            "device_class": "Geräteklasse",
+            "display_mode": "Darstellung",
+            "min_length": "Mindestlänge",
+            "max_length": "Maximallänge",
+            "pattern": "Muster",
+            "options": "Optionen",
+            "default": "Standardwert"
+          },
+          "data_description": {
+            "device_class": "Sagt Home Assistant, was die Zahl bedeutet, und ermöglicht damit Einheitenumrechnung und Langzeitstatistik. Es sind nur Einheiten erlaubt, die zur Geräteklasse passen.",
+            "pattern": "Regulärer Ausdruck, dem jeder Wert entsprechen muss.",
+            "default": "Wird verwendet, wenn ein Mode keinen Wert für diesen Parameter hat."
+          }
+        },
+        "duplicate": {
+          "title": "Preset Blueprint duplizieren",
+          "description": "Die Kopie bekommt die Parameter von „{name}“. Die Presets, die „{name}“ folgen, folgen weiter ihm und bleiben unberührt.",
+          "data": {
+            "copy_name": "Name der Kopie"
+          }
+        },
+        "rename": {
+          "title": "Umbenennen",
+          "data": {
+            "name": "Name"
+          }
+        },
+        "assign_presets": {
+          "title": "Presets von „{name}“",
+          "description": "Jedes Preset in dieser Liste bezieht seine Parameter aus diesem Blueprint. Ein hinzugefügtes gibt die Parameter auf, die es hat: seine eigene Liste ist danach weg, und seine Werte überleben nur dort, wo ein Parameter mit demselben Key in beiden existiert. Ein entferntes bekommt die Parameter dieses Blueprints als eigene, Werte inklusive.",
+          "data": {
+            "presets": "Presets"
+          }
+        }
+      },
+      "error": {
+        "duplicate_parameter": "Parameternamen müssen eindeutig sein.",
+        "no_options": "Bitte mindestens eine Option angeben.",
+        "invalid_range": "Das Minimum muss kleiner als das Maximum sein.",
+        "invalid_default": "Der Standardwert passt nicht zum Parameter.",
+        "invalid_unit": "Die Einheit passt nicht zur gewählten Geräteklasse. Erlaubt sind: {units}.",
+        "unit_not_allowed": "Diese Geräteklasse wird ohne Einheit verwendet.",
+        "no_parameters": "Bitte mindestens einen Parameter anlegen.",
+        "duplicate_parameter_key": "Zwei Parameter tragen denselben Key. Entferne die doppelte Zeile und lege den Parameter neu an."
+      },
+      "abort": {
+        "reconfigure_successful": "Preset Blueprint aktualisiert.",
+        "duplicated": "Kopie erstellt."
       }
     }
   },
@@ -354,78 +556,10 @@
       }
     }
   },
-  "options": {
-    "step": {
-      "init": {
-        "title": "Preset Mode",
-        "menu_options": {
-          "manage_modes": "Modes verwalten",
-          "preset_mode_settings": "Preset Mode einstellen"
-        }
-      },
-      "manage_modes": {
-        "title": "Modes",
-        "description": "Die Liste wird von oben nach unten abgearbeitet: Der erste Mode, dessen Bedingungen zutreffen, wird aktiv. Zum Ändern der Priorität eine Zeile am Griff verschieben, über den Stift umbenennen oder Bedingungen setzen, über den Mülleimer löschen.\n\nEin Mode ohne Bedingungen trifft immer zu und fängt damit alles darunter ab – einen ans Ende der Liste stellen, um einen Auffang-Mode zu haben. Trifft gar nichts zu, ist kein Mode aktiv und alle Presets melden „unbekannt“.",
-        "data": {
-          "modes": "Modes in Prioritätsreihenfolge"
-        }
-      },
-      "preset_mode_settings": {
-        "title": "Preset Mode einstellen",
-        "data": {
-          "name": "Name",
-          "source_entity": "Dieser Entität folgen"
-        },
-        "data_description": {
-          "source_entity": "Leer lassen, damit der Preset Mode selbst entscheidet. Mit einer Entität benennt deren Zustand den aktiven Mode – verglichen wird mit den Mode-Namen, Groß- und Kleinschreibung egal – und sonst wird nichts ausgewertet: Die Bedingungen werden ignoriert, es gibt keinen Automatik-Schalter und keine Auswahl. Ein Zustand, der keinen Mode benennt, lässt den Preset Mode ohne aktiven Mode. Dafür braucht es also eine Entität, deren Zustand wörtlich einer deiner Mode-Namen ist – ein Dropdown-Helper mit den Modes als Optionen ist der typische Fall. Ein Sensor, der eine Zahl oder einen Messwert liefert, passt nie zu einem."
-        }
-      },
-      "manage_parameters": {
-        "title": "Parameter des Preset Blueprints",
-        "description": "Eine Zeile pro Parameter. Über den Stift umbenennen, den Typ ändern oder ein Symbol vergeben, über den Mülleimer löschen. Die Reihenfolge der Zeilen ist die Reihenfolge der Entitäten.\n\nJedes Preset, das diesem Blueprint folgt, wird sofort aktualisiert. Wird ein Parameter gelöscht, werden auch seine gespeicherten Werte in diesen Presets gelöscht. Beim Ändern des Typs passiert dasselbe, weil die alten Werte nicht mehr passen.",
-        "data": {
-          "parameters": "Parameter",
-          "parameter": "Details bearbeiten von"
-        },
-        "data_description": {
-          "parameter": "Wertebereich, Einheit, Optionen und Standardwert werden im nächsten Schritt abgefragt. Neue Parameter landen dort automatisch."
-        }
-      },
-      "parameter_details": {
-        "title": "Parameter-Details",
-        "description": "Einstellungen für \"{parameter}\".",
-        "data": {
-          "minimum": "Minimum",
-          "maximum": "Maximum",
-          "step": "Schrittweite",
-          "unit": "Einheit",
-          "device_class": "Geräteklasse",
-          "display_mode": "Darstellung",
-          "min_length": "Mindestlänge",
-          "max_length": "Maximallänge",
-          "pattern": "Muster",
-          "options": "Optionen",
-          "default": "Standardwert"
-        },
-        "data_description": {
-          "device_class": "Sagt Home Assistant, was die Zahl bedeutet, und ermöglicht damit Einheitenumrechnung und Langzeitstatistik. Es sind nur Einheiten erlaubt, die zur Geräteklasse passen.",
-          "pattern": "Regulärer Ausdruck, dem jeder Wert entsprechen muss.",
-          "default": "Wird verwendet, wenn ein Mode keinen Wert für diesen Parameter hat."
-        }
-      }
-    },
-    "error": {
-      "no_modes": "Bitte mindestens einen Mode anlegen.",
-      "duplicate_mode": "Mode-Namen müssen eindeutig sein.",
-      "duplicate_parameter": "Parameternamen müssen eindeutig sein.",
-      "no_options": "Bitte mindestens eine Option angeben.",
-      "invalid_range": "Das Minimum muss kleiner als das Maximum sein.",
-      "invalid_default": "Der Standardwert passt nicht zum Parameter.",
-      "invalid_unit": "Die Einheit passt nicht zur gewählten Geräteklasse. Erlaubt sind: {units}.",
-      "unit_not_allowed": "Diese Geräteklasse wird ohne Einheit verwendet.",
-      "no_parameters": "Bitte mindestens einen Parameter anlegen.",
-      "duplicate_mode_key": "Zwei Modes tragen denselben Key. Entferne die doppelte Zeile und lege den Mode neu an.",
-      "duplicate_parameter_key": "Zwei Parameter tragen denselben Key. Entferne die doppelte Zeile und lege den Parameter neu an."
+  "issues": {
+    "orphaned_preset": {
+      "title": "Preset „{preset}“ hat keinen Preset Mode",
+      "description": "Für dieses Preset bestimmt nichts den aktiven Mode, also lösen seine Werte nicht auf. Entweder wurde es ohne Preset Mode angelegt, oder der, dem es folgte, wurde gelöscht – dann hat es seine Parameter, seine Werte und seine Modes behalten.\n\nWeise ihm einen Preset Mode zu: Einstellungen > Geräte & Dienste > Preset Manager > Presets, dann das Preset, dann „Preset Mode zuweisen“."
     }
   }
 }

@@ -28,9 +28,19 @@ from typing import Any
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
-from . import blueprints
-from .const import CONF_DEFAULT
-from .coordinator import PresetCoordinator, PresetModeConfigEntry, PresetModeRuntime
+from . import following, hubs
+from .const import (
+    CONF_BLUEPRINT,
+    CONF_DEFAULT,
+    CONF_PARAMETERS,
+    HUB_BLUEPRINTS,
+    HUB_PRESET_MODES,
+)
+from .coordinator import (
+    PresetCoordinator,
+    PresetManagerConfigEntry,
+    PresetModeCoordinator,
+)
 from .models import ParameterDef, PresetConfig
 from .parameter_types import MODE_PASSWORD, TYPE_TEXT
 
@@ -62,11 +72,13 @@ def _values(secret_keys: set[str], values: Mapping[str, Any]) -> dict[str, Any]:
     }
 
 
-def _preset_mode(hass: HomeAssistant, runtime: PresetModeRuntime) -> dict[str, Any]:
-    """Return the state of the preset mode itself."""
-    preset_mode = runtime.preset_mode
+def _preset_mode(
+    hass: HomeAssistant, preset_mode: PresetModeCoordinator
+) -> dict[str, Any]:
+    """Return the state of one preset mode."""
     config = preset_mode.config
     report: dict[str, Any] = {
+        "name": config.name,
         # Conditions included: a mode that can never match is only visible here.
         "modes": [mode.to_dict() for mode in config.modes],
         "source_kind": preset_mode.source_kind,
@@ -74,7 +86,8 @@ def _preset_mode(hass: HomeAssistant, runtime: PresetModeRuntime) -> dict[str, A
         "automatic": preset_mode.automatic,
         "writable": preset_mode.writable,
         "active_mode": preset_mode.active_mode_key,
-        "stored_active_mode": runtime.store.active_mode(config.entry_id),
+        "stored_active_mode": preset_mode.store.active_mode(config.subentry_id),
+        "presets": [item.config.name for item in preset_mode.presets],
     }
     if config.source_entity is not None:
         state = hass.states.get(config.source_entity)
@@ -94,6 +107,11 @@ def _preset(hass: HomeAssistant, coordinator: PresetCoordinator) -> dict[str, An
     report: dict[str, Any] = {
         "name": config.name,
         "parameters": [_parameter(item) for item in config.parameters],
+        "modes": [mode.to_dict() for mode in config.modes],
+        # The two references a preset resolves on every setup, and whether
+        # they are currently attached: "unknown everywhere" is either.
+        "preset_mode": config.preset_mode,
+        "attached": coordinator.attached,
         "state": {
             "mode_key": state.mode_key,
             "mode_name": state.mode_name,
@@ -110,24 +128,25 @@ def _preset(hass: HomeAssistant, coordinator: PresetCoordinator) -> dict[str, An
     }
 
     if config.blueprint is not None:
-        entry = hass.config_entries.async_get_entry(config.blueprint)
+        blueprint = hubs.async_object(hass, HUB_BLUEPRINTS, config.blueprint)
         report["blueprint"] = {
-            "entry_id": config.blueprint,
+            "subentry_id": config.blueprint,
             # A blueprint missing from the storage - a backup restored without
             # it - leaves the preset with no parameters at all.
-            "exists": entry is not None and blueprints.is_blueprint(entry),
-            "title": None if entry is None else entry.title,
+            "exists": blueprint is not None,
+            "title": None if blueprint is None else blueprint.title,
         }
     return report
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: PresetModeConfigEntry
+    hass: HomeAssistant, entry: PresetManagerConfigEntry
 ) -> dict[str, Any]:
-    """Return the diagnostics of one config entry."""
+    """Return the diagnostics of one hub."""
+    kind = hubs.hub_kind(entry)
     report: dict[str, Any] = {
         "entry": {
-            "entry_type": blueprints.entry_type(entry),
+            "hub": kind,
             "title": entry.title,
             "version": entry.version,
             "minor_version": entry.minor_version,
@@ -135,29 +154,48 @@ async def async_get_config_entry_diagnostics(
         }
     }
 
-    if blueprints.is_blueprint(entry):
-        # A blueprint sets nothing up, so there is no runtime and no state
-        # beyond the list it holds and who follows it.
-        report["parameters"] = blueprints.parameters_of(entry)
-        report["bound_presets"] = [
-            {"preset_mode": owner.title, "preset": subentry.title}
-            for owner, subentry in blueprints.async_bound_presets(hass, entry.entry_id)
+    if kind == HUB_BLUEPRINTS:
+        # A blueprint sets nothing up, so there is no state beyond the list it
+        # holds and who follows it.
+        report["blueprints"] = [
+            {
+                "subentry_id": subentry_id,
+                "title": subentry.title,
+                "parameters": list(subentry.data.get(CONF_PARAMETERS, [])),
+                "followed_by": [
+                    preset.title
+                    for preset in following.async_presets_following(
+                        hass, CONF_BLUEPRINT, subentry_id
+                    ).values()
+                ],
+            }
+            for subentry_id, subentry in hubs.async_blueprints(hass).items()
         ]
         return report
 
     if entry.state is not ConfigEntryState.LOADED:
         # No runtime to read. The stored data is what a failed setup left, and
         # it is what a migration problem would show.
-        report["stored_data"] = dict(entry.data)
-        report["stored_presets"] = [
-            {"title": subentry.title, "data": dict(subentry.data)}
-            for subentry in entry.subentries.values()
+        report["stored_objects"] = [
+            {
+                "subentry_id": subentry_id,
+                "title": subentry.title,
+                "data": dict(subentry.data),
+            }
+            for subentry_id, subentry in entry.subentries.items()
         ]
         return report
 
     runtime = entry.runtime_data
-    report["preset_mode"] = _preset_mode(hass, runtime)
-    report["presets"] = [
-        _preset(hass, coordinator) for coordinator in runtime.presets.values()
-    ]
+    if kind == HUB_PRESET_MODES:
+        report["preset_modes"] = {
+            subentry_id: _preset_mode(hass, coordinator)
+            for subentry_id, coordinator in runtime.preset_modes.items()
+        }
+        return report
+
+    report["presets"] = {
+        subentry_id: _preset(hass, coordinator)
+        for subentry_id, coordinator in runtime.presets.items()
+    }
     return report

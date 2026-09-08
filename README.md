@@ -1,5 +1,11 @@
 # Preset Manager for Home Assistant
 
+[![HACS: custom repository](https://img.shields.io/badge/HACS-custom%20repository-41BDF5.svg)](https://github.com/hacs/integration)
+[![Release](https://img.shields.io/github/v/release/julezdean/ha-preset-manager?include_prereleases&sort=semver)](https://github.com/julezdean/ha-preset-manager/releases)
+[![Tests](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml)
+[![Validate](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+
 Creates the helpers for mode-dependent values in one go — and keeps the
 mode logic out of your automations.
 
@@ -49,8 +55,27 @@ handed to an entity you already have.
 > preset's device page under *Configuration*, not under
 > Settings → Devices & Services → Helpers.
 
-Why each module is built the way it is — and which alternatives were tried and
-rejected — lives in its module docstring.
+## Installation
+
+[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=julezdean&repository=ha-preset-manager&category=integration)
+
+The button opens your own HACS and offers to add this repository as a custom
+one; confirm, then download it from the page that opens and restart Home
+Assistant. By hand instead:
+
+1. HACS → Integrations → ⋮ → *Custom repositories*.
+2. Add the repository URL, category *Integration*.
+3. Install "Preset Manager" and restart Home Assistant.
+
+Without HACS: copy the `custom_components/preset_manager` folder into
+`<config>/custom_components/` and restart Home Assistant.
+
+Then **Settings → Devices & Services → Add Integration → Preset Manager**, and
+carry on at [Setup step by step](#setup-step-by-step).
+
+Requires Home Assistant 2025.12 or newer (config subentries). The bundled brand
+images in `custom_components/preset_manager/brand/` are picked up from Home
+Assistant 2026.3 onwards.
 
 ## Features
 
@@ -66,8 +91,11 @@ rejected — lives in its module docstring.
 * **An automatic switch** per preset mode: temporarily take over by hand without
   changing the configuration.
 * **Modes with stable keys** — renaming never loses values.
-* **Any number of presets** (devices/scenarios), each attached to one preset
-  mode and movable to another one without losing values.
+* **Any number of presets** (devices/scenarios), each following one preset
+  mode and reassignable to another one without losing values. A preset also
+  survives the deletion of its preset mode and waits for a new one.
+* **Duplicate anything** — a preset with its values, a preset mode with its
+  modes, a blueprint with its parameters.
 * **Freely configurable parameters** with type, range, step, unit, options and a
   default value.
 * **Blueprints**: define a parameter list once - "Heating" with a target
@@ -91,57 +119,30 @@ rejected — lives in its module docstring.
 | **Parameter** | One configurable value inside a preset | Brightness, Off delay |
 | **Blueprint** | A parameter list of its own that any number of presets can follow | Heating, Shutters |
 
-Every preset mode is its own entry, and its presets sit underneath it:
+The integration owns three entries, one per kind of object, and every object is
+a subentry of the hub that collects its kind:
 
 ```
 Settings → Devices & Services → Preset Manager
 
-  House Mode                        Home · Away · Night · Window open
-  ├── Motion Sensor Living Room     Preset
-  └── Heating Living Room           Preset
+  Preset Modes
+  ├── House Mode                    Home · Away · Night · Window open
+  └── Window State                  Closed · Open
 
-  Window State                      Closed · Open
-  └── Shutter Living Room           Preset
+  Presets
+  ├── Motion Sensor Living Room     follows House Mode
+  ├── Heating Living Room           follows House Mode · Heating
+  └── Shutter Living Room           follows Window State
 
-  Heating                           Blueprint
-                                    (target temperature, boost duration)
-
-  [+ Add hub]
+  Preset Blueprints
+  └── Heating                       target temperature, boost duration
 ```
 
-Every preset mode and every preset also gets its own device, and preset devices
-are attached to their preset mode's device — so the same hierarchy shows up
-under *Devices*.
-
-## Installation
-
-### Manual
-
-1. Copy the `custom_components/preset_manager` folder into your Home Assistant
-   configuration directory:
-
-   ```
-   <config>/custom_components/preset_manager/
-   ```
-
-2. Restart Home Assistant.
-3. **Settings → Devices & Services → Add Integration → Preset Manager**.
-
-### HACS (custom repository)
-
-[![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=julezdean&repository=ha-preset-manager&category=integration)
-
-The button opens your own HACS and offers to add this repository as a custom
-one; confirm, then download it from the page that opens and restart Home
-Assistant. By hand instead:
-
-1. HACS → Integrations → ⋮ → *Custom repositories*.
-2. Add the repository URL, category *Integration*.
-3. Install "Preset Manager" and restart Home Assistant.
-
-Requires Home Assistant 2025.12 or newer (config subentries). The bundled brand
-images in `custom_components/preset_manager/brand/` are picked up from Home
-Assistant 2026.3 onwards.
+Nothing is contained in anything else. A preset **names** the preset mode it
+follows and the blueprint it follows, both of which it can be given, changed
+and taken away — a blueprint is shared across preset modes and belongs to none
+of them, and a preset is worth keeping when its dimension goes. Every preset
+mode and every preset gets a device of its own.
 
 ## Setup step by step
 
@@ -149,7 +150,7 @@ Assistant 2026.3 onwards.
 
 **Settings → Devices & Services → Add Integration → Preset Manager**
 
-The first step asks what you are adding — a *preset mode* or a
+The first step asks what you are adding — a *preset mode*, a *preset* or a
 [*preset blueprint*](#blueprints). Pick the preset mode:
 
 ```
@@ -161,33 +162,35 @@ Type a name and press enter to add your own. That is it — the preset mode is
 manual for now. Conditions are added afterwards in the mode list, see
 [Managing modes](#managing-modes).
 
-The button Home Assistant offers for this is labelled **"Add hub"** — that
-wording comes from Home Assistant itself and cannot be changed by an
-integration; the dialog behind it is titled *New preset mode*.
+You never create a hub yourself: the *Preset Modes* hub appears with the first
+preset mode, and the other two with the first preset and the first blueprint.
 
 ### 2. Add more preset modes
 
-Add the integration again for every further set of modes, for example a
-"Window State" preset mode with *Closed* and *Open*. Each one becomes its own
-entry.
+Either from the integration page — **"Add preset mode"** on the *Preset Modes*
+hub — or by adding the integration again. Both put the new preset mode in the
+same hub, for example a "Window State" one with *Closed* and *Open*.
 
 ### 3. Create a preset
 
-Choose **"Add preset"** in the menu of the preset mode the preset belongs
-to:
+Choose **"Add preset"** on the *Presets* hub:
 
 ```
-Name:       Motion Sensor Living Room
-Blueprint:  -
+Name:         Motion Sensor Living Room
+Preset mode:  House Mode
+Blueprint:    -
 ```
 
-Leave it on "-" to define the parameters yourself in the next step; a blueprint
-fills them in instead and is described under [Blueprints](#blueprints). The
-field only appears once at least one blueprint exists.
+The preset mode decides which of the preset's values are valid right now, and
+the preset always covers **every** mode of it; modes added later show up
+automatically. It can be left on "-" and assigned later — the preset exists,
+keeps its parameters and its values, and only has no active mode until it
+follows one.
 
-The preset mode is not asked for — the preset is created inside the one you
-opened the menu on, and it always covers **every** mode of it. Modes added later
-show up automatically.
+Leave the blueprint on "-" to define the parameters yourself in the next step;
+a blueprint fills them in instead and is described under
+[Blueprints](#blueprints). The field only appears once at least one blueprint
+exists.
 
 ### 4. Define parameters
 
@@ -447,11 +450,24 @@ blueprint: Heating       # only while the preset follows a blueprint
 
 ## Managing a preset mode
 
-Preset mode → **Configure**:
+Preset mode → **Edit**:
 
 * **Manage modes** — the sortable list: add, rename, reorder and delete
   modes, and set their conditions
-* **Preset mode settings** — the name, and the entity the preset mode follows
+* **Rename**
+* **Assign presets** — which presets follow this preset mode, editable from
+  here as well as from each preset. Taking one off leaves it with everything
+  but its active mode; adding one that follows another preset mode moves it,
+  and the picker says in brackets where it comes from
+* **Assign external entity** — the entity whose state names the active mode
+* **Duplicate** — a second preset mode with the same modes and conditions.
+  Not with the same source entity: two preset modes reading the same entity
+  would always hold the same mode.
+
+**Deleting a preset mode does not delete its presets.** They keep their
+parameters, their values and the modes they had, and a repair issue asks for a
+new preset mode; until it gets one, a preset has no active mode and its values
+do not resolve.
 
 ## Managing a preset
 
@@ -460,10 +476,12 @@ Preset → **Edit**:
 * **Manage parameters** — the sortable list: add, rename, retype, reorder and
   delete parameters; the field below the list opens the type specific details
   (range, unit, options, default value) of one of them
-* **Blueprint** — attach the preset to a blueprint, move it to another one, or
-  let it go again
-* **Rename preset**
-* **Assign preset mode** — moves the preset to another preset mode
+* **Rename**
+* **Assign preset mode** — let it follow another one, or none
+* **Assign preset blueprint** — attach the preset to a blueprint, move it to
+  another one, or let it go again
+* **Duplicate** — a second preset with the same parameters *and the same
+  values*, following the same preset mode and the same blueprint
 
 A preset that follows a blueprint has **no** "Manage parameters" entry: its
 parameters live in the blueprint. See [Blueprints](#blueprints).
@@ -472,10 +490,10 @@ A new parameter goes into its detail form automatically. Changing the type of an
 existing one does the same — and drops its stored values, because the old ones
 no longer fit the new type.
 
-Changing the *preset mode* there moves the preset to another one. Home Assistant
-reuses the existing registry entries, so the preset keeps its entity ids, its
-history and every value of a mode that exists in both preset modes; values of
-modes the new one does not have are dropped.
+Changing the *preset mode* changes what the preset follows; nothing about the
+preset itself moves. It keeps its entity ids, its history and every value of a
+mode that exists in both preset modes; values of modes the new one does not
+have are dropped.
 
 ## Blueprints
 
@@ -502,11 +520,20 @@ own numbers.
 
 ### Creating one
 
-**Add Integration → Preset Manager → Preset blueprint**. It asks for a name and then
-for the parameters, in exactly the same list a preset uses. A blueprint creates
-no device and no entities — it is configuration and nothing else.
+**Add Integration → Preset Manager → Preset blueprint**, or "Add preset
+blueprint" on the *Preset Blueprints* hub. It asks for a name and then for the
+parameters, in exactly the same list a preset uses. A blueprint creates no
+device and no entities — it is configuration and nothing else.
 
-Editing it later: **Blueprint → Configure**.
+**Blueprint → Edit → Assign presets** lists the presets that follow it and is
+the only place that answers "what follows this blueprint?" without opening
+every preset. Adding one there does what attaching does, for several at once —
+including the loss of their own parameter lists, so the step says so.
+
+Editing it later: **Blueprint → Edit → Manage parameters**. The menu is the same
+everywhere — what the object *is* first, **Rename** second, then the rest, and
+**Duplicate** last. Duplicating is the quickest way to a variant: the copy gets
+the parameters, and the presets of the original keep following the original.
 
 ### Using one
 
@@ -536,7 +563,7 @@ point: attach, detach, edit.
 
 **Deleting a blueprint** does the same to every preset that follows it — they
 keep its parameters and are editable again. Deleting a blueprint never deletes a
-preset.
+preset; nothing in this integration deletes anything but itself.
 
 Switching a preset to *another* blueprint replaces its parameters with those of
 the new one. Values survive wherever a parameter of the same key exists in both;
@@ -549,6 +576,7 @@ the rest are dropped, the same way a deleted parameter's values are.
 | Mode without a value for a parameter | The parameter's default value, otherwise `unknown` |
 | Mode deleted | Its helpers and stored values disappear |
 | Preset mode without modes | Its presets report `unknown` |
+| Preset mode deleted | Its presets keep everything but the active mode, and a repair issue asks for a new one |
 | Restart with no stored active mode | The first mode, or `unknown` once conditions are in play |
 | No mode's conditions match | No mode is active; the preset mode and its presets report `unknown` |
 | A condition fails | Warning in the log, that mode is skipped |
@@ -602,9 +630,17 @@ parameter in *password* mode are redacted.
 
 ## Upgrading
 
-The first release writes config entries at schema **1.1** and the value store
-at **1**. Every later change of either shape comes with a migration and is
-listed here, so this section stays empty until one is needed.
+**0.1.x → 0.2.0** rearranges the config entries: every preset mode and every
+blueprint used to be a config entry of its own, with the presets as subentries
+of their preset mode. From 0.2.0 on there are three hubs and every object is a
+subentry of the one that collects its kind.
+
+There is **no migration** from 0.1.0. That release was withdrawn without
+anybody running it, and a migration nobody needs is a path nobody tests. An
+entry at schema 1.1 is refused with an error on the entry; delete it and add
+the integration again. From 0.2.0 on — config entries at schema 2.1, the value
+store at 1 — every change of either shape comes with a migration and is listed
+in the [changelog](CHANGELOG.md).
 
 A migration is only ever needed in one direction: an entry written by a *newer*
 version than the one reading it is refused outright rather than guessed at.
@@ -642,4 +678,17 @@ wherever a logo would go.
 Adding a new parameter type: register a `ParameterType` in `parameter_types.py` —
 the config flow, the entities and the validation pick it up automatically.
 
-The logic that picks the active mode lives in `sources.py`.
+The logic that picks the active mode lives in `sources.py`. Why each module is
+built the way it is — and which alternatives were tried and rejected — lives in
+its module docstring.
+
+## Contributing
+
+Issues and pull requests are welcome. For a bug, the
+[diagnostics download](#reporting-a-problem) answers most of what I would ask
+anyway. For a change, the tests, `ruff`, `black` and `mypy` have to be clean —
+they run in CI on every pull request.
+
+## License
+
+[MIT](LICENSE) © Julien Streck

@@ -30,6 +30,7 @@ from .const import (
     CONF_OPTIONS,
     CONF_PARAMETERS,
     CONF_PATTERN,
+    CONF_PRESET_MODE,
     CONF_SOURCE_ENTITY,
     CONF_STEP,
     CONF_TYPE,
@@ -233,7 +234,14 @@ class PresetConfig:
     subentry_id: str
     name: str
     parameters: tuple[ParameterDef, ...] = ()
-    #: Entry id of the blueprint the preset follows, or ``None``.
+    #: The modes the preset has a value for. They come from its preset mode
+    #: while it follows one, and are the snapshot of the deleted one after
+    #: that - either way the preset knows them without the preset mode having
+    #: to be loaded, which is what makes the load order of the hubs irrelevant.
+    modes: tuple[ModeDef, ...] = ()
+    #: Subentry id of the preset mode the preset follows, or ``None``.
+    preset_mode: str | None = None
+    #: Subentry id of the blueprint the preset follows, or ``None``.
     blueprint: str | None = None
 
     @classmethod
@@ -242,12 +250,12 @@ class PresetConfig:
     ) -> Self:
         """Create a preset configuration from a config subentry.
 
-        A preset always covers every mode of the preset mode it belongs to -
+        A preset always covers every mode of the preset mode it follows -
         there is no subset and therefore no fallback strategy to configure.
 
-        The parameters of a preset following a blueprint are not stored on
-        the subentry; ``blueprints.async_resolve_preset_data`` fills them in
-        before this is called.
+        What the preset follows is not stored on the subentry:
+        ``hubs.async_resolve_preset_data`` fills in the parameters of its
+        blueprint and the modes of its preset mode before this is called.
         """
         return cls(
             subentry_id=subentry_id,
@@ -256,6 +264,8 @@ class PresetConfig:
                 ParameterDef.from_dict(item).with_type_defaults()
                 for item in data.get(CONF_PARAMETERS, [])
             ),
+            modes=tuple(ModeDef.from_dict(item) for item in data.get(CONF_MODES, [])),
+            preset_mode=data.get(CONF_PRESET_MODE) or None,
             blueprint=data.get(CONF_BLUEPRINT) or None,
         )
 
@@ -264,26 +274,37 @@ class PresetConfig:
         """Return whether the parameters are owned by a blueprint."""
         return self.blueprint is not None
 
+    @property
+    def is_orphaned(self) -> bool:
+        """Return whether the preset follows no preset mode."""
+        return self.preset_mode is None
+
     def parameter(self, key: str) -> ParameterDef | None:
         """Return the parameter with ``key`` if it exists."""
         return next((item for item in self.parameters if item.key == key), None)
 
+    def mode(self, key: str | None) -> ModeDef | None:
+        """Return the mode with ``key``."""
+        return find_mode(self.modes, key)
+
 
 @dataclass(frozen=True, kw_only=True, slots=True)
 class PresetModeConfig:
-    """Configuration of one preset mode (= one config entry)."""
+    """Configuration of one preset mode (= one config subentry)."""
 
-    entry_id: str
+    subentry_id: str
     name: str
     modes: tuple[ModeDef, ...] = ()
     #: Entity whose state names the active mode, or ``None``.
     source_entity: str | None = None
 
     @classmethod
-    def from_entry(cls, entry_id: str, title: str, data: Mapping[str, Any]) -> Self:
-        """Create a preset mode configuration from a config entry."""
+    def from_subentry(
+        cls, subentry_id: str, title: str, data: Mapping[str, Any]
+    ) -> Self:
+        """Create a preset mode configuration from a config subentry."""
         return cls(
-            entry_id=entry_id,
+            subentry_id=subentry_id,
             name=title,
             modes=tuple(ModeDef.from_dict(item) for item in data.get(CONF_MODES, [])),
             source_entity=data.get(CONF_SOURCE_ENTITY) or None,
@@ -305,9 +326,29 @@ class PresetModeConfig:
 
     def mode(self, key: str | None) -> ModeDef | None:
         """Return the mode with ``key``."""
-        if key is None:
-            return None
-        return next((item for item in self.modes if item.key == key), None)
+        return find_mode(self.modes, key)
+
+
+def find_mode(modes: Iterable[ModeDef], key: str | None) -> ModeDef | None:
+    """Return the mode with ``key``."""
+    if key is None:
+        return None
+    return next((item for item in modes if item.key == key), None)
+
+
+def resolve_mode(modes: Iterable[ModeDef], value: str) -> ModeDef | None:
+    """Resolve a mode from a key, a display name or a slug.
+
+    Services take whatever the user wrote in a script, which is a key for some
+    and the display name for others.
+    """
+    items = list(modes)
+    lowered = value.casefold()
+    return (
+        find_mode(items, value)
+        or next((item for item in items if item.name.casefold() == lowered), None)
+        or find_mode(items, slugify(value))
+    )
 
 
 def parameters_to_data(parameters: Iterable[ParameterDef]) -> list[dict[str, Any]]:

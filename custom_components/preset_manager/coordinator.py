@@ -5,38 +5,75 @@ used purely as Home Assistant's standard listener plumbing. A state is only
 pushed to the entities when the computed result actually changed, which keeps
 setups with many preset_modes, presets, modes and parameters cheap.
 
-One config entry is one preset mode, its subentries are the presets that
-follow it:
+The objects live in three hubs (see ``hubs``), so the runtime belongs to the
+domain rather than to a config entry:
 
-    PresetModeRuntime        everything the config entry owns
-        |- PresetModeCoordinator       the modes of the preset mode + the active one
-        |     |- ModeSource   manual, the conditions, or another entity
-        |- PresetCoordinator     resolves the values of one preset
+    PresetManagerRuntime          everything the domain owns
+        |- PresetModeCoordinator  the modes of one preset mode + the active one
+        |     |- ModeSource       manual, the conditions, or another entity
+        |- PresetCoordinator      resolves the values of one preset
+
+A preset coordinator is *attached* to the coordinator of the preset mode it
+follows, and lives without one: the hubs are set up in whatever order Home
+Assistant picks, and a preset outlives the deletion of its preset mode. It
+therefore takes its modes from its own configuration and asks the preset mode
+for one thing only - which of them is active right now.
 """
 
 from __future__ import annotations
 
 import logging
 from collections.abc import Callable
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant, callback
 from homeassistant.exceptions import ServiceValidationError
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-from homeassistant.util import slugify
 
-from .blueprints import async_resolve_preset_data
-from .const import DOMAIN, SUBENTRY_TYPE_PRESET
-from .models import ModeDef, ParameterDef, PresetConfig, PresetModeConfig
+from . import following, hubs
+from .const import CONF_PARAMETERS, DATA_RUNTIME, DOMAIN
+from .models import (
+    ModeDef,
+    ParameterDef,
+    PresetConfig,
+    PresetModeConfig,
+    modes_to_data,
+    resolve_mode,
+)
 from .parameter_types import ParameterValueError, coerce_value
 from .sources import ModeSource, create_source
-from .store import PresetValueStore
+from .store import PresetValueStore, async_setup_store
 
 _LOGGER = logging.getLogger(__name__)
 
-type PresetModeConfigEntry = ConfigEntry[PresetModeRuntime]
+type PresetManagerConfigEntry = ConfigEntry[PresetManagerRuntime]
+
+
+def _preset_mode_shape(config: PresetModeConfig) -> tuple[Any, ...]:
+    """Return what about a preset mode decides which entities exist.
+
+    The conditions and the name are not in it: a renamed mode keeps its key,
+    and both are read on every state instead of being baked into an entity.
+    Whether it follows an entity is, because that is what the mode selector
+    exists or does not exist for.
+    """
+    return (
+        tuple(replace(mode, conditions=()) for mode in config.modes),
+        config.is_external,
+        config.has_conditions,
+    )
+
+
+def _preset_shape(config: PresetConfig) -> tuple[Any, ...]:
+    """Return what about a preset decides which entities exist.
+
+    One editor entity per mode and parameter, and one value entity per
+    parameter - so the definitions themselves are in it, not only their keys:
+    a changed range or a renamed mode is carried by the entity, not looked up.
+    """
+    return (config.modes, config.parameters)
 
 
 @dataclass(frozen=True, kw_only=True, slots=True)
@@ -51,86 +88,249 @@ class PresetState:
     unset_parameters: tuple[str, ...] = ()
 
 
-class PresetModeRuntime:
-    """Holds the preset mode of one config entry and all its presets."""
+class PresetManagerRuntime:
+    """Everything the domain owns, across all three hubs.
 
-    def __init__(
-        self,
-        hass: HomeAssistant,
-        entry: PresetModeConfigEntry,
-        store: PresetValueStore,
-    ) -> None:
-        """Initialise the runtime."""
+    The coordinators are keyed by subentry id, not reachable through whichever
+    config entry happens to hold them: presets and preset modes live in
+    different hubs, either of which can be loaded, reloaded or disabled while
+    the other stays up. What links them is :meth:`async_attach`, and it runs
+    whenever either side changes.
+    """
+
+    def __init__(self, hass: HomeAssistant, store: PresetValueStore) -> None:
+        """Initialise the runtime of the domain."""
         self.hass = hass
-        self.entry = entry
         self.store = store
-        self.preset_mode = PresetModeCoordinator(
-            self, PresetModeConfig.from_entry(entry.entry_id, entry.title, entry.data)
-        )
+        #: Every preset mode of a loaded hub, by subentry id.
+        self.preset_modes: dict[str, PresetModeCoordinator] = {}
+        #: Every preset of a loaded hub, by subentry id.
         self.presets: dict[str, PresetCoordinator] = {}
+        #: Last known parameters of every blueprint, by subentry id. A deleted
+        #: blueprint is already gone from the configuration when we hear about
+        #: it, so this is where the copy its presets inherit comes from.
+        self.blueprints: dict[str, list[dict[str, Any]]] = {}
 
-    async def async_initialize(self) -> None:
-        """Build the preset coordinators and start the mode source."""
-        for subentry in self.entry.subentries.values():
-            if subentry.subentry_type != SUBENTRY_TYPE_PRESET:
-                continue
-            config = PresetConfig.from_subentry(
-                subentry.subentry_id,
-                subentry.title,
-                # A preset following a blueprint has no parameters of its
-                # own; they are read from the set on every setup.
-                async_resolve_preset_data(self.hass, subentry.data),
+    # Loading -----------------------------------------------------------------
+
+    async def async_load_preset_modes(self, entry: PresetManagerConfigEntry) -> None:
+        """Build a coordinator for every configured preset mode."""
+        for subentry_id, subentry in hubs.async_preset_modes(self.hass).items():
+            coordinator = PresetModeCoordinator(
+                self,
+                PresetModeConfig.from_subentry(
+                    subentry_id, subentry.title, subentry.data
+                ),
+                entry,
             )
-            coordinator = PresetCoordinator(self, config, self.preset_mode)
-            self.presets[subentry.subentry_id] = coordinator
-            self.preset_mode.presets.append(coordinator)
+            self.preset_modes[subentry_id] = coordinator
+            coordinator.async_initialize()
 
-        self.preset_mode.async_initialize()
-        for preset in self.presets.values():
-            preset.async_initialize()
-        await self.preset_mode.async_start_source()
-
+        self.async_attach()
+        for coordinator in self.preset_modes.values():
+            await coordinator.async_start_source()
         self.async_prune_store()
 
     @callback
-    def async_shutdown(self) -> None:
-        """Stop the mode source."""
-        self.preset_mode.async_stop_source()
+    def async_unload_preset_modes(self) -> None:
+        """Drop every preset mode coordinator; the presets stay."""
+        for coordinator in self.preset_modes.values():
+            coordinator.async_stop_source()
+        self.preset_modes.clear()
+        self.async_attach()
+
+    @callback
+    def async_load_presets(self, entry: PresetManagerConfigEntry) -> None:
+        """Build a coordinator for every configured preset."""
+        for subentry_id, subentry in hubs.async_presets(self.hass).items():
+            config = PresetConfig.from_subentry(
+                subentry_id,
+                subentry.title,
+                # What the preset follows is read here, once per setup, from
+                # the configuration of the other hubs - loaded or not.
+                hubs.async_resolve_preset_data(self.hass, subentry.data),
+            )
+            coordinator = PresetCoordinator(self, config, entry)
+            self.presets[subentry_id] = coordinator
+            coordinator.async_initialize()
+
+        self.async_attach()
+        self.async_prune_store()
+
+    @callback
+    def async_unload_presets(self) -> None:
+        """Drop every preset coordinator."""
+        self.presets.clear()
+        self.async_attach()
+
+    @callback
+    def async_load_blueprints(self) -> None:
+        """Remember the parameters of every blueprint."""
+        self.blueprints = {
+            subentry_id: [dict(item) for item in subentry.data.get(CONF_PARAMETERS, [])]
+            for subentry_id, subentry in hubs.async_blueprints(self.hass).items()
+        }
+
+    # Wiring ------------------------------------------------------------------
+
+    @callback
+    def async_attach(self) -> None:
+        """Link every preset to the preset mode it follows.
+
+        A preset whose preset mode is configured but not loaded is not
+        orphaned - it waits, and its editors keep working. Only a preset
+        without any preset mode gets the repair issue.
+        """
+        for coordinator in self.preset_modes.values():
+            coordinator.presets.clear()
+
+        for preset_id, preset in self.presets.items():
+            target = (
+                self.preset_modes.get(preset.config.preset_mode)
+                if preset.config.preset_mode is not None
+                else None
+            )
+            preset.async_attach(target)
+            if target is not None:
+                target.presets.append(preset)
+
+            if preset.config.is_orphaned:
+                following.async_create_orphan_issue(
+                    self.hass, preset_id, preset.config.name
+                )
+            else:
+                following.async_clear_orphan_issue(self.hass, preset_id)
+
+    # Updating ----------------------------------------------------------------
+
+    async def async_apply_preset_modes(self, entry: PresetManagerConfigEntry) -> bool:
+        """Take a changed configuration over, or ask to be reloaded.
+
+        A reload tears every entity of the hub down and builds it again, which
+        is the only way to add or remove one - and a blunt answer to a rename.
+        What can be applied in place is applied here; the return value says
+        that the change needs the reload after all.
+        """
+        configured = hubs.async_preset_modes(self.hass)
+        if set(configured) != set(self.preset_modes):
+            # A preset mode was added or deleted, with its entities.
+            return True
+
+        applied: list[tuple[PresetModeCoordinator, PresetModeConfig]] = []
+        for subentry_id, subentry in configured.items():
+            coordinator = self.preset_modes[subentry_id]
+            config = PresetModeConfig.from_subentry(
+                subentry_id, subentry.title, subentry.data
+            )
+            if _preset_mode_shape(config) != _preset_mode_shape(coordinator.config):
+                return True
+            applied.append((coordinator, config))
+
+        for coordinator, config in applied:
+            await coordinator.async_apply_config(config)
+        return False
+
+    @callback
+    def async_apply_presets(self, entry: PresetManagerConfigEntry) -> bool:
+        """Take a changed configuration over, or ask to be reloaded."""
+        configured = hubs.async_presets(self.hass)
+        if set(configured) != set(self.presets):
+            return True
+
+        applied: list[tuple[PresetCoordinator, PresetConfig]] = []
+        for subentry_id, subentry in configured.items():
+            coordinator = self.presets[subentry_id]
+            config = PresetConfig.from_subentry(
+                subentry_id,
+                subentry.title,
+                hubs.async_resolve_preset_data(self.hass, subentry.data),
+            )
+            if _preset_shape(config) != _preset_shape(coordinator.config):
+                return True
+            applied.append((coordinator, config))
+
+        for coordinator, config in applied:
+            coordinator.async_apply_config(config)
+        # What a preset follows is not part of its shape - the same modes can
+        # come from another preset mode, or from the snapshot of a deleted one
+        # - so the wiring is redone whether or not anything else changed.
+        self.async_attach()
+        return False
+
+    @callback
+    def async_reconcile(self) -> None:
+        """Hand a deleted object's definition to the presets that followed it.
+
+        Home Assistant removes a subentry without saying which one went, and by
+        the time the update listener runs it is gone from the configuration.
+        The loaded runtime is the only place its definition still exists, which
+        is why this has to happen here rather than in a flow.
+        """
+        configured = hubs.async_preset_modes(self.hass)
+        for subentry_id, coordinator in list(self.preset_modes.items()):
+            if subentry_id not in configured:
+                following.async_detach_from_preset_mode(
+                    self.hass, subentry_id, modes_to_data(coordinator.config.modes)
+                )
+
+        blueprints = hubs.async_blueprints(self.hass)
+        for subentry_id, parameters in list(self.blueprints.items()):
+            if subentry_id not in blueprints:
+                following.async_detach_from_blueprint(
+                    self.hass, subentry_id, parameters
+                )
+        self.async_load_blueprints()
 
     @callback
     def async_prune_store(self) -> None:
         """Remove stored data that no longer belongs to the configuration.
 
-        The store is shared by every config entry, so what may be dropped is
-        decided from *all* entries of the domain - including the ones that are
-        not loaded right now. Only the presets of this entry are cleaned up in
-        detail, because only their configuration is known here.
+        Only a loaded preset knows its modes and parameters, so only those are
+        cleaned up in detail. What may be dropped entirely is read from the
+        configuration of the hubs, which is there whether they are loaded or
+        not - values must not depend on what happened to be set up first.
         """
         valid = {
             preset_id: (
-                [mode.key for mode in preset.modes],
+                [mode.key for mode in preset.config.modes],
                 [parameter.key for parameter in preset.config.parameters],
             )
             for preset_id, preset in self.presets.items()
         }
-        entries = self.hass.config_entries.async_entries(DOMAIN)
-        self.store.prune(
-            valid,
-            {subentry_id for entry in entries for subentry_id in entry.subentries},
-        )
-        self.store.prune_preset_modes({entry.entry_id for entry in entries})
+        self.store.prune(valid, set(hubs.async_presets(self.hass)))
+        self.store.prune_preset_modes(set(hubs.async_preset_modes(self.hass)))
+
+
+async def async_setup_runtime(hass: HomeAssistant) -> PresetManagerRuntime:
+    """Return the runtime of the domain, creating it on first use."""
+    data = hass.data.setdefault(DOMAIN, {})
+    if (runtime := data.get(DATA_RUNTIME)) is None:
+        runtime = PresetManagerRuntime(hass, await async_setup_store(hass))
+        data[DATA_RUNTIME] = runtime
+    return runtime
+
+
+@callback
+def async_get_runtime(hass: HomeAssistant) -> PresetManagerRuntime | None:
+    """Return the runtime of the domain, if the integration has been set up."""
+    return hass.data.get(DOMAIN, {}).get(DATA_RUNTIME)
 
 
 class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
     """Owns one set of modes and knows which of them is active."""
 
-    def __init__(self, runtime: PresetModeRuntime, config: PresetModeConfig) -> None:
+    def __init__(
+        self,
+        runtime: PresetManagerRuntime,
+        config: PresetModeConfig,
+        entry: PresetManagerConfigEntry,
+    ) -> None:
         """Initialise the preset mode coordinator."""
         super().__init__(
             runtime.hass,
             _LOGGER,
-            name=f"{DOMAIN}.{config.entry_id}",
-            config_entry=runtime.entry,
+            name=f"{DOMAIN}.{config.subentry_id}",
+            config_entry=entry,
             update_interval=None,
             always_update=False,
         )
@@ -165,7 +365,7 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
         mode - the same mode the condition source would pick, where every
         mode is a match because none of them has conditions.
         """
-        stored = self.store.active_mode(self.config.entry_id)
+        stored = self.store.active_mode(self.config.subentry_id)
         if stored and self.config.mode(stored) is not None:
             return stored
         if self.has_source or self.external or not self.config.modes:
@@ -199,7 +399,7 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
     @property
     def automatic(self) -> bool:
         """Return whether the mode currently follows its conditions."""
-        return self.has_source and self.store.automatic(self.config.entry_id)
+        return self.has_source and self.store.automatic(self.config.subentry_id)
 
     @property
     def writable(self) -> bool:
@@ -229,24 +429,31 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
         """Return the active mode."""
         return self.config.mode(self.data)
 
-    def mode_by_name(self, name: str) -> ModeDef | None:
-        """Return a mode by (case insensitive) display name."""
-        lowered = name.casefold()
-        return next(
-            (item for item in self.modes if item.name.casefold() == lowered), None
-        )
-
     def resolve_mode(self, value: str) -> ModeDef | None:
         """Resolve a mode from a key, a display name or a slug."""
-        return (
-            self.config.mode(value)
-            or self.mode_by_name(value)
-            or self.config.mode(slugify(value))
-        )
+        return resolve_mode(self.config.modes, value)
+
+    async def async_apply_config(self, config: PresetModeConfig) -> None:
+        """Follow a changed configuration without being rebuilt.
+
+        Only reached for changes that leave every entity in place - a rename,
+        other conditions, another source entity. The source is rebuilt from
+        the new configuration and evaluated right away, so a corrected
+        condition takes effect when it is saved rather than at the next state
+        change of whatever it watches.
+        """
+        if config == self.config:
+            return
+        self.config = config
+        self.async_stop_source()
+        await self.async_start_source()
+        self.async_update_listeners()
+        for preset in self.presets:
+            preset.async_update_state()
 
     async def async_set_automatic(self, value: bool) -> None:
         """Switch between following the source and setting the mode by hand."""
-        if not self.store.set_automatic(self.config.entry_id, value):
+        if not self.store.set_automatic(self.config.subentry_id, value):
             return
         if value and self._source is not None:
             # Do not wait for the next event to catch up with the source.
@@ -295,7 +502,7 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
         """Activate a mode and update everything that depends on it."""
         if self.data == mode_key:
             return
-        self.store.set_active_mode(self.config.entry_id, mode_key)
+        self.store.set_active_mode(self.config.subentry_id, mode_key)
         self.async_set_updated_data(mode_key)
         for preset in self.presets:
             preset.async_update_state()
@@ -306,22 +513,25 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
 
     def __init__(
         self,
-        runtime: PresetModeRuntime,
+        runtime: PresetManagerRuntime,
         config: PresetConfig,
-        preset_mode: PresetModeCoordinator,
+        entry: PresetManagerConfigEntry,
     ) -> None:
         """Initialise the preset coordinator."""
         super().__init__(
             runtime.hass,
             _LOGGER,
             name=f"{DOMAIN}.{config.subentry_id}",
-            config_entry=runtime.entry,
+            config_entry=entry,
             update_interval=None,
             always_update=False,
         )
         self.runtime = runtime
         self.config = config
-        self.preset_mode = preset_mode
+        #: The preset mode this preset follows, once it is loaded. ``None``
+        #: while its hub is not set up, and for good after that preset mode
+        #: was deleted - the preset then keeps everything but its active mode.
+        self.preset_mode: PresetModeCoordinator | None = None
         #: Listeners per (mode key, parameter key). Keyed rather than flat: a
         #: flat list meant one slider move rewrote the state of every editor
         #: entity of the preset - P x N of them, all but one with the value
@@ -340,8 +550,36 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
 
     @property
     def modes(self) -> list[ModeDef]:
-        """Return the modes of the preset mode this preset belongs to."""
-        return list(self.preset_mode.modes)
+        """Return the modes this preset has a value for."""
+        return list(self.config.modes)
+
+    @property
+    def attached(self) -> bool:
+        """Return whether the preset mode driving this preset is loaded."""
+        return self.preset_mode is not None
+
+    def resolve_mode(self, value: str) -> ModeDef | None:
+        """Resolve a mode from a key, a display name or a slug."""
+        return resolve_mode(self.config.modes, value)
+
+    @callback
+    def async_apply_config(self, config: PresetConfig) -> None:
+        """Follow a changed configuration without being rebuilt."""
+        if config == self.config:
+            return
+        self.config = config
+        self.async_update_state()
+        self.async_update_listeners()
+
+    @callback
+    def async_attach(self, preset_mode: PresetModeCoordinator | None) -> None:
+        """Follow ``preset_mode`` from now on, or nothing at all."""
+        if preset_mode is self.preset_mode:
+            return
+        self.preset_mode = preset_mode
+        if self.data is not None:
+            # Not during setup: the initial state is computed once, attached.
+            self.async_update_state()
 
     # Listeners ---------------------------------------------------------------
 
@@ -377,10 +615,13 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
         """Return the effective mode key.
 
         A preset covers every mode of its preset mode, so the active mode is
-        always usable. Only a preset mode without modes leaves it undefined.
+        always usable. It stays undefined while no preset mode is attached -
+        the hub is not up yet, or the preset is waiting to be assigned one.
         """
+        if self.preset_mode is None:
+            return None
         active = self.preset_mode.active_mode_key
-        if active is not None and self.preset_mode.config.mode(active) is not None:
+        if active is not None and self.config.mode(active) is not None:
             return active
         return None
 
@@ -416,7 +657,7 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
 
     def _compute_state(self) -> PresetState:
         mode_key = self._resolve_mode()
-        mode = self.preset_mode.config.mode(mode_key)
+        mode = self.config.mode(mode_key)
         values: dict[str, Any] = {}
         unset: list[str] = []
         for parameter in self.config.parameters:
