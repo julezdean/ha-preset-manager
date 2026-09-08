@@ -638,8 +638,9 @@ subentry of the one that collects its kind.
 There is **no migration** from 0.1.0. That release was withdrawn without
 anybody running it, and a migration nobody needs is a path nobody tests. An
 entry at schema 1.1 is refused with an error on the entry; delete it and add
-the integration again. From 2.1 on every change of either shape comes with a
-migration and is listed here.
+the integration again. From 0.2.0 on — config entries at schema 2.1, the value
+store at 1 — every change of either shape comes with a migration and is listed
+in the [changelog](CHANGELOG.md).
 
 A migration is only ever needed in one direction: an entry written by a *newer*
 version than the one reading it is refused outright rather than guessed at.

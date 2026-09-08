@@ -4,38 +4,19 @@ All notable changes to this project are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 versioning [Semantic Versioning](https://semver.org/).
 
-## [0.2.0b3] - 2026-09-08
+## [0.2.0] - 2026-09-08
 
-Beta, on top of 0.2.0b2. Menus only - nothing about the stored data changes.
+0.1.0 was withdrawn; this is the release that supersedes it. Entries written
+by it are **not** migrated - it had no users, and a migration nobody needs is a
+path nobody tests - so an entry at schema 1.1 is refused and has to be deleted
+and set up again.
 
-### Added
+Published as 0.2.0b1 to 0.2.0b3 first.
 
-- **Assign presets**, in the menu of a preset mode and of a blueprint: which
-  presets follow it, editable from there as well as from each preset. It is
-  the same key either way - the reference lives on the preset - and it is the
-  only place that answers "what follows this?" without opening every preset in
-  turn.
-
-### Changed
-
-- Renaming is its own entry in the menu of every object, in the same place.
-  It used to be a field on the settings of the one kind that had settings, and
-  the first step of the blueprint editor for another, so the way to rename
-  something depended on what it was. The menus now read the same everywhere:
-  what the object is, its name, the rest, and duplicating last.
-- The parameter editor of a blueprint opens directly instead of behind a name
-  form.
-- Menu entries say what they do to what: "Manage parameters" for a blueprint
-  as well as for a preset, "Assign preset blueprint" rather than "Preset
-  blueprint", and "Assign external entity" for the entity a preset mode
-  follows - which is what those settings are.
-
-## [0.2.0b2] - 2026-09-07
-
-Beta. The layout of the config entries changes. Entries written by 0.1.0 are
-**not** migrated: that release was withdrawn without anybody running it, so
-such an entry is refused and has to be deleted and set up again. A backup
-beforehand is what a beta is for all the same.
+Entity ids, unique ids, service names and their fields, state attributes and
+the two storage formats are the public surface again from here on: they end up
+in setups this project can neither see nor update, so changing any of them
+needs a migration step or a deprecation period.
 
 ### Changed
 
@@ -50,18 +31,28 @@ beforehand is what a beta is for all the same.
   between config entries — its entities are not rebuilt at all.
 - A rename, a changed condition and another source entity no longer cost a
   reload of everything the hub holds.
+- Renaming is its own entry in the menu of every object, in the same place, and
+  the menus read the same everywhere: what the object is, its name, the rest,
+  and duplicating last. The parameter editor of a blueprint opens directly
+  instead of behind a name form.
+- Menu entries say what they do to what: "Assign preset blueprint" rather than
+  "Preset blueprint", "Assign external entity" for the entity a preset mode
+  follows.
 
 ### Added
 
-- Duplicating, in the menu of every object: a preset with its stored values, a
-  preset mode with its modes and conditions, a blueprint with its parameters.
+- **Duplicating**, in the menu of every object: a preset with its stored
+  values, a preset mode with its modes and conditions, a blueprint with its
+  parameters.
+- **Assign presets**, in the menu of a preset mode and of a blueprint: which
+  presets follow it, editable from there as well as from each preset. It is the
+  same key either way - the reference lives on the preset - and it is the only
+  place that answers "what follows this?" without opening every preset in turn.
 - A preset can be created without a preset mode and be assigned one later.
 
 ### Removed
 
-- The config entry schema of 0.1.0. There is no path from it - a migration
-  nobody needs is a path nobody tests - so an entry at schema 1.1 is refused
-  with an error on the entry instead of being read half way.
+- The config entry schema of 0.1.0, see above.
 
 ## [0.1.0] - 2026-09-07
 
