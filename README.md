@@ -455,8 +455,9 @@ blueprint: Heating       # only while the preset follows a blueprint
 ## Dashboard card
 
 The integration ships its own Lovelace card. There is nothing to install and no
-resource to add: it comes with the integration, is served by it, and can
-therefore never be a version out of step with it.
+resource to add — it registers itself, is served by the integration, and can
+therefore never be a version out of step with it. It also takes its Lovelace
+resource back out when the last of its hubs is removed.
 
 ```yaml
 type: custom:preset-manager-card
@@ -711,7 +712,37 @@ hold_action:
 | “Not set” on a row | That mode has no value for the parameter and the parameter has no default. |
 | “Unavailable” on a row | The entity behind the row is disabled or gone. |
 | “Waiting for a preset mode” | The preset outlived its preset mode; assign it a new one. |
-| The card stays empty | The browser has an older bundle. A hard reload picks up the new one; the URL carries the version, so this only happens mid-upgrade. |
+| “Custom element not found: preset-manager-card” | The browser is holding an old copy of the page. See below — this is the one failure that looks like a broken card and is not. |
+
+### “Custom element not found”
+
+The integration offers the card two ways at once: as a Lovelace resource, the
+way a card installed through HACS arrives, and as a `<script>` in the Home
+Assistant page. You add neither by hand, and either one is enough to define it.
+
+That is not belt and braces for its own sake. The script tag lives in the page,
+which Home Assistant's service worker caches, so a client holding a copy from
+before the card existed keeps serving it — across restarts of Home Assistant,
+past a hard reload, once per browser and once per phone. The resource is fetched
+by the frontend at runtime from its resource list instead, which is why the
+cards you installed through HACS are unaffected by that. The script tag in turn
+covers the case the resource cannot: a dashboard in YAML mode declares its
+resources in YAML and cannot be written to.
+
+If the card is still missing, look in the log for `preset_manager`. Every
+outcome says so: `Dashboard card registered at …` means it was offered, and the
+two warnings name what stopped it. Opening that URL in a browser says whether
+the file itself is served.
+
+If it is offered and served and still missing, it is that cached page, and the
+cache has to be cleared **once per client**:
+
+* **Browser** — clear the site data for your Home Assistant address. Safari:
+  Settings → Privacy → Manage Website Data. Chrome: DevTools → Application →
+  Clear site data. A private window is the quick way to confirm it first.
+* **Companion app** — it has a web view of its own, so clearing the browser
+  does nothing for it. In the app: Settings → Companion App → Debugging, reset
+  the frontend cache, then close the app completely and open it again.
 
 The card asks the integration for its structure once per browser connection and
 follows the entity and device registries for changes, so a new mode, a renamed

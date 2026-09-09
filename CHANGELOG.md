@@ -48,6 +48,21 @@ versioning [Semantic Versioning](https://semver.org/).
 - A value list with icons keeps the column even for the rows that have none, so
   the labels line up instead of one of them starting an icon's width further
   left.
+- The card registers itself as a **Lovelace resource** as well as putting its
+  script into the Home Assistant page, and removes that resource again with the
+  last hub. One mechanism was not enough: the script tag lives in the page,
+  which the service worker caches per client, so a browser or a phone holding a
+  copy from before the card existed keeps serving it — across restarts and past
+  a hard reload, and looking exactly like a card that does not work. A resource
+  is fetched at runtime instead, which is why cards installed through HACS were
+  unaffected. The script tag stays for the case a resource cannot cover: a
+  dashboard in YAML mode owns its resource list.
+- The log says what became of the card on every start — the URL it was
+  registered at, or which of the two reasons stopped it. Its failure mode from
+  the browser is Home Assistant's “custom element not found”, which cannot tell
+  a card that was never offered from one that failed to load, and neither can
+  the person reading it. The README says what to do about the common cause,
+  which is a page held by the service worker rather than anything in the card.
 - `frontend/preview.html`, which renders every variant of the card against a
   fake Home Assistant — including the states that are awkward to produce on
   purpose, and a column too narrow for the card. It found three bugs that

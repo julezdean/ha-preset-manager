@@ -212,6 +212,16 @@ async def async_remove_entry(
             )
     await store.async_save_now()
 
+    # With the last hub the integration is gone, and the Lovelace resource it
+    # added on setup would be left pointing at a path nothing serves.
+    remaining = [
+        item
+        for item in hass.config_entries.async_entries(DOMAIN)
+        if item.entry_id != entry.entry_id
+    ]
+    if not remaining:
+        await frontend.async_remove_resource(hass)
+
 
 async def async_remove_config_entry_device(
     hass: HomeAssistant, entry: PresetManagerConfigEntry, device: DeviceEntry
