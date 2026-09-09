@@ -78,20 +78,6 @@ export interface FooterConfig {
   content?: FooterItem[];
 }
 
-export interface LayoutConfig {
-  density?: "comfortable" | "compact";
-}
-
-export interface AppearanceConfig {
-  background?: string;
-  radius?: string;
-  /** `false` removes the card shell entirely, for nesting in another card. */
-  shadow?: boolean;
-  border?: boolean;
-  /** Colour the icon and the active chip after the mode. Default `true`. */
-  state_color?: boolean;
-}
-
 export interface PresetManagerCardConfig {
   type: string;
   /** Any entity of the integration; the card resolves what it belongs to. */
@@ -102,8 +88,6 @@ export interface PresetManagerCardConfig {
   editor?: EditorConfig;
   presets?: PresetsConfig;
   footer?: FooterConfig;
-  layout?: LayoutConfig;
-  appearance?: AppearanceConfig;
   /** Home Assistant's own action keys, at the top level as everywhere else. */
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
@@ -125,8 +109,6 @@ export interface ResolvedConfig {
   editor: Required<Pick<EditorConfig, "enabled" | "mode">> & EditorConfig;
   presets: Required<PresetsConfig>;
   footer: { visible: boolean; content: FooterItem[] };
-  layout: Required<LayoutConfig>;
-  appearance: AppearanceConfig & { state_color: boolean };
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;

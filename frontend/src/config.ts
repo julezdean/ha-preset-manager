@@ -26,7 +26,6 @@ export class CardConfigError extends Error {}
 const VISIBILITIES: Visibility[] = ["auto", "always", "never"];
 const MODE_STYLES = ["chips", "dropdown"] as const;
 const EDITOR_MODES = ["picker", "active", "all"] as const;
-const DENSITIES = ["comfortable", "compact"] as const;
 const FOOTER_ITEMS: FooterItem[] = [
   "preset_mode",
   "blueprint",
@@ -149,8 +148,6 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   const editor = section(config.editor, "editor");
   const presets = section(config.presets, "presets");
   const footer = section(config.footer, "footer");
-  const layout = section(config.layout, "layout");
-  const appearance = section(config.appearance, "appearance");
 
   const resolved: ResolvedConfig = {
     type: String(config.type ?? ""),
@@ -188,20 +185,6 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
       // the same decision.
       visible: bool(footer.visible, "footer.visible", footer.content !== undefined),
       content: footerContent(footer.content),
-    },
-    layout: {
-      density: oneOf(layout.density, "layout.density", DENSITIES, "comfortable"),
-    },
-    appearance: {
-      background: text(appearance.background, "appearance.background"),
-      radius: text(appearance.radius, "appearance.radius"),
-      shadow: appearance.shadow === undefined
-        ? undefined
-        : bool(appearance.shadow, "appearance.shadow", true),
-      border: appearance.border === undefined
-        ? undefined
-        : bool(appearance.border, "appearance.border", true),
-      state_color: bool(appearance.state_color, "appearance.state_color", true),
     },
     tap_action: config.tap_action,
     hold_action: config.hold_action,

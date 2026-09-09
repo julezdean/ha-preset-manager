@@ -433,6 +433,10 @@
 
     for (const mode of HOUSE_MODES) {
       const at = (values) => values[mode.key];
+      // Night deliberately has no value on the alarm clock: that is what a
+      // preset looks like before anybody has filled it in, and every control
+      // has to stay usable there.
+      const unset = mode.key === "night";
       put(
         `number.motion_${mode.key}_brightness`,
         at({ home: 80, away: 0, night: 15, window_open: 5 }),
@@ -457,14 +461,14 @@
 
       put(
         `number.clock_${mode.key}_volume`,
-        at({ home: 60, away: 0, night: 35, window_open: 35 }),
+        unset ? "unknown" : at({ home: 60, away: 0, night: 35, window_open: 35 }),
         { min: 0, max: 100, step: 5, mode: "slider", unit_of_measurement: "%" },
       );
-      put(`switch.clock_${mode.key}_enabled`, mode.key === "away" ? "off" : "on");
-      put(`select.clock_${mode.key}_scene`, "Sunrise", {
+      put(`switch.clock_${mode.key}_enabled`, unset ? "unknown" : mode.key === "away" ? "off" : "on");
+      put(`select.clock_${mode.key}_scene`, unset ? "unknown" : "Sunrise", {
         options: ["Sunrise", "Soft", "Off"],
       });
-      put(`text.clock_${mode.key}_label`, "Weekday", {
+      put(`text.clock_${mode.key}_label`, unset ? "unknown" : "Weekday", {
         min: 0,
         max: 40,
         mode: "text",
@@ -474,9 +478,9 @@
         max: 60,
         mode: "password",
       });
-      put(`time.clock_${mode.key}_wake_up`, "06:30:00");
-      put(`date.clock_${mode.key}_holiday`, "2026-12-24");
-      put(`datetime.clock_${mode.key}_deadline`, "2026-09-30T16:00:00+00:00");
+      put(`time.clock_${mode.key}_wake_up`, unset ? "unknown" : "06:30:00");
+      put(`date.clock_${mode.key}_holiday`, unset ? "unknown" : "2026-12-24");
+      put(`datetime.clock_${mode.key}_deadline`, unset ? "unknown" : "2026-09-30T16:00:00+00:00");
       // Deliberately without a value: an unset parameter of one mode.
       if (mode.key !== "night") {
         put(`number.fan_${mode.key}_speed`, 2, { min: 0, max: 5, step: 1, mode: "box" });
@@ -638,10 +642,9 @@
         },
       ],
       [
-        "Preset — compact, one value",
+        "Preset — one value",
         {
           entity: "sensor.motion_active_mode",
-          layout: { density: "compact" },
           header: { subtitle: false },
           values: { parameters: ["brightness"] },
         },
@@ -689,7 +692,7 @@
       ],
       ["Preset without a preset mode", { entity: "sensor.fan_active_mode" }],
       [
-        "Renamed rows, no shell",
+        "Renamed rows",
         {
           entity: "sensor.motion_active_mode",
           header: { title: "Living room light", icon: "mdi:lightbulb-outline" },
@@ -701,7 +704,6 @@
               { parameter: "off_delay", name: "Run-on" },
             ],
           },
-          appearance: { shadow: false, radius: "20px" },
         },
       ],
       ["Not an entity of ours", { entity: "light.living_room" }],

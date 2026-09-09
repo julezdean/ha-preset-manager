@@ -11,7 +11,6 @@ describe("resolveConfig", () => {
     expect(config.header.visible).toBe(true);
     expect(config.values.visible).toBe(true);
     expect(config.modes.visible).toBe("auto");
-    expect(config.layout.density).toBe("comfortable");
   });
 
   it("keeps the editors closed unless asked", () => {
@@ -92,13 +91,14 @@ describe("pruneConfig", () => {
       type: MINIMAL.type,
       entity: MINIMAL.entity,
       editor: { enabled: true, mode: "picker" },
-      layout: { density: "compact" },
+      modes: { visible: "always", style: "chips" },
     });
-    // `mode: picker` is the default and goes; `enabled` and the density stay.
+    // `mode: picker` and `style: chips` are the defaults and go; the other two
+    // stay.
     expect(pruned).toEqual({
       ...MINIMAL,
       editor: { enabled: true },
-      layout: { density: "compact" },
+      modes: { visible: "always" },
     });
   });
 

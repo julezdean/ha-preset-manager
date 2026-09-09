@@ -21,7 +21,7 @@ import { isWideControl, renderControl } from "./controls";
 import type { CardContext } from "./context";
 import type { ParameterInfo, PresetInfo } from "../types/data";
 import type { ResolvedParameterRow } from "../types/config";
-import { formatState, isUnavailable, stateOf, UNKNOWN } from "../util/ha";
+import { formatState, hasNoValue, stateOf, UNKNOWN } from "../util/ha";
 
 interface Row {
   parameter: ParameterInfo;
@@ -68,7 +68,7 @@ function valueText(context: CardContext, parameter: ParameterInfo): {
     // for this parameter and the parameter has no default.
     return { text: localize(context.hass, "not_set"), muted: true };
   }
-  if (isUnavailable(entity.state)) {
+  if (hasNoValue(entity.state)) {
     return { text: localize(context.hass, "unavailable"), muted: true };
   }
   return { text: formatState(context.hass, entity), muted: false };

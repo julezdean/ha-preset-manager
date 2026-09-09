@@ -10,7 +10,7 @@
 import type { ModeInfo, PresetModeInfo } from "../types/data";
 import type { HassEntity, HomeAssistant } from "../types/ha";
 import type { Subject } from "./subject";
-import { isUnavailable, stateOf } from "../util/ha";
+import { hasNoValue, stateOf } from "../util/ha";
 
 /** Attribute carrying the stable key of the active mode. Frozen surface. */
 const ATTR_MODE_KEY = "mode_key";
@@ -58,7 +58,7 @@ export function automaticState(
   presetMode: PresetModeInfo | null,
 ): boolean | null {
   const entity = stateOf(hass, presetMode?.entities.automatic);
-  if (!entity || isUnavailable(entity.state)) return null;
+  if (!entity || hasNoValue(entity.state)) return null;
   return entity.state === "on";
 }
 
@@ -81,5 +81,5 @@ export function hasValue(
   entityId: string | null | undefined,
 ): boolean {
   const entity = stateOf(hass, entityId);
-  return entity !== undefined && !isUnavailable(entity.state);
+  return entity !== undefined && !hasNoValue(entity.state);
 }

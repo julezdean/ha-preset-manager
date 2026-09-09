@@ -13,9 +13,27 @@ import type { ActionConfig, HassEntity, HomeAssistant } from "../types/ha";
 export const UNAVAILABLE = "unavailable";
 export const UNKNOWN = "unknown";
 
-/** Return whether a state carries no usable value. */
-export function isUnavailable(state: string | undefined): boolean {
+/**
+ * Return whether a state carries no usable value.
+ *
+ * Both of the two reasons: the entity is gone, or it has never been given one.
+ * For *showing* a value the two are the same - there is nothing to show.
+ */
+export function hasNoValue(state: string | undefined): boolean {
   return state === undefined || state === UNAVAILABLE || state === UNKNOWN;
+}
+
+/**
+ * Return whether the entity behind a state is not there at all.
+ *
+ * The distinction {@link hasNoValue} does not make, and the one that decides
+ * whether a control may be used: `unknown` on an editor entity means the mode
+ * has no value for this parameter yet, which is exactly what the control is
+ * there to change. Disabling it was the one bug that made the editor useless
+ * for a preset nobody had filled in yet - which is every new preset.
+ */
+export function isMissing(state: string | undefined): boolean {
+  return state === undefined || state === UNAVAILABLE;
 }
 
 export function stateOf(

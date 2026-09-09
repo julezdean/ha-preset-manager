@@ -25,7 +25,7 @@ import { activeModeKey, modesOf } from "./data/state";
 import { resolveSubject, watchedEntityIds, type Subject } from "./data/subject";
 import { localize } from "./localize";
 import { cardStyles } from "./styles";
-import type { AppearanceConfig, ResolvedConfig } from "./types/config";
+import type { ResolvedConfig } from "./types/config";
 import type { ActionConfig, HomeAssistant, LovelaceCardEditor } from "./types/ha";
 import type { PresetManagerConfig } from "./types/data";
 import { hasAction, isDefined, performAction } from "./util/ha";
@@ -278,10 +278,6 @@ export class PresetManagerCard extends LitElement {
     super.willUpdate(changed);
     const subject = this._subject;
     this._watched = subject ? watchedEntityIds(subject) : [];
-    // The density is a host attribute so the whole token scale switches in one
-    // CSS rule. Set here rather than in `render`, which has no business
-    // touching the element it renders into.
-    this.dataset.density = this._config?.layout.density ?? "comfortable";
   }
 
   private get _subject(): Subject | null {
@@ -343,19 +339,15 @@ export class PresetManagerCard extends LitElement {
     `);
   }
 
-  /** The card shell, with the appearance overrides applied to it. */
+  /**
+   * The card shell.
+   *
+   * Nothing is styled from the configuration: `ha-card` already answers to the
+   * user's theme, and a card that took a background and a radius of its own
+   * would be the one card on the dashboard that stops following it.
+   */
   private _shell(content: TemplateResult): TemplateResult {
-    const appearance: AppearanceConfig = this._config?.appearance ?? {};
-    const styles = [
-      appearance.background ? `--ha-card-background: ${appearance.background}` : "",
-      appearance.radius ? `--ha-card-border-radius: ${appearance.radius}` : "",
-      appearance.shadow === false ? "--ha-card-box-shadow: none" : "",
-      appearance.border === false ? "--ha-card-border-width: 0" : "",
-    ]
-      .filter(Boolean)
-      .join(";");
-
-    return html`<ha-card style=${styles}>${content}</ha-card>`;
+    return html`<ha-card>${content}</ha-card>`;
   }
 
   private _skeleton(): TemplateResult {

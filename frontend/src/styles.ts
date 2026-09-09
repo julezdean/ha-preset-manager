@@ -16,8 +16,7 @@ import { css } from "lit";
 
 export const cardStyles = css`
   :host {
-    /* Spacing scale. The compact density halves the vertical rhythm and
-       leaves the horizontal one alone - a narrower card is not the ask. */
+    /* Spacing scale. */
     --pm-padding-x: 16px;
     --pm-padding-y: 14px;
     --pm-gap: 12px;
@@ -36,14 +35,6 @@ export const cardStyles = css`
     --pm-error: var(--error-color, #db4437);
 
     display: block;
-  }
-
-  :host([data-density="compact"]) {
-    --pm-padding-x: 14px;
-    --pm-padding-y: 8px;
-    --pm-gap: 8px;
-    --pm-row-gap: 4px;
-    --pm-icon-size: 30px;
   }
 
   ha-card {
@@ -375,6 +366,20 @@ export const cardStyles = css`
 
   .switch:has(input:checked)::after {
     transform: translateX(18px);
+  }
+
+  /* Not set is not off. The integration keeps the two apart on purpose - a
+     boolean without a value reports "unknown" rather than falling back to
+     false - so a switch resting in the off position would claim something
+     nobody said. */
+  .switch:has(input:indeterminate) {
+    background: transparent;
+    box-shadow: inset 0 0 0 2px var(--pm-divider);
+  }
+
+  .switch:has(input:indeterminate)::after {
+    transform: translateX(9px);
+    background: var(--pm-disabled);
   }
 
   .switch:has(input:disabled) {

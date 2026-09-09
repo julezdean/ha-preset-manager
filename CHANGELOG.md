@@ -16,9 +16,11 @@ versioning [Semantic Versioning](https://semver.org/).
   draws the object that entity belongs to. Values and the active mode on a
   preset, the modes as chips and the automatic on a preset mode, the per-mode
   editors on request, and the presets of a preset mode with their values.
-  Grouped options for the header, the modes, the values, the editors, the
-  footer, the layout and the appearance, plus Home Assistant's three action
-  keys, and a visual editor built on `ha-form`.
+  Grouped options for the header, the modes, the values, the editors and the
+  footer, plus Home Assistant's three action keys, and a visual editor built on
+  `ha-form`. Nothing about the background, the radius, the shadow or the
+  spacing: those come from the theme, and a card that carried its own would be
+  the one that stops following it.
 - The websocket command `preset_manager/config`, which the card asks for the
   *structure*: the modes with their keys and icons, the parameters, and which
   entity edits which mode of which parameter. None of that is derivable from
@@ -31,6 +33,13 @@ versioning [Semantic Versioning](https://semver.org/).
   so it may change with any release.
 - Mode icons are drawn for the first time. They were configurable, stored and
   until now unused.
+- An editor whose mode has no value yet is empty and usable, rather than
+  disabled. A value entity reports `unknown` for two different reasons - the
+  entity is gone, or nobody has set the value - and the card told them apart
+  everywhere except in the controls, where it mattered most: on a preset nobody
+  has filled in, which is every new preset, every control was dead. A toggle
+  without a value now shows that it has none instead of resting on off, the way
+  the integration keeps the two apart itself.
 - `frontend/preview.html`, which renders every variant of the card against a
   fake Home Assistant — including the states that are awkward to produce on
   purpose, and a column too narrow for the card. It found three bugs that

@@ -78,9 +78,7 @@ function chips(
     <div class="chips" role="group">
       ${modes.map((mode) => {
         const isActive = mode.key === active;
-        const colour = config.appearance.state_color
-          ? config.modes.colors[mode.key]
-          : undefined;
+        const colour = config.modes.colors[mode.key];
         return html`
           <button
             class="chip"

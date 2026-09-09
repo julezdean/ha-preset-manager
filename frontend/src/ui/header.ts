@@ -17,7 +17,6 @@ import type { CardContext } from "./context";
 
 /** The colour the active mode paints the icon and its chip with. */
 export function modeColor(context: CardContext): string | undefined {
-  if (!context.config.appearance.state_color) return undefined;
   const mode = activeMode(context.hass, context.subject);
   return mode ? context.config.modes.colors[mode.key] : undefined;
 }

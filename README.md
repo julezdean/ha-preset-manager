@@ -526,12 +526,6 @@ time.
 | `presets.values` | `false` | And their values. |
 | `footer.visible` | `false` | The footer line. |
 | `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
-| `layout.density` | `comfortable` | `comfortable` or `compact`. |
-| `appearance.background` | the theme's | Card background. |
-| `appearance.radius` | the theme's | Corner radius. |
-| `appearance.shadow` | the theme's | `false` removes it. |
-| `appearance.border` | the theme's | `false` removes it. |
-| `appearance.state_color` | `true` | Colour the icon and the active chip after the mode. |
 | `tap_action` | `more-info` | Home Assistant's action config, on the header. |
 | `hold_action` | – | Same. |
 | `double_tap_action` | – | Same. |
@@ -539,6 +533,11 @@ time.
 The three action keys sit at the top level rather than in a group of their own,
 because that is where every other Home Assistant card has them and a dashboard
 is copied between cards more often than it is read.
+
+There is no option for the background, the corner radius, the shadow or the
+spacing. The card is a `ha-card` and takes all four from the theme, so it looks
+like the cards around it and follows the next theme the user installs; a card
+carrying its own would be the one that stops.
 
 Everything else is grouped, so a long configuration stays readable:
 
@@ -610,13 +609,11 @@ type: custom:preset-manager-card
 entity: sensor.motion_sensor_living_room_active_mode
 ```
 
-**Compact** — a dense row in a grid of many.
+**One value** — a single row in a grid of many.
 
 ```yaml
 type: custom:preset-manager-card
 entity: sensor.motion_sensor_living_room_active_mode
-layout:
-  density: compact
 header:
   subtitle: false
 values:
@@ -664,9 +661,6 @@ footer:
 type: custom:preset-manager-card
 entity: sensor.motion_sensor_living_room_active_mode
 
-layout:
-  density: comfortable
-
 header:
   visible: true
   title: Living room light
@@ -699,11 +693,6 @@ editor:
 
 footer:
   content: [preset_mode, blueprint, last_changed]
-
-appearance:
-  radius: 16px
-  shadow: false
-  state_color: true
 
 tap_action:
   action: more-info

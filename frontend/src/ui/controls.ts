@@ -15,6 +15,12 @@
  *
  * Writes go out on `change`, not on `input`: a slider dragged across its range
  * would otherwise be one service call and one store write per pixel.
+ *
+ * **`unknown` is not `unavailable`.** An editor entity reports `unknown` while
+ * the mode has no value for its parameter - which is the state of every
+ * parameter of every mode of a preset nobody has filled in yet. Those controls
+ * are empty and fully usable; only an entity that is really not there (gone,
+ * or disabled in the registry) is disabled here.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
@@ -22,7 +28,7 @@ import { html, nothing, type TemplateResult } from "lit";
 import { localize } from "../localize";
 import type { HassEntity, HomeAssistant } from "../types/ha";
 import type { ParameterType } from "../types/data";
-import { isUnavailable } from "../util/ha";
+import { hasNoValue, isMissing } from "../util/ha";
 
 export interface ControlContext {
   hass: HomeAssistant;
@@ -41,6 +47,20 @@ function set(
   );
 }
 
+/** Shown where a control cannot be empty but has no value either. */
+const UNSET = "—";
+
+interface ControlState {
+  /** The entity is not there; nothing can be written to it. */
+  disabled: boolean;
+  /** There is no value yet, so the control starts empty. */
+  empty: boolean;
+}
+
+function controlState(entity: HassEntity): ControlState {
+  return { disabled: isMissing(entity.state), empty: hasNoValue(entity.state) };
+}
+
 function attr<T>(entity: HassEntity, name: string, fallback: T): T {
   const value = entity.attributes[name];
   return value === undefined || value === null ? fallback : (value as T);
@@ -51,12 +71,12 @@ function numberControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const disabled = isUnavailable(entity.state);
+  const { disabled, empty } = controlState(entity);
   const min = attr<number>(entity, "min", 0);
   const max = attr<number>(entity, "max", 100);
   const step = attr<number>(entity, "step", 1);
   const unit = entity.attributes.unit_of_measurement ?? "";
-  const value = disabled ? "" : entity.state;
+  const value = empty ? "" : entity.state;
   // `valueAsNumber`, not `value`: a number input renders and accepts the
   // decimal separator of the browser's locale, so a German user typing "19,5"
   // leaves `value` empty while this reads 19.5. It is also the only reading
@@ -76,12 +96,12 @@ function numberControl(
         min=${min}
         max=${max}
         step=${step}
-        .value=${value}
+        .value=${empty ? String(min) : value}
         ?disabled=${disabled}
         @change=${commit}
       />
       <span class="slider-value">
-        ${disabled ? "—" : `${entity.state}${unit ? ` ${unit}` : ""}`}
+        ${empty ? UNSET : `${entity.state}${unit ? ` ${unit}` : ""}`}
       </span>
     `;
   }
@@ -108,7 +128,7 @@ function booleanControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const disabled = isUnavailable(entity.state);
+  const { disabled, empty } = controlState(entity);
   return html`
     <label class="switch">
       <input
@@ -116,6 +136,7 @@ function booleanControl(
         role="switch"
         aria-label=${label}
         .checked=${entity.state === "on"}
+        .indeterminate=${empty}
         ?disabled=${disabled}
         @change=${(event: Event) =>
           set(
@@ -134,7 +155,7 @@ function selectControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const disabled = isUnavailable(entity.state);
+  const { disabled, empty } = controlState(entity);
   const options = attr<string[]>(entity, "options", []);
   return html`
     <select
@@ -146,8 +167,8 @@ function selectControl(
           option: (event.target as HTMLSelectElement).value,
         })}
     >
-      ${disabled
-        ? html`<option value="" selected>—</option>`
+      ${empty
+        ? html`<option value="" selected disabled>${UNSET}</option>`
         : nothing}
       ${options.map(
         (option) => html`
@@ -165,7 +186,7 @@ function textControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const disabled = isUnavailable(entity.state);
+  const { disabled, empty } = controlState(entity);
   const pattern = entity.attributes.pattern as string | undefined;
   return html`
     <input
@@ -175,7 +196,7 @@ function textControl(
       minlength=${attr<number>(entity, "min", 0)}
       maxlength=${attr<number>(entity, "max", 255)}
       pattern=${pattern ?? nothing}
-      .value=${disabled ? "" : entity.state}
+      .value=${empty ? "" : entity.state}
       ?disabled=${disabled}
       @change=${(event: Event) =>
         set(context, entity, "set_value", {
@@ -202,9 +223,9 @@ function temporalControl(
   label: string,
   type: "date" | "time" | "datetime",
 ): TemplateResult {
-  const disabled = isUnavailable(entity.state);
-  let value = disabled ? "" : entity.state;
-  if (type === "datetime") value = disabled ? "" : localDateTimeValue(entity.state);
+  const { disabled, empty } = controlState(entity);
+  let value = empty ? "" : entity.state;
+  if (type === "datetime") value = empty ? "" : localDateTimeValue(entity.state);
   // A time entity reports seconds; the input wants minutes unless it is told
   // otherwise, and a preset's time is a wall clock time, not a stopwatch.
   if (type === "time") value = value.slice(0, 5);

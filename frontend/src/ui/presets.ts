@@ -11,7 +11,7 @@
 import { html, nothing, type TemplateResult } from "lit";
 
 import { localize, localizeCount } from "../localize";
-import { formatState, isUnavailable, showMoreInfo, stateOf, UNKNOWN } from "../util/ha";
+import { formatState, hasNoValue, showMoreInfo, stateOf, UNKNOWN } from "../util/ha";
 import type { CardContext } from "./context";
 import type { PresetInfo } from "../types/data";
 
@@ -22,7 +22,7 @@ function valueRows(context: CardContext, preset: PresetInfo): TemplateResult[] {
     let muted = true;
     if (!entity) text = localize(context.hass, "unavailable");
     else if (entity.state === UNKNOWN) text = localize(context.hass, "not_set");
-    else if (isUnavailable(entity.state)) text = localize(context.hass, "unavailable");
+    else if (hasNoValue(entity.state)) text = localize(context.hass, "unavailable");
     else {
       text = formatState(context.hass, entity);
       muted = false;
@@ -67,8 +67,8 @@ export function renderPresets(context: CardContext): TemplateResult | typeof not
           return html`
             <div class="row">
               ${name}
-              <div class="row-value ${entity && !isUnavailable(entity.state) ? "" : "muted"}">
-                ${entity && !isUnavailable(entity.state)
+              <div class="row-value ${entity && !hasNoValue(entity.state) ? "" : "muted"}">
+                ${entity && !hasNoValue(entity.state)
                   ? entity.state
                   : localize(context.hass, "no_mode")}
               </div>
