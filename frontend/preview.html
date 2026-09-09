@@ -1,0 +1,822 @@
+<!doctype html>
+<!--
+  The card, in a browser, without Home Assistant.
+
+  Every visual and interactive path of the card is on this page at once: both
+  kinds of subject, every parameter type, the states that have no value, a
+  preset that lost its preset mode, and the same set again in a column too
+  narrow for it. That is the point - a bug in the fourth parameter type or in a
+  200 pixel column is not something a type checker or a unit test sees, and
+  finding it by restarting Home Assistant costs a minute each time.
+
+      npm run build
+      npm run preview          # then open the URL it prints
+
+  What is faked here is exactly three things, and they are marked below: the
+  three Home Assistant elements the card uses, the `hass` object, and enough of
+  the integration to answer a service call. The card itself is the built bundle,
+  unmodified - so if it works here it is not because this page helped.
+-->
+<meta charset="utf-8" />
+<title>Preset Manager card preview</title>
+<style>
+  /* The Home Assistant variables the card resolves its tokens against, at the
+     values of the default light and dark themes. */
+  :root {
+    --primary-text-color: #212121;
+    --secondary-text-color: #727272;
+    --disabled-text-color: #bdbdbd;
+    --divider-color: rgba(0, 0, 0, 0.12);
+    --primary-color: #03a9f4;
+    --error-color: #db4437;
+    --warning-color: #ffa600;
+    --card-background-color: #fff;
+    --ha-card-border-radius: 12px;
+    color-scheme: light;
+  }
+
+  body.dark {
+    --primary-text-color: #e1e1e1;
+    --secondary-text-color: #9b9b9b;
+    --disabled-text-color: #6f6f6f;
+    --divider-color: rgba(225, 225, 225, 0.12);
+    --card-background-color: #1c1c1c;
+    color-scheme: dark;
+    background: #111;
+  }
+
+  body {
+    margin: 0;
+    padding: 24px;
+    background: #f2f4f7;
+    font-family: Roboto, system-ui, sans-serif;
+    color: var(--primary-text-color);
+  }
+
+  h1 {
+    font: 500 16px/1.4 Roboto, sans-serif;
+    margin: 0 0 4px;
+  }
+
+  p.hint {
+    font: 13px/1.5 Roboto, sans-serif;
+    color: var(--secondary-text-color);
+    margin: 0 0 20px;
+  }
+
+  h2 {
+    font: 500 12px/1 Roboto, sans-serif;
+    color: var(--secondary-text-color);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 8px;
+  }
+
+  button.theme {
+    font: 13px Roboto, sans-serif;
+    padding: 6px 12px;
+    border: 1px solid var(--divider-color);
+    border-radius: 999px;
+    background: var(--card-background-color);
+    color: inherit;
+    cursor: pointer;
+    margin-bottom: 20px;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 340px));
+    gap: 24px;
+    align-items: start;
+  }
+
+  /* The width a card gets in a narrow sidebar or a four-column section view. */
+  .narrow preset-manager-card {
+    width: 200px;
+  }
+
+  /* Gallery: columns rather than a grid, so a short card does not leave a
+     tall card's worth of air beneath it. */
+  .grid.gallery {
+    display: block;
+    column-count: 4;
+    column-gap: 24px;
+  }
+
+  .grid.gallery > div {
+    break-inside: avoid;
+    margin-bottom: 24px;
+  }
+</style>
+
+<body>
+  <div id="intro">
+  <h1>Preset Manager card</h1>
+  <p class="hint">
+    Live: switching a mode, moving a slider or typing a value writes into the
+    fake state machine below and every card follows, the way they would in Home
+    Assistant.
+  </p>
+  </div>
+  <button id="theme-toggle" class="theme" onclick="document.body.classList.toggle('dark')">
+    Light / dark
+  </button>
+  <div class="grid" id="grid"></div>
+
+  <script>
+    // ---------------------------------------------------------------------
+    // 1. The three Home Assistant elements the card uses.
+    //
+    // Stand-ins, not reimplementations: `ha-card` is a themed box, `ha-icon`
+    // is a shape of the right size (the real one draws an MDI glyph), and
+    // `ha-alert` is a warning panel. The card asks whether they are defined
+    // before using them, so this page also covers the path where they are.
+    // ---------------------------------------------------------------------
+
+    customElements.define(
+      "ha-card",
+      class extends HTMLElement {
+        connectedCallback() {
+          Object.assign(this.style, {
+            display: "block",
+            background: "var(--card-background-color)",
+            borderRadius: "var(--ha-card-border-radius)",
+            boxShadow: "0 1px 3px rgba(0,0,0,.12)",
+            overflow: "hidden",
+          });
+        }
+      },
+    );
+
+    customElements.define(
+      "ha-icon",
+      class extends HTMLElement {
+        set icon(value) {
+          this._icon = value;
+          this.render();
+        }
+        connectedCallback() {
+          this.render();
+        }
+        render() {
+          const size = "var(--mdc-icon-size, 24px)";
+          Object.assign(this.style, {
+            display: "inline-grid",
+            placeItems: "center",
+            width: size,
+            height: size,
+          });
+          this.innerHTML =
+            '<svg viewBox="0 0 24 24" width="100%" height="100%" fill="currentColor">' +
+            '<circle cx="12" cy="12" r="9" opacity=".28"/>' +
+            '<circle cx="12" cy="12" r="4"/></svg>';
+        }
+      },
+    );
+
+    customElements.define(
+      "ha-alert",
+      class extends HTMLElement {
+        connectedCallback() {
+          Object.assign(this.style, {
+            display: "block",
+            margin: "12px",
+            padding: "10px 12px",
+            borderRadius: "8px",
+            background: "rgba(255,166,0,.14)",
+            color: "var(--primary-text-color)",
+            font: "14px Roboto, sans-serif",
+          });
+        }
+      },
+    );
+
+    // ---------------------------------------------------------------------
+    // 2. A setup to look at.
+    //
+    // The example from the README, plus the two cases that are hard to
+    // produce on purpose: a preset mode handed to another entity, and a preset
+    // that outlived its own. Every preset sits under a preset mode whose
+    // dimension it actually belongs to.
+    // ---------------------------------------------------------------------
+
+    const HOUSE_MODES = [
+      { key: "home", name: "Home", icon: "mdi:home" },
+      { key: "away", name: "Away", icon: "mdi:home-export-outline" },
+      { key: "night", name: "Night", icon: "mdi:weather-night" },
+      { key: "window_open", name: "Window open", icon: "mdi:window-open" },
+    ];
+    const WINDOW_MODES = [
+      { key: "closed", name: "Closed", icon: "mdi:window-closed" },
+      { key: "open", name: "Open", icon: "mdi:window-open" },
+    ];
+
+    /** One editor entity per mode, the way the websocket command reports it. */
+    const editors = (domain, preset, parameter, modes = HOUSE_MODES) =>
+      Object.fromEntries(
+        modes.map((mode) => [
+          mode.key,
+          `${domain}.${preset}_${mode.key}_${parameter}`,
+        ]),
+      );
+
+    const STRUCTURE = {
+      preset_modes: [
+        {
+          id: "pm1",
+          name: "House Mode",
+          device_id: "d1",
+          modes: HOUSE_MODES,
+          source_entity: null,
+          has_conditions: true,
+          entities: {
+            mode: "sensor.house_mode_mode",
+            active_mode: "select.house_mode_active_mode",
+            automatic: "switch.house_mode_automatic",
+          },
+        },
+        {
+          id: "pm2",
+          name: "Window State",
+          device_id: "d2",
+          modes: WINDOW_MODES,
+          source_entity: "binary_sensor.window_living_room",
+          has_conditions: false,
+          entities: { mode: "sensor.window_state_mode" },
+        },
+      ],
+      presets: [
+        {
+          id: "p1",
+          name: "Motion Sensor Living Room",
+          device_id: "d3",
+          preset_mode: "pm1",
+          blueprint: null,
+          modes: HOUSE_MODES,
+          entities: { active_mode: "sensor.motion_active_mode" },
+          parameters: [
+            {
+              key: "brightness",
+              name: "Brightness",
+              type: "number",
+              entity: "sensor.motion_brightness",
+              editors: editors("number", "motion", "brightness"),
+            },
+            {
+              key: "color_temperature",
+              name: "Color temperature",
+              type: "number",
+              entity: "sensor.motion_color_temperature",
+              editors: editors("number", "motion", "color_temperature"),
+            },
+            {
+              key: "off_delay",
+              name: "Off delay",
+              type: "number",
+              entity: "sensor.motion_off_delay",
+              editors: editors("number", "motion", "off_delay"),
+            },
+          ],
+        },
+        {
+          id: "p2",
+          name: "Heating Living Room",
+          device_id: "d4",
+          preset_mode: "pm1",
+          blueprint: "bp1",
+          modes: HOUSE_MODES,
+          entities: { active_mode: "sensor.heating_active_mode" },
+          parameters: [
+            {
+              key: "target_temperature",
+              name: "Target temperature",
+              type: "number",
+              entity: "sensor.heating_target_temperature",
+              editors: editors("number", "heating", "target_temperature"),
+            },
+            {
+              key: "boost",
+              name: "Boost",
+              type: "boolean",
+              entity: "binary_sensor.heating_boost",
+              editors: editors("switch", "heating", "boost"),
+            },
+          ],
+        },
+        {
+          // Every parameter type in one preset, which is what makes the
+          // controls comparable side by side.
+          id: "p3",
+          name: "Alarm Clock",
+          device_id: "d5",
+          preset_mode: "pm1",
+          blueprint: null,
+          modes: HOUSE_MODES,
+          entities: { active_mode: "sensor.clock_active_mode" },
+          parameters: [
+            {
+              key: "volume",
+              name: "Volume",
+              type: "number",
+              entity: "sensor.clock_volume",
+              editors: editors("number", "clock", "volume"),
+            },
+            {
+              key: "enabled",
+              name: "Enabled",
+              type: "boolean",
+              entity: "binary_sensor.clock_enabled",
+              editors: editors("switch", "clock", "enabled"),
+            },
+            {
+              key: "scene",
+              name: "Scene",
+              type: "select",
+              entity: "sensor.clock_scene",
+              editors: editors("select", "clock", "scene"),
+            },
+            {
+              key: "label",
+              name: "Label",
+              type: "text",
+              entity: "sensor.clock_label",
+              editors: editors("text", "clock", "label"),
+            },
+            {
+              key: "token",
+              name: "Token",
+              type: "text",
+              entity: "sensor.clock_token",
+              editors: editors("text", "clock", "token"),
+            },
+            {
+              key: "wake_up",
+              name: "Wake up",
+              type: "time",
+              entity: "sensor.clock_wake_up",
+              editors: editors("time", "clock", "wake_up"),
+            },
+            {
+              key: "holiday",
+              name: "Holiday",
+              type: "date",
+              entity: "sensor.clock_holiday",
+              editors: editors("date", "clock", "holiday"),
+            },
+            {
+              key: "deadline",
+              name: "Deadline",
+              type: "datetime",
+              entity: "sensor.clock_deadline",
+              editors: editors("datetime", "clock", "deadline"),
+            },
+          ],
+        },
+        {
+          id: "p4",
+          name: "Shutter Living Room",
+          device_id: "d6",
+          preset_mode: "pm2",
+          blueprint: null,
+          modes: WINDOW_MODES,
+          entities: { active_mode: "sensor.shutter_active_mode" },
+          parameters: [
+            {
+              key: "position",
+              name: "Position",
+              type: "number",
+              entity: "sensor.shutter_position",
+              editors: editors("number", "shutter", "position", WINDOW_MODES),
+            },
+          ],
+        },
+        {
+          // Its preset mode was deleted: it keeps its parameters, its values
+          // and the modes it had, and nothing resolves.
+          id: "p5",
+          name: "Fan Bedroom",
+          device_id: "d7",
+          preset_mode: null,
+          blueprint: null,
+          modes: HOUSE_MODES,
+          entities: { active_mode: "sensor.fan_active_mode" },
+          parameters: [
+            {
+              key: "speed",
+              name: "Speed",
+              type: "number",
+              entity: "sensor.fan_speed",
+              editors: editors("number", "fan", "speed"),
+            },
+          ],
+        },
+      ],
+      blueprints: [{ id: "bp1", name: "Heating" }],
+    };
+
+    // ---------------------------------------------------------------------
+    // 3. A `hass` that answers, and enough of the integration to write to.
+    //
+    // The service calls are emulated rather than swallowed: a mode switch
+    // resolves the values of every preset following that preset mode, the way
+    // the coordinator does, so the whole path from a click to a redrawn card
+    // is exercised. It is a stand-in and knows nothing about conditions,
+    // defaults or the automatic - the real thing is in Python.
+    // ---------------------------------------------------------------------
+
+    const states = {};
+
+    const put = (entityId, state, attributes = {}) => {
+      states[entityId] = {
+        entity_id: entityId,
+        state: String(state),
+        attributes,
+        last_changed: new Date(Date.now() - 9e5).toISOString(),
+        last_updated: new Date().toISOString(),
+      };
+    };
+
+    put("sensor.house_mode_mode", "Night", { mode_key: "night" });
+    put("select.house_mode_active_mode", "Night", {
+      options: HOUSE_MODES.map((mode) => mode.name),
+    });
+    put("switch.house_mode_automatic", "off");
+    put("sensor.window_state_mode", "Closed", { mode_key: "closed" });
+    put("binary_sensor.window_living_room", "off", {
+      friendly_name: "Window living room",
+    });
+
+    for (const mode of HOUSE_MODES) {
+      const at = (values) => values[mode.key];
+      // Night deliberately has no value on the alarm clock: that is what a
+      // preset looks like before anybody has filled it in, and every control
+      // has to stay usable there.
+      const unset = mode.key === "night";
+      put(
+        `number.motion_${mode.key}_brightness`,
+        at({ home: 80, away: 0, night: 15, window_open: 5 }),
+        { min: 0, max: 100, step: 1, mode: "slider", unit_of_measurement: "%" },
+      );
+      put(
+        `number.motion_${mode.key}_color_temperature`,
+        at({ home: 4000, away: 4000, night: 2200, window_open: 3000 }),
+        { min: 2000, max: 6500, step: 50, mode: "box", unit_of_measurement: "K" },
+      );
+      put(
+        `number.motion_${mode.key}_off_delay`,
+        at({ home: 300, away: 0, night: 30, window_open: 10 }),
+        { min: 0, max: 3600, step: 1, mode: "box", unit_of_measurement: "s" },
+      );
+      put(
+        `number.heating_${mode.key}_target_temperature`,
+        at({ home: 21.5, away: 17, night: 19, window_open: 16 }),
+        { min: 5, max: 30, step: 0.5, mode: "box", unit_of_measurement: "°C" },
+      );
+      put(`switch.heating_${mode.key}_boost`, mode.key === "home" ? "on" : "off");
+
+      put(
+        `number.clock_${mode.key}_volume`,
+        unset ? "unknown" : at({ home: 60, away: 0, night: 35, window_open: 35 }),
+        { min: 0, max: 100, step: 5, mode: "slider", unit_of_measurement: "%" },
+      );
+      put(`switch.clock_${mode.key}_enabled`, mode.key === "away" ? "off" : "on");
+      put(`select.clock_${mode.key}_scene`, "Sunrise", {
+        options: ["Sunrise", "Soft", "Off"],
+      });
+      put(`text.clock_${mode.key}_label`, "Weekday", {
+        min: 0,
+        max: 40,
+        mode: "text",
+      });
+      put(`text.clock_${mode.key}_token`, "swordfish", {
+        min: 0,
+        max: 60,
+        mode: "password",
+      });
+      put(`time.clock_${mode.key}_wake_up`, unset ? "unknown" : "06:30:00");
+      put(`date.clock_${mode.key}_holiday`, "2026-12-24");
+      put(`datetime.clock_${mode.key}_deadline`, "2026-09-30T16:00:00+00:00");
+      // Deliberately without a value: an unset parameter of one mode.
+      if (mode.key !== "night") {
+        put(`number.fan_${mode.key}_speed`, 2, { min: 0, max: 5, step: 1, mode: "box" });
+      } else {
+        put(`number.fan_${mode.key}_speed`, "unknown", {
+          min: 0,
+          max: 5,
+          step: 1,
+          mode: "box",
+        });
+      }
+    }
+
+    for (const mode of WINDOW_MODES) {
+      put(`number.shutter_${mode.key}_position`, mode.key === "open" ? 100 : 30, {
+        min: 0,
+        max: 100,
+        step: 1,
+        mode: "slider",
+        unit_of_measurement: "%",
+      });
+    }
+
+    /** The units and options the value sensors carry, for formatting. */
+    const VALUE_ATTRIBUTES = {
+      "sensor.motion_brightness": { unit_of_measurement: "%" },
+      "sensor.motion_color_temperature": { unit_of_measurement: "K" },
+      "sensor.motion_off_delay": { unit_of_measurement: "s" },
+      "sensor.heating_target_temperature": { unit_of_measurement: "°C" },
+      "sensor.clock_volume": { unit_of_measurement: "%", icon: "mdi:volume-high" },
+      "binary_sensor.clock_enabled": { icon: "mdi:alarm" },
+      "sensor.shutter_position": { unit_of_measurement: "%" },
+      "sensor.fan_speed": {},
+      "sensor.clock_wake_up": { device_class: "timestamp" },
+      "sensor.clock_holiday": { device_class: "timestamp" },
+      "sensor.clock_deadline": { device_class: "timestamp" },
+    };
+
+    const presetModeOf = (id) =>
+      STRUCTURE.preset_modes.find((item) => item.id === id) ?? null;
+
+    /**
+     * Recompute what a preset publishes: its active mode and, per parameter,
+     * the value of the editor belonging to that mode.
+     */
+    function resolvePreset(preset) {
+      const presetMode = presetModeOf(preset.preset_mode);
+      const activeKey = presetMode
+        ? states[presetMode.entities.mode]?.attributes.mode_key
+        : null;
+      const mode = preset.modes.find((item) => item.key === activeKey) ?? null;
+      put(preset.entities.active_mode, mode ? mode.name : "unknown", {
+        mode_key: mode ? mode.key : null,
+      });
+
+      for (const parameter of preset.parameters) {
+        const editor = mode ? states[parameter.editors[mode.key]] : undefined;
+        const attributes = VALUE_ATTRIBUTES[parameter.entity] ?? {};
+        if (!editor || editor.state === "unknown") {
+          put(parameter.entity, "unknown", attributes);
+          continue;
+        }
+        if (parameter.type === "time") {
+          // Naive, so it is read as local time. With an offset the browser
+          // shifts it and a date lands on the day before.
+          put(parameter.entity, `2026-09-10T${editor.state}`, attributes);
+        } else if (parameter.type === "date") {
+          put(parameter.entity, `${editor.state}T00:00:00`, attributes);
+        } else {
+          put(parameter.entity, editor.state, attributes);
+        }
+      }
+    }
+
+    function resolveAll() {
+      for (const preset of STRUCTURE.presets) resolvePreset(preset);
+    }
+
+    const cards = [];
+    let hass;
+
+    /** Hand every card a fresh `hass`, the way Home Assistant does. */
+    function publish() {
+      hass = { ...hass, states: { ...states } };
+      for (const card of cards) card.hass = hass;
+    }
+
+    async function callService(domain, service, data, target) {
+      const entityId = target?.entity_id;
+      const current = entityId ? states[entityId] : undefined;
+      console.info("service", `${domain}.${service}`, data, target);
+
+      if (domain === "preset_manager" && service === "set_active_mode") {
+        const presetMode = STRUCTURE.preset_modes.find(
+          (item) => item.entities.active_mode === entityId,
+        );
+        if (!presetMode) return;
+        if (states[presetMode.entities.automatic]?.state === "on") {
+          throw { message: "The mode follows its source. Turn the automatic off first." };
+        }
+        const mode = presetMode.modes.find((item) => item.key === data.mode);
+        if (!mode) return;
+        put(presetMode.entities.mode, mode.name, { mode_key: mode.key });
+        put(entityId, mode.name, states[entityId].attributes);
+        resolveAll();
+        publish();
+        return;
+      }
+
+      if (!current) return;
+      if (service === "turn_on" || service === "turn_off") {
+        put(entityId, service === "turn_on" ? "on" : "off", current.attributes);
+      } else if (service === "select_option") {
+        put(entityId, data.option, current.attributes);
+      } else if (service === "set_value") {
+        const value = data.value ?? data.date ?? data.time ?? data.datetime;
+        put(entityId, value, current.attributes);
+      }
+      resolveAll();
+      publish();
+    }
+
+    hass = {
+      states,
+      entities: {},
+      language: navigator.language.startsWith("de") ? "de" : "en",
+      locale: {},
+      themes: {},
+      connection: {
+        subscribeEvents: async () => async () => {},
+        subscribeMessage: async () => async () => {},
+      },
+      callWS: async () => STRUCTURE,
+      callService,
+      // A stand-in for the real formatter, which also applies the display
+      // precision and the user's locale.
+      formatEntityState: (entity) => {
+        if (entity.state === "on") return "On";
+        if (entity.state === "off") return "Off";
+        if (entity.attributes.device_class === "timestamp") {
+          return new Date(entity.state).toLocaleString();
+        }
+        const unit = entity.attributes.unit_of_measurement;
+        return unit ? `${entity.state} ${unit}` : entity.state;
+      },
+      localize: (key) => key,
+    };
+
+    // ---------------------------------------------------------------------
+    // 4. One card per thing worth looking at.
+    // ---------------------------------------------------------------------
+
+    const CARDS = [
+      ["Preset — default", { entity: "sensor.motion_active_mode" }],
+      ["Preset mode — default", { entity: "sensor.house_mode_mode" }],
+      [
+        "Preset — editors, dropdown picker",
+        {
+          entity: "sensor.motion_active_mode",
+          editor: { enabled: true, mode: "picker", style: "dropdown" },
+        },
+      ],
+      [
+        "Preset — editors, mode picker",
+        {
+          entity: "sensor.motion_active_mode",
+          editor: { enabled: true, mode: "picker" },
+          footer: { content: ["preset_mode", "last_changed"] },
+        },
+      ],
+      [
+        "Preset — edit behind a switch",
+        {
+          entity: "sensor.motion_active_mode",
+          editor: { confirm: true, style: "dropdown" },
+        },
+      ],
+      [
+        "Preset — one value",
+        {
+          entity: "sensor.motion_active_mode",
+          header: { subtitle: false },
+          values: { parameters: ["brightness"] },
+        },
+      ],
+      [
+        "Preset mode — editing its presets",
+        {
+          entity: "sensor.house_mode_mode",
+          presets: { editable: true },
+        },
+      ],
+      [
+        "Preset mode — with its presets",
+        {
+          entity: "sensor.house_mode_mode",
+          presets: { visible: true, values: true },
+          modes: { colors: { night: "#5c6bc0", window_open: "#ef6c00" } },
+          footer: { content: ["last_changed"] },
+        },
+      ],
+      [
+        "Preset — every mode at once",
+        {
+          entity: "sensor.heating_active_mode",
+          editor: { enabled: true, mode: "all" },
+          footer: { content: ["preset_mode", "blueprint"] },
+        },
+      ],
+      [
+        "Every parameter type — values",
+        { entity: "sensor.clock_active_mode", values: { icons: true } },
+      ],
+      [
+        "Every parameter type — editors",
+        {
+          entity: "sensor.clock_active_mode",
+          editor: { enabled: true, mode: "active" },
+        },
+      ],
+      [
+        "Preset mode — handed to an entity",
+        { entity: "sensor.window_state_mode", footer: { content: ["source"] } },
+      ],
+      [
+        "Preset — modes forced on",
+        { entity: "sensor.motion_active_mode", modes: { visible: true } },
+      ],
+      [
+        "Preset mode — modes only while settable",
+        {
+          entity: "sensor.house_mode_mode",
+          modes: { visible: "manual" },
+          footer: { content: ["preset_mode"] },
+        },
+      ],
+      [
+        "Preset mode — dropdown",
+        {
+          entity: "sensor.house_mode_mode",
+          modes: { style: "dropdown" },
+          footer: { content: ["preset_mode"] },
+        },
+      ],
+      ["Preset without a preset mode", { entity: "sensor.fan_active_mode" }],
+      [
+        "Renamed rows",
+        {
+          entity: "sensor.motion_active_mode",
+          header: { title: "Living room light", icon: "mdi:lightbulb-outline" },
+          values: {
+            icons: false,
+            parameters: [
+              "brightness",
+              { parameter: "color_temperature", name: "Warmth" },
+              { parameter: "off_delay", name: "Run-on" },
+            ],
+          },
+        },
+      ],
+      ["Not an entity of ours", { entity: "light.living_room" }],
+      ["Narrow — values", { entity: "sensor.clock_active_mode" }, "narrow"],
+      [
+        "Narrow — editors",
+        {
+          entity: "sensor.clock_active_mode",
+          editor: { enabled: true, mode: "active" },
+        },
+        "narrow",
+      ],
+      ["Narrow — preset mode", { entity: "sensor.house_mode_mode" }, "narrow"],
+    ];
+
+    resolveAll();
+
+    // Two query parameters, so a screenshot is a command rather than a series
+    // of clicks: `?theme=dark` opens in the dark palette, and `?gallery=1`
+    // drops the prose, the toggle and the narrow column tests - what is left
+    // is the set of cards worth putting in front of a reader.
+    const params = new URLSearchParams(location.search);
+    if (params.get("theme") === "dark") document.body.classList.add("dark");
+    const gallery = params.has("gallery");
+    if (gallery) {
+      for (const id of ["intro", "theme-toggle"]) document.getElementById(id)?.remove();
+      // A fixed width so the same command produces the same picture, whatever
+      // the window happens to be.
+      document.body.style.width = `${params.get("gallery") || 1480}px`;
+      document.body.style.boxSizing = "border-box";
+      document.getElementById("grid").classList.add("gallery");
+    }
+
+    import("../custom_components/preset_manager/www/preset-manager-card.js")
+      .then(() => {
+        const grid = document.getElementById("grid");
+        for (const [title, config, className] of CARDS) {
+          if (gallery && (className === "narrow" || title.includes("Not an entity"))) {
+            continue;
+          }
+          const column = document.createElement("div");
+          if (className) column.className = className;
+          const heading = document.createElement("h2");
+          heading.textContent = title;
+          column.appendChild(heading);
+
+          const card = document.createElement("preset-manager-card");
+          try {
+            card.setConfig({ type: "custom:preset-manager-card", ...config });
+          } catch (error) {
+            heading.textContent = `${title} — setConfig threw: ${error.message}`;
+            grid.appendChild(column);
+            continue;
+          }
+          card.hass = hass;
+          cards.push(card);
+          column.appendChild(card);
+          grid.appendChild(column);
+        }
+      })
+      .catch((error) => {
+        document.getElementById("grid").textContent =
+          "The bundle is missing. Run `npm run build` first. " + error.message;
+      });
+  </script>
+</body>

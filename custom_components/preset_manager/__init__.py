@@ -20,7 +20,7 @@ from homeassistant.helpers import (
 from homeassistant.helpers.device_registry import DeviceEntry, DeviceEntryType
 from homeassistant.helpers.typing import ConfigType
 
-from . import following, hubs
+from . import following, frontend, hubs
 from .const import (
     CONF_MODES,
     CONF_PARAMETERS,
@@ -43,6 +43,7 @@ from .entity import (
 )
 from .services import async_setup_services
 from .store import async_setup_store
+from .websocket_api import async_setup_websocket_api
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -76,9 +77,11 @@ PLATFORMS: dict[str, list[Platform]] = {
 
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
-    """Register the services and build the runtime of the domain."""
+    """Register everything the domain owns, once, before any hub is set up."""
     await async_setup_runtime(hass)
     async_setup_services(hass)
+    async_setup_websocket_api(hass)
+    await frontend.async_register_card(hass)
     return True
 
 
@@ -208,6 +211,16 @@ async def async_remove_entry(
                 hass, subentry_id, subentry.data.get(CONF_PARAMETERS, [])
             )
     await store.async_save_now()
+
+    # With the last hub the integration is gone, and the Lovelace resource it
+    # added on setup would be left pointing at a path nothing serves.
+    remaining = [
+        item
+        for item in hass.config_entries.async_entries(DOMAIN)
+        if item.entry_id != entry.entry_id
+    ]
+    if not remaining:
+        await frontend.async_remove_resource(hass)
 
 
 async def async_remove_config_entry_device(
