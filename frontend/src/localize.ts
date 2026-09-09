@@ -18,11 +18,9 @@ type Strings = Record<string, string>;
 const EN: Strings = {
   active_is: "Active: {mode}",
   automatic: "Automatic",
-  automatic_hint: "Turn the automatic off to set the mode by hand.",
   blueprint: "Blueprint",
   changed: "Changed",
   editing: "Editing",
-  external_hint: "The mode follows {entity}.",
   follows: "Follows {entity}",
   loading: "Loading…",
   no_entity: "Set “entity” to any entity of Preset Manager.",
@@ -45,11 +43,9 @@ const EN: Strings = {
 const DE: Strings = {
   active_is: "Aktiv: {mode}",
   automatic: "Automatik",
-  automatic_hint: "Automatik ausschalten, um den Mode von Hand zu setzen.",
   blueprint: "Blueprint",
   changed: "Geändert",
   editing: "Bearbeitet wird",
-  external_hint: "Der Mode folgt {entity}.",
   follows: "Folgt {entity}",
   loading: "Wird geladen…",
   no_entity: "„entity“ auf eine beliebige Entität von Preset Manager setzen.",

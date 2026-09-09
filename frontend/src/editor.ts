@@ -198,7 +198,13 @@ export class PresetManagerCardEditor extends LitElement {
               ["dropdown", "Dropdown"],
             ]),
           },
-          { name: "icons", selector: { boolean: {} } },
+          // Only where there is an icon to show. Mode icons are set per mode
+          // in the config flow, and most setups have none - a switch that
+          // visibly does nothing is worse than no switch, because the user
+          // spends the time finding out.
+          ...(modes.some((mode) => mode.icon)
+            ? [{ name: "icons", selector: { boolean: {} } }]
+            : []),
         ],
       },
     ];

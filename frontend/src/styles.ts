@@ -149,6 +149,29 @@ export const cardStyles = css`
     cursor: default;
   }
 
+  /* The mode row changes the house; the editing row changes what this card
+     shows. Two rows of identical chips said those were the same kind of act.
+     This one is smaller, carries no icons and takes its selected colour from
+     the text rather than the accent - a switch on the card, not a state of
+     the home. */
+  .chips.secondary .chip {
+    min-height: 26px;
+    padding: 0 10px;
+    font-size: 12px;
+    background: transparent;
+    box-shadow: inset 0 0 0 1px var(--pm-divider);
+  }
+
+  .chips.secondary .chip:hover:not(:disabled) {
+    background: color-mix(in srgb, var(--pm-text) 8%, transparent);
+  }
+
+  .chips.secondary .chip[aria-pressed="true"] {
+    background: color-mix(in srgb, var(--pm-text) 14%, transparent);
+    box-shadow: none;
+    color: var(--pm-text);
+  }
+
   .chip:disabled:not([aria-pressed="true"]) {
     color: var(--pm-disabled);
   }

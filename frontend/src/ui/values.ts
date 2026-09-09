@@ -145,7 +145,11 @@ function editModePicker(context: CardContext): TemplateResult | typeof nothing {
 
   return html`
     <div class="group-label">${localize(context.hass, "editing")}</div>
-    <div class="chips" role="group" aria-label=${localize(context.hass, "editing")}>
+    <div
+      class="chips secondary"
+      role="group"
+      aria-label=${localize(context.hass, "editing")}
+    >
       ${modes.map(
         (mode) => html`
           <button
@@ -154,7 +158,6 @@ function editModePicker(context: CardContext): TemplateResult | typeof nothing {
             aria-pressed=${mode.key === context.editMode ? "true" : "false"}
             @click=${() => context.selectEditMode(mode.key)}
           >
-            ${context.config.modes.icons ? icon(mode.icon) : nothing}
             <span>${mode.name}</span>
           </button>
         `,

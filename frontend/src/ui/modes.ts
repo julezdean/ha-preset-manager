@@ -5,10 +5,11 @@
  * not through `select.select_option` with its display name - the key is what
  * survives a rename, and the service exists for exactly that reason.
  *
- * A mode that cannot be set is shown disabled with the reason underneath,
- * rather than clickable with an error afterwards: the integration refuses the
- * write while the automatic is on, on purpose, so that one click cannot
- * silently switch somebody's automation off.
+ * A mode that cannot be set is shown disabled rather than clickable with an
+ * error afterwards: the integration refuses the write while the automatic is
+ * on, on purpose, so that one click cannot silently switch somebody's
+ * automation off. Disabled and nothing else - the reason used to be spelled
+ * out underneath, and every version of that sentence repeated the header.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
@@ -47,23 +48,6 @@ function selectMode(context: CardContext, presetMode: PresetModeInfo, key: strin
       { entity_id: entityId },
     ),
   );
-}
-
-function lockNote(context: CardContext, presetMode: PresetModeInfo | null): string | null {
-  const reason = modeLockReason(context.hass, presetMode);
-  if (reason === "automatic") return localize(context.hass, "automatic_hint");
-  if (reason === "external" && presetMode?.source_entity) {
-    const followed = context.hass.states[presetMode.source_entity];
-    return localize(context.hass, "external_hint", {
-      entity: followed?.attributes.friendly_name ?? presetMode.source_entity,
-    });
-  }
-  // Disabled chips with nothing said about them are the worst of both: a
-  // preset that lost its preset mode has no mode to be set to.
-  if (reason === "missing" && context.subject.kind === "preset") {
-    return localize(context.hass, "orphaned");
-  }
-  return null;
 }
 
 function chips(
@@ -141,14 +125,17 @@ export function renderModes(context: CardContext): TemplateResult | typeof nothi
   const presetMode = drivenPresetMode(context);
   const active = activeModeKey(context.hass, context.subject);
   const locked = modeLockReason(context.hass, presetMode) !== null;
-  const note = lockNote(context, presetMode);
 
+  // No line explaining why a locked row is locked. Every version of that
+  // sentence said again what the header says one line above - which mode is
+  // active, that it follows an entity, that there is no preset mode - and
+  // repeated it on every card and every render. The chips being visibly
+  // disabled is the part that was not already written down.
   return html`
     <div class="section">
       ${context.config.modes.style === "dropdown"
         ? dropdown(context, modes, active, presetMode, locked)
         : chips(context, modes, active, presetMode, locked)}
-      ${note ? html`<div class="note" style="margin-top:8px">${note}</div>` : nothing}
     </div>
   `;
 }

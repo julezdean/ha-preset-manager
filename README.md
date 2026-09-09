@@ -515,7 +515,7 @@ time.
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
 | `modes.visible` | `auto` | `auto` shows the chips on a preset mode and hides them on a preset. `always`/`never` decide it. |
 | `modes.style` | `chips` | `chips` or `dropdown`. |
-| `modes.icons` | `true` | Show the icon of each mode. |
+| `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
 | `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |
 | `values.visible` | `true` | The parameter rows of a preset. |
 | `values.parameters` | all of them | Which parameters to show, in which order. |
@@ -578,8 +578,11 @@ not how it is used. So `editor.enabled` is off by default and a card shows the
 resolved values — which is what a dashboard is for. Turn it on and the same
 rows become the per-mode helpers:
 
-* `mode: picker` — a row of chips picks which mode is edited. The mode that is
-  active right now is marked with a dot.
+* `mode: picker` — a row of chips picks which mode is edited, and a line below
+  names the active mode whenever the two differ. Those chips are deliberately
+  quieter than the mode row above: smaller, without icons, and coloured from
+  the text rather than the accent. One row changes the house, the other changes
+  what this card shows, and they should not look like the same act.
 * `mode: active` — always edits the mode that is active.
 * `mode: all` — every mode of every parameter, one row each. The full picture,
   and the widest.
@@ -599,11 +602,15 @@ room, this is where it is changed.
 ### Switching the mode
 
 Clicking a chip calls `preset_manager.set_active_mode` with the mode's **key**,
-so it keeps working after a rename. The chips are disabled, with the reason
-underneath, when the integration would refuse the write anyway:
+so it keeps working after a rename. The chips are disabled when the integration
+would refuse the write anyway:
 
 * while the **automatic** is on — turn the switch in the header off first,
 * when the preset mode **follows another entity**, which owns the mode.
+
+The header says which of the two it is, so the row itself carries no
+explanation: the second line names the mode and, where there is one, the entity
+the preset mode was handed to, and the automatic sits beside it as a switch.
 
 On a preset card the chips are hidden by default (`modes.visible: auto`).
 Showing them there is deliberate: a preset does not own its dimension, so

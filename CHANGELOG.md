@@ -40,6 +40,17 @@ versioning [Semantic Versioning](https://semver.org/).
   has filled in, which is every new preset, every control was dead. A toggle
   without a value now shows that it has none instead of resting on off, the way
   the integration keeps the two apart itself.
+- The row that picks which mode is edited no longer looks like the row that
+  sets the active mode. It is smaller, carries no icons and takes its colour
+  from the text rather than the accent — one changes the house, the other
+  changes what the card shows.
+- No more sentence under a locked mode row explaining why it is locked. Every
+  version of it repeated what the header says one line above, on every card and
+  every render; the chips being visibly disabled was the only part that was not
+  already written down.
+- The visual editor offers "show icons" for the modes only where a mode
+  actually has one. Mode icons are set per mode in the config flow and most
+  setups have none, so the switch usually did nothing visible.
 - `presets.editable` on a preset mode card: the presets it lists get editors
   for the values of the mode each of them is on, rather than only showing them.
   It implies `visible` and `values`, because asking for editable presets is
