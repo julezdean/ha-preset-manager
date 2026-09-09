@@ -455,9 +455,9 @@ blueprint: Heating       # only while the preset follows a blueprint
 ## Dashboard card
 
 The integration ships its own Lovelace card. There is nothing to install and no
-resource to add — it registers itself, is served by the integration, and can
-therefore never be a version out of step with it. It also takes its Lovelace
-resource back out when the last of its hubs is removed.
+resource to add by hand — it registers itself as one, is served by the
+integration, and can therefore never be a version out of step with it. The
+entry disappears again with the last of its hubs.
 
 ```yaml
 type: custom:preset-manager-card
@@ -732,33 +732,37 @@ hold_action:
 
 ### “Custom element not found”
 
-The integration offers the card two ways at once: as a Lovelace resource, the
-way a card installed through HACS arrives, and as a `<script>` in the Home
-Assistant page. You add neither by hand, and either one is enough to define it.
+The integration adds the card to your **Lovelace resources**, the way a card
+installed through HACS arrives. You do not add it by hand, and it is taken back
+out when the last of the integration's hubs is removed. It shows up under
+Settings → Dashboards → ⋮ → Resources, and the version in its URL changes with
+every release.
 
-That is not belt and braces for its own sake. The script tag lives in the page,
-which Home Assistant's service worker caches, so a client holding a copy from
-before the card existed keeps serving it — across restarts of Home Assistant,
-past a hard reload, once per browser and once per phone. The resource is fetched
-by the frontend at runtime from its resource list instead, which is why the
-cards you installed through HACS are unaffected by that. The script tag in turn
-covers the case the resource cannot: a dashboard in YAML mode declares its
-resources in YAML and cannot be written to.
+It used to also put a `<script>` into the Home Assistant page, which needed
+nothing from your configuration. That is gone. The page is cached by the
+service worker, per browser and per phone, so a client holding a copy from
+before the card existed kept serving it — across restarts, past a hard reload,
+and looking exactly like a card that is broken. Two ways in turned out to be
+two ways to fail.
 
-If the card is still missing, look in the log for `preset_manager`. Every
-outcome says so: `Dashboard card registered at …` means it was offered, and the
-two warnings name what stopped it. Opening that URL in a browser says whether
-the file itself is served.
+So if the card is missing, look in the log for `preset_manager`. Every outcome
+says so:
 
-If it is offered and served and still missing, it is that cached page, and the
-cache has to be cleared **once per client**:
+* `Dashboard card registered as a Lovelace resource: …` — it is registered.
+  Check that the URL in the message opens in your browser and returns
+  JavaScript.
+* `… cannot be written to, so the dashboard card is not registered. Add it by
+  hand as a JavaScript module: …` — your dashboard declares its resources in
+  YAML and owns that list. Add the URL from the message to it.
+* `The dashboard card is not built …` — the install did not bring the bundle.
+* `The frontend integration is not set up …` — a headless instance, where the
+  card has nothing to appear on.
 
-* **Browser** — clear the site data for your Home Assistant address. Safari:
-  Settings → Privacy → Manage Website Data. Chrome: DevTools → Application →
-  Clear site data. A private window is the quick way to confirm it first.
-* **Companion app** — it has a web view of its own, so clearing the browser
-  does nothing for it. In the app: Settings → Companion App → Debugging, reset
-  the frontend cache, then close the app completely and open it again.
+If it is registered, the URL serves and the card is still missing, the client
+is holding a stale page. That is cleared **once per client**: in a browser,
+clear the site data for your Home Assistant address (a private window is the
+quick way to confirm it first); in the companion app, Settings → Companion App
+→ Debugging, reset the frontend cache and restart the app.
 
 The card asks the integration for its structure once per browser connection and
 follows the entity and device registries for changes, so a new mode, a renamed

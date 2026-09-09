@@ -8,32 +8,24 @@ number, a second install step and a second thing to keep in step with the
 websocket command it talks to. Shipped this way, a user cannot have one
 without the other.
 
-**It is offered twice, on purpose**, because the two ways Home Assistant loads
-frontend code fail in different situations:
+**It arrives as a Lovelace resource**, the way a card installed through HACS
+does. The frontend fetches those from its resource list at runtime, which is
+the part that matters here.
 
-* ``add_extra_js_url`` puts a ``<script>`` into the Home Assistant page. It
-  needs nothing from the user's configuration - and it lives in the page, which
-  the service worker caches. A client holding a copy from before the card
-  existed keeps serving it, across restarts of Home Assistant and past a hard
-  reload, once per browser and once per phone. That is not a theory: it is what
-  happened, on two clients, and it is indistinguishable from a broken card.
-* A **Lovelace resource** is fetched by the frontend at runtime from the
-  resource list, not from the cached page, so it is immune to that. It is how
-  every card installed through HACS arrives, which is why those kept working
-  while this one did not. The cost is a line in the user's Lovelace resources,
-  which this module keeps up to date and removes with the last hub.
+The obvious-looking alternative, ``add_extra_js_url``, puts a ``<script>`` into
+the Home Assistant page instead. It needs nothing from the user's configuration
+and was what this module used first. It does not work: the page is cached by
+the service worker, per browser and per phone, so a client holding a copy from
+before the card existed keeps serving it - across restarts of Home Assistant,
+past a hard reload, and looking exactly like a card that is broken. Worse, the
+two together load the same bundle under two URLs whenever a release changes the
+version in the query string, which is one module instance too many for an
+element that may only be defined once. Two ways to arrive turned out to be two
+ways to fail, and they got in each other's way.
 
-Both name the same URL, so the browser fetches the module once either way and
-whichever arrives first defines the element. Together they also cover the case
-neither covers alone: a dashboard in YAML mode declares its resources in YAML
-and refuses to be written to, and there ``add_extra_js_url`` is the only way in.
-
-``frontend`` is an *after* dependency rather than a real one. A Home Assistant
-that serves a dashboard has it, and then the ordering is what this needs; one
-that does not is a headless instance where the integration itself works exactly
-as before and only the card is beside the point. Making it a hard dependency
-would instead mean this integration could not be set up at all without the
-frontend package installed.
+That leaves one case a resource cannot cover: a dashboard whose resources are
+declared in YAML owns that list and refuses to be written to. There the card
+says so, with the URL to add, rather than failing quietly.
 """
 
 from __future__ import annotations
@@ -42,7 +34,6 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from homeassistant.components.frontend import add_extra_js_url
 from homeassistant.components.http import StaticPathConfig
 from homeassistant.components.lovelace.const import LOVELACE_DATA
 from homeassistant.components.lovelace.resources import ResourceStorageCollection
@@ -98,9 +89,7 @@ async def async_register_card(hass: HomeAssistant) -> None:
     # The version turns an upgrade into a different URL. Without it a browser
     # would keep last week's card against this week's websocket command.
     url = f"{URL_BASE}/{CARD_FILENAME}?v={integration.version}"
-    add_extra_js_url(hass, url)
     await _async_register_resource(hass, url)
-    _LOGGER.info("Dashboard card registered at %s", url)
 
 
 async def _async_resources(
@@ -131,21 +120,32 @@ async def _async_register_resource(hass: HomeAssistant, url: str) -> None:
 
     Matched by path rather than by the whole URL: the version in the query
     string changes with every release, and a new entry per release would leave
-    the user with a list of dead ones.
+    the user with a list of dead ones - and, because an element may only be
+    defined once, with a card that stops working rather than one that is merely
+    untidy.
     """
     resources = await _async_resources(hass)
     if resources is None:
-        _LOGGER.debug("No writable Lovelace resources; the script tag stands alone")
+        # The only way in is closed, so this has to be actionable rather than
+        # quiet: the user can add the very same line by hand.
+        _LOGGER.warning(
+            "The Lovelace resources of this instance cannot be written to, so "
+            "the dashboard card is not registered. Add it by hand as a "
+            "JavaScript module: %s",
+            url,
+        )
         return
 
     existing = next((item for item in resources.async_items() if _is_ours(item)), None)
     if existing is None:
         await resources.async_create_item({"res_type": "module", "url": url})
-        _LOGGER.debug("Added the card to the Lovelace resources")
+        _LOGGER.info("Dashboard card registered as a Lovelace resource: %s", url)
         return
     if existing.get("url") != url:
         await resources.async_update_item(existing["id"], {"url": url})
-        _LOGGER.debug("Updated the Lovelace resource of the card to %s", url)
+        _LOGGER.info("Dashboard card resource brought up to date: %s", url)
+        return
+    _LOGGER.debug("Dashboard card already registered at %s", url)
 
 
 async def async_remove_resource(hass: HomeAssistant) -> None:

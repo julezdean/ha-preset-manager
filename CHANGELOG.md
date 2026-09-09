@@ -64,15 +64,17 @@ versioning [Semantic Versioning](https://semver.org/).
 - A value list with icons keeps the column even for the rows that have none, so
   the labels line up instead of one of them starting an icon's width further
   left.
-- The card registers itself as a **Lovelace resource** as well as putting its
-  script into the Home Assistant page, and removes that resource again with the
-  last hub. One mechanism was not enough: the script tag lives in the page,
-  which the service worker caches per client, so a browser or a phone holding a
-  copy from before the card existed keeps serving it — across restarts and past
-  a hard reload, and looking exactly like a card that does not work. A resource
-  is fetched at runtime instead, which is why cards installed through HACS were
-  unaffected. The script tag stays for the case a resource cannot cover: a
-  dashboard in YAML mode owns its resource list.
+- The card registers itself as a **Lovelace resource**, the way a card
+  installed through HACS arrives, and removes that entry again with the last
+  hub. `add_extra_js_url` is gone: it puts a `<script>` into the Home Assistant
+  page, which the service worker caches per client, so a browser or a phone
+  holding a copy from before the card existed kept serving it — across restarts
+  and past a hard reload, looking exactly like a card that does not work. Two
+  ways in were also two ways to fail, and a release that changed the version in
+  the URL could have the same bundle arrive twice under two URLs, which is one
+  module instance too many for an element that may only be defined once.
+  Where a dashboard declares its resources in YAML and cannot be written to,
+  the log now names the URL to add by hand instead of falling silent.
 - The log says what became of the card on every start — the URL it was
   registered at, or which of the two reasons stopped it. Its failure mode from
   the browser is Home Assistant's “custom element not found”, which cannot tell
