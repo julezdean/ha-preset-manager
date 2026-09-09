@@ -12,7 +12,12 @@ whatever it hands them — `b10` and `b11` landed between `b4` and `b3`. A final
 release sorts above every beta in either spelling, so the 0.3.0 tags were left
 as they are rather than renamed mid-series.
 
-## [Unreleased]
+## [0.3.0] - 2026-09-09
+
+The integration gets a face: a dashboard card it ships and registers itself.
+Nothing about the entity ids, the unique ids, the services, the state
+attributes or the two storage formats changes, so upgrading from 0.2.0 costs
+nothing and needs no migration.
 
 ### Added
 
