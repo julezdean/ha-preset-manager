@@ -115,6 +115,30 @@ export class PresetManagerCardEditor extends LitElement {
     this._structure = await loadPresetManagerConfig(this._hass);
   }
 
+  /**
+   * The entities the picker offers: one per preset and per preset mode.
+   *
+   * Everything of this integration would be the whole setup - a preset with
+   * five parameters over four modes brings 26 entities, and 25 of them are
+   * ways of saying the same card. The canonical one is the sensor carrying
+   * the active mode, so the list is exactly the objects the user thinks in.
+   *
+   * The *card* still accepts any of them: pointing at a value sensor or at one
+   * per-mode editor resolves to the same subject, and a dashboard written by
+   * hand should not have to know which entity is the canonical one. Only the
+   * picker is narrowed. Before the structure has arrived there is nothing to
+   * narrow it with, so it falls back to the whole integration.
+   */
+  private _entityPicker(): Record<string, unknown> {
+    const canonical = [
+      ...(this._structure?.preset_modes ?? []).map((item) => item.entities.mode),
+      ...(this._structure?.presets ?? []).map((item) => item.entities.active_mode),
+    ].filter((entityId): entityId is string => Boolean(entityId));
+    return canonical.length
+      ? { include_entities: canonical }
+      : { integration: "preset_manager" };
+  }
+
   /** Whether `values.parameters` carries more than a list of keys. */
   private _hasParameterOverrides(): boolean {
     const values = this._config.values as Record<string, unknown> | undefined;
@@ -139,7 +163,7 @@ export class PresetManagerCardEditor extends LitElement {
       {
         name: "entity",
         required: true,
-        selector: { entity: { integration: "preset_manager" } },
+        selector: { entity: this._entityPicker() },
       },
       {
         type: "expandable",

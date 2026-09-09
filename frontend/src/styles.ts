@@ -189,6 +189,13 @@ export const cardStyles = css`
     --mdc-icon-size: 18px;
   }
 
+  .row-icon {
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    width: 18px;
+  }
+
   /* A row label that opens the object it names. */
   .link-row {
     appearance: none;

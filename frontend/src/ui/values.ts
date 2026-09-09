@@ -47,11 +47,35 @@ function rows(context: CardContext, preset: PresetInfo): Row[] {
   });
 }
 
-function rowIcon(context: CardContext, row: Row): TemplateResult | typeof nothing {
-  if (row.icon === false) return nothing;
-  if (row.icon) return icon(row.icon);
-  if (!context.config.values.icons) return nothing;
-  return icon(stateOf(context.hass, row.parameter.entity)?.attributes.icon);
+/**
+ * The icon of one row, in a slot of its own.
+ *
+ * The slot is kept even where there is no icon: a parameter without one would
+ * otherwise pull its label left by an icon's width, and a list where one row
+ * out of three starts somewhere else reads as a mistake. Rows only get the
+ * slot at all once something in the list has an icon to show.
+ */
+function rowIcon(
+  context: CardContext,
+  row: Row,
+  reserved: boolean,
+): TemplateResult | typeof nothing {
+  if (!reserved) return nothing;
+  const name =
+    row.icon === false
+      ? undefined
+      : (row.icon ??
+        (context.config.values.icons
+          ? stateOf(context.hass, row.parameter.entity)?.attributes.icon
+          : undefined));
+  return html`<span class="row-icon">${icon(name)}</span>`;
+}
+
+/** Whether this list shows an icon column at all. */
+function iconColumn(context: CardContext, list: Row[]): boolean {
+  return (
+    context.config.values.icons || list.some((row) => typeof row.icon === "string")
+  );
 }
 
 /** What one value reads as: its formatted state, or why there is none. */
@@ -74,12 +98,16 @@ function valueText(context: CardContext, parameter: ParameterInfo): {
   return { text: formatState(context.hass, entity), muted: false };
 }
 
-function readOnlyRow(context: CardContext, row: Row): TemplateResult {
+function readOnlyRow(
+  context: CardContext,
+  row: Row,
+  reserved: boolean,
+): TemplateResult {
   const { text, muted } = valueText(context, row.parameter);
   return html`
     <div class="row">
       <div class="row-label">
-        ${rowIcon(context, row)}<span>${row.label}</span>
+        ${rowIcon(context, row, reserved)}<span>${row.label}</span>
       </div>
       <div class="row-value ${muted ? "muted" : ""}">${text}</div>
     </div>
@@ -91,6 +119,7 @@ function editorRow(
   row: Row,
   modeKey: string | null,
   label: string,
+  reserved: boolean,
 ): TemplateResult {
   const entityId = modeKey ? row.parameter.editors[modeKey] : undefined;
   const entity = stateOf(context.hass, entityId);
@@ -98,7 +127,7 @@ function editorRow(
   return html`
     <div class="row ${wide ? "wide" : ""}">
       <div class="row-label">
-        ${rowIcon(context, row)}<span>${label}</span>
+        ${rowIcon(context, row, reserved)}<span>${label}</span>
       </div>
       <div class="row-control">
         ${renderControl(context, row.parameter.type, entity, label)}
@@ -158,11 +187,12 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
       ? html`<div class="note warning">${localize(context.hass, "orphaned")}</div>`
       : nothing;
 
+  const reserved = iconColumn(context, list);
   const { editor } = context.config;
   if (!editor.enabled) {
     return html`
       <div class="section rows">
-        ${note}${list.map((row) => readOnlyRow(context, row))}
+        ${note}${list.map((row) => readOnlyRow(context, row, reserved))}
       </div>
     `;
   }
@@ -174,7 +204,9 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
         ${note}${list.map(
           (row) => html`
             <div class="group-label">${row.label}</div>
-            ${modes.map((mode) => editorRow(context, row, mode.key, mode.name))}
+            ${modes.map((mode) =>
+              editorRow(context, row, mode.key, mode.name, reserved),
+            )}
           `,
         )}
       </div>
@@ -187,7 +219,7 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
   return html`
     <div class="section rows">
       ${note}${editor.mode === "picker" ? editModePicker(context) : nothing}
-      ${list.map((row) => editorRow(context, row, modeKey, row.label))}
+      ${list.map((row) => editorRow(context, row, modeKey, row.label, reserved))}
     </div>
   `;
 }

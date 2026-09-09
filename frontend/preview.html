@@ -510,7 +510,8 @@
       "sensor.motion_color_temperature": { unit_of_measurement: "K" },
       "sensor.motion_off_delay": { unit_of_measurement: "s" },
       "sensor.heating_target_temperature": { unit_of_measurement: "°C" },
-      "sensor.clock_volume": { unit_of_measurement: "%" },
+      "sensor.clock_volume": { unit_of_measurement: "%", icon: "mdi:volume-high" },
+      "binary_sensor.clock_enabled": { icon: "mdi:alarm" },
       "sensor.shutter_position": { unit_of_measurement: "%" },
       "sensor.fan_speed": {},
       "sensor.clock_wake_up": { device_class: "timestamp" },
@@ -666,7 +667,10 @@
           footer: { content: ["preset_mode", "blueprint"] },
         },
       ],
-      ["Every parameter type — values", { entity: "sensor.clock_active_mode" }],
+      [
+        "Every parameter type — values",
+        { entity: "sensor.clock_active_mode", values: { icons: true } },
+      ],
       [
         "Every parameter type — editors",
         {

@@ -40,6 +40,14 @@ versioning [Semantic Versioning](https://semver.org/).
   has filled in, which is every new preset, every control was dead. A toggle
   without a value now shows that it has none instead of resting on off, the way
   the integration keeps the two apart itself.
+- The entity picker of the visual editor offers one entity per preset and per
+  preset mode instead of every entity the integration owns — a preset with five
+  parameters over four modes brings 26 of them, and 25 are ways of writing the
+  same card. The card itself still accepts any of them, so a dashboard written
+  by hand need not know which one is the canonical one.
+- A value list with icons keeps the column even for the rows that have none, so
+  the labels line up instead of one of them starting an icon's width further
+  left.
 - `frontend/preview.html`, which renders every variant of the card against a
   fake Home Assistant — including the states that are awkward to produce on
   purpose, and a column too narrow for the card. It found three bugs that
