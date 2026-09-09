@@ -40,6 +40,11 @@ versioning [Semantic Versioning](https://semver.org/).
   has filled in, which is every new preset, every control was dead. A toggle
   without a value now shows that it has none instead of resting on off, the way
   the integration keeps the two apart itself.
+- `presets.editable` on a preset mode card: the presets it lists get editors
+  for the values of the mode each of them is on, rather than only showing them.
+  It implies `visible` and `values`, because asking for editable presets is
+  asking to see them. No mode picker per preset — the chips at the top of the
+  card already decide the mode, and the editors move with it.
 - The entity picker of the visual editor offers one entity per preset and per
   preset mode instead of every entity the integration owns — a preset with five
   parameters over four modes brings 26 of them, and 25 are ways of writing the

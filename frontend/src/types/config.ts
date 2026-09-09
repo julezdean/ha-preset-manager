@@ -65,6 +65,11 @@ export interface PresetsConfig {
   visible?: boolean;
   /** Also show each preset's resolved values. */
   values?: boolean;
+  /**
+   * Turn those values into editors for the mode each preset is on. Implies
+   * the two above - there is nothing to edit in a list of names.
+   */
+  editable?: boolean;
 }
 
 export type FooterItem =

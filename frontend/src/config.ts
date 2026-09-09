@@ -149,6 +149,8 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   const presets = section(config.presets, "presets");
   const footer = section(config.footer, "footer");
 
+  const presetsEditable = bool(presets.editable, "presets.editable", false);
+
   const resolved: ResolvedConfig = {
     type: String(config.type ?? ""),
     entity,
@@ -176,8 +178,11 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
       default_mode: text(editor.default_mode, "editor.default_mode"),
     },
     presets: {
-      visible: bool(presets.visible, "presets.visible", false),
-      values: bool(presets.values, "presets.values", false),
+      // Asking for editable presets is asking to see them; a third switch to
+      // turn on before anything appears would only be a way to get it wrong.
+      visible: bool(presets.visible, "presets.visible", presetsEditable),
+      values: bool(presets.values, "presets.values", presetsEditable),
+      editable: presetsEditable,
     },
     footer: {
       // A footer that lists something is a footer that is wanted; asking for

@@ -53,6 +53,7 @@ const LABELS: Record<string, string> = {
   parameters: "Parameters",
   parameters_note: "Parameters",
   enabled: "Editable",
+  editable: "Editable",
   mode: "Which mode",
   default_mode: "Start on",
   content: "Content",
@@ -260,6 +261,7 @@ export class PresetManagerCardEditor extends LitElement {
         schema: [
           { name: "visible", selector: { boolean: {} } },
           { name: "values", selector: { boolean: {} } },
+          { name: "editable", selector: { boolean: {} } },
         ],
       });
     }

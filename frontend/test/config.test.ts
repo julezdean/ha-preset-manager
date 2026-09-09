@@ -111,3 +111,33 @@ describe("pruneConfig", () => {
     expect(resolveConfig(written).modes.visible).toBe("always");
   });
 });
+
+describe("editable presets", () => {
+  const MODE_CARD = { ...MINIMAL, entity: "sensor.house_mode_mode" };
+
+  it("is off, like every other editor on this card", () => {
+    expect(resolveConfig(MODE_CARD).presets.editable).toBe(false);
+  });
+
+  it("brings the list and the values with it", () => {
+    // Asking for editable presets is asking to see them; a third switch to
+    // turn on first would only be a way to get it wrong.
+    const config = resolveConfig({ ...MODE_CARD, presets: { editable: true } });
+    expect(config.presets.visible).toBe(true);
+    expect(config.presets.values).toBe(true);
+  });
+
+  it("still lets the list be shown without editing it", () => {
+    const config = resolveConfig({ ...MODE_CARD, presets: { visible: true } });
+    expect(config.presets.values).toBe(false);
+    expect(config.presets.editable).toBe(false);
+  });
+
+  it("takes an explicit no over the implication", () => {
+    const config = resolveConfig({
+      ...MODE_CARD,
+      presets: { editable: true, values: false },
+    });
+    expect(config.presets.values).toBe(false);
+  });
+});

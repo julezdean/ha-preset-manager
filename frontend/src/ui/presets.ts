@@ -6,31 +6,70 @@
  * the user's intent. Turned on, it answers the one question the entity list
  * cannot - "what does 'Night' actually mean here" - because it can show each
  * preset with the values that are valid right now.
+ *
+ * With `editable` those rows become the editors of the mode each preset is
+ * currently on, which is the answer to the question the list provokes: having
+ * seen what Night means, this is where it is changed. Not a mode picker per
+ * preset - the card already has one row of chips deciding the mode, and a
+ * second way to choose one would be a different question wearing the same
+ * clothes. Switching the mode therefore moves these editors with it.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
 
+import { presetModeKey } from "../data/state";
 import { localize, localizeCount } from "../localize";
+import { isWideControl, renderControl } from "./controls";
 import { formatState, hasNoValue, showMoreInfo, stateOf, UNKNOWN } from "../util/ha";
 import type { CardContext } from "./context";
-import type { PresetInfo } from "../types/data";
+import type { ParameterInfo, PresetInfo } from "../types/data";
+
+function readOnlyValue(context: CardContext, parameter: ParameterInfo): TemplateResult {
+  const entity = stateOf(context.hass, parameter.entity);
+  let text: string;
+  let muted = true;
+  if (!entity) text = localize(context.hass, "unavailable");
+  else if (entity.state === UNKNOWN) text = localize(context.hass, "not_set");
+  else if (hasNoValue(entity.state)) text = localize(context.hass, "unavailable");
+  else {
+    text = formatState(context.hass, entity);
+    muted = false;
+  }
+  return html`<div class="row-value ${muted ? "muted" : ""}">${text}</div>`;
+}
+
+function editorValue(
+  context: CardContext,
+  preset: PresetInfo,
+  parameter: ParameterInfo,
+): TemplateResult {
+  const modeKey = presetModeKey(context.hass, preset);
+  const entity = stateOf(context.hass, modeKey ? parameter.editors[modeKey] : undefined);
+  return html`
+    <div class="row-control">
+      ${renderControl(context, parameter.type, entity, parameter.name)}
+    </div>
+  `;
+}
 
 function valueRows(context: CardContext, preset: PresetInfo): TemplateResult[] {
+  const editable = context.config.presets.editable;
   return preset.parameters.map((parameter) => {
-    const entity = stateOf(context.hass, parameter.entity);
-    let text: string;
-    let muted = true;
-    if (!entity) text = localize(context.hass, "unavailable");
-    else if (entity.state === UNKNOWN) text = localize(context.hass, "not_set");
-    else if (hasNoValue(entity.state)) text = localize(context.hass, "unavailable");
-    else {
-      text = formatState(context.hass, entity);
-      muted = false;
-    }
+    const wide =
+      editable &&
+      isWideControl(
+        parameter.type,
+        stateOf(
+          context.hass,
+          parameter.editors[presetModeKey(context.hass, preset) ?? ""],
+        ),
+      );
     return html`
-      <div class="row">
+      <div class="row ${wide ? "wide" : ""}">
         <div class="row-label"><span>${parameter.name}</span></div>
-        <div class="row-value ${muted ? "muted" : ""}">${text}</div>
+        ${editable
+          ? editorValue(context, preset, parameter)
+          : readOnlyValue(context, parameter)}
       </div>
     `;
   });

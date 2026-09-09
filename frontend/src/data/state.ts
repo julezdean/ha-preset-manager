@@ -7,7 +7,7 @@
  * this integration keys off it, and so does the card.
  */
 
-import type { ModeInfo, PresetModeInfo } from "../types/data";
+import type { ModeInfo, PresetInfo, PresetModeInfo } from "../types/data";
 import type { HassEntity, HomeAssistant } from "../types/ha";
 import type { Subject } from "./subject";
 import { hasNoValue, stateOf } from "../util/ha";
@@ -32,6 +32,19 @@ export function activeModeKey(
   subject: Subject,
 ): string | null {
   return modeKeyOf(stateOf(hass, modeSourceEntityId(subject)));
+}
+
+/**
+ * The mode one preset resolves right now, read from its own sensor.
+ *
+ * For a preset that a card lists rather than is about - the same key, taken
+ * without building a subject for it.
+ */
+export function presetModeKey(
+  hass: HomeAssistant,
+  preset: PresetInfo,
+): string | null {
+  return modeKeyOf(stateOf(hass, preset.entities.active_mode));
 }
 
 export function modesOf(subject: Subject): ModeInfo[] {

@@ -525,6 +525,7 @@ time.
 | `editor.default_mode` | the active mode | Mode key the picker starts on. |
 | `presets.visible` | `false` | On a preset mode: list the presets following it. |
 | `presets.values` | `false` | And their values. |
+| `presets.editable` | `false` | And make those values editable. Implies the two above. |
 | `footer.visible` | `false` | The footer line. |
 | `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
 | `tap_action` | `more-info` | Home Assistant's action config, on the header. |
@@ -587,6 +588,14 @@ The read-only column goes away when the editors appear. The editor of the
 active mode holds exactly the value the sensor resolves, so showing both would
 be the same number twice with nothing to tell them apart.
 
+On a **preset mode** card the same applies to the presets it lists:
+`presets.editable` turns their values into editors for the mode each preset is
+on. There is no mode picker per preset there — the card already has one row of
+chips deciding the mode, and a second way to choose one would be a different
+question wearing the same clothes. Switching the mode moves these editors with
+it, which is the point: having seen what Night means for every device in the
+room, this is where it is changed.
+
 ### Switching the mode
 
 Clicking a chip calls `preset_manager.set_active_mode` with the mode's **key**,
@@ -632,14 +641,14 @@ modes:
     window_open: "#ef6c00"
 ```
 
-**The room** — one preset mode with everything that follows it.
+**The room** — one preset mode with everything that follows it, and the values
+of the mode it is on, editable.
 
 ```yaml
 type: custom:preset-manager-card
 entity: sensor.house_mode_mode
 presets:
-  visible: true
-  values: true
+  editable: true
 footer:
   content: [last_changed]
 ```
