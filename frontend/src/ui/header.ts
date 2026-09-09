@@ -81,31 +81,33 @@ function automaticToggle(context: CardContext): TemplateResult | typeof nothing 
 
   return html`
     <label
-      class="switch"
-      title=${label}
+      class="switch-field"
       @click=${swallow}
       @pointerdown=${swallow}
       @pointerup=${swallow}
       @keydown=${swallow}
     >
-      <input
-        type="checkbox"
-        role="switch"
-        aria-label=${label}
-        .checked=${on === true}
-        .disabled=${on === null}
-        @change=${(event: Event) => {
-          const checked = (event.target as HTMLInputElement).checked;
-          context.call(
-            hass.callService(
-              "switch",
-              checked ? "turn_on" : "turn_off",
-              {},
-              { entity_id: entityId },
-            ),
-          );
-        }}
-      />
+      <span>${label}</span>
+      <span class="switch">
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label=${label}
+          .checked=${on === true}
+          .disabled=${on === null}
+          @change=${(event: Event) => {
+            const checked = (event.target as HTMLInputElement).checked;
+            context.call(
+              hass.callService(
+                "switch",
+                checked ? "turn_on" : "turn_off",
+                {},
+                { entity_id: entityId },
+              ),
+            );
+          }}
+        />
+      </span>
     </label>
   `;
 }

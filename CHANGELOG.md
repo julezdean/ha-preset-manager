@@ -59,6 +59,11 @@ as they are rather than renamed mid-series.
   gone: that is what the default does, and it needed no name.
 - The mode picker of the editors is an *Edit:* line rather than a heading, and
   can be a dropdown instead of chips (`editor.style`).
+- The automatic switch in the header carries its name. A bare toggle in a
+  corner says that something can be turned on and nothing about what; the word
+  beside it is also part of the switch, so it can be clicked. On a card too
+  narrow for both, the switch drops onto its own line rather than squeezing the
+  name of the preset mode.
 - The mode picker says *Mode:* rather than *Edit:* when it sits under the edit
   switch of `editor.confirm`, which said “edit” one line above. Two labels with
   the same word read like two settings for one thing.

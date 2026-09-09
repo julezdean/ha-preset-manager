@@ -207,9 +207,9 @@ function editModePicker(context: CardContext): TemplateResult | typeof nothing {
 function editSwitch(context: CardContext): TemplateResult {
   const label = localize(context.hass, "editing");
   return html`
-    <div class="toolbar">
+    <label class="toolbar">
       <span class="toolbar-label">${label}</span>
-      <label class="switch">
+      <span class="switch">
         <input
           type="checkbox"
           role="switch"
@@ -218,8 +218,8 @@ function editSwitch(context: CardContext): TemplateResult {
           @change=${(event: Event) =>
             context.setEditing((event.target as HTMLInputElement).checked)}
         />
-      </label>
-    </div>
+      </span>
+    </label>
   `;
 }
 

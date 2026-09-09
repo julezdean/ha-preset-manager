@@ -55,10 +55,14 @@ export const cardStyles = css`
 
   /* Header ---------------------------------------------------------------- */
 
+  /* The name and whatever sits at the end share a line while both fit, and
+     the end drops onto its own when they do not - so a labelled switch never
+     squeezes the name down to two letters on a narrow card. */
   .header {
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: var(--pm-gap);
+    gap: 8px var(--pm-gap);
   }
 
   .header.tappable {
@@ -78,7 +82,9 @@ export const cardStyles = css`
   }
 
   .titles {
-    flex: 1 1 auto;
+    /* Wants a readable width before the line breaks, rather than its full
+       content width, which would wrap a header that had room to spare. */
+    flex: 1 1 120px;
     min-width: 0;
   }
 
@@ -106,6 +112,18 @@ export const cardStyles = css`
     display: flex;
     align-items: center;
     gap: 8px;
+    margin-left: auto;
+  }
+
+  /* A switch with the word it belongs to, both clickable. A bare toggle in a
+     corner says that something can be turned on, and nothing about what. */
+  .switch-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--pm-muted);
+    font-size: 13px;
+    cursor: pointer;
   }
 
   /* Modes ----------------------------------------------------------------- */

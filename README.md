@@ -525,7 +525,7 @@ time.
 | --- | --- | --- |
 | `entity` | – | Any entity of Preset Manager. The only required option. |
 | `header.visible` | `true` | The name and the state line. |
-| `header.automatic` | on a preset mode | The automatic switch, beside the name. |
+| `header.automatic` | on a preset mode | The automatic switch, labelled, beside the name. |
 | `header.title` | the object's name | Overrides the first line. |
 | `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
