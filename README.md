@@ -60,13 +60,7 @@ handed to an entity you already have.
 The integration brings its own dashboard card. Every shape it takes is below —
 you write one line for the first one and add options only where you want them.
 
-**Light**
-
-![The Preset Manager card in light mode: seventeen variations, from a preset with three values to a preset mode with every preset it drives](assets/card-light.png)
-
-**Dark**
-
-![The same seventeen variations in dark mode](assets/card-dark.png)
+![The Preset Manager card: seventeen variations, from a preset with three values to a preset mode with every preset it drives](assets/card-dark.png)
 
 Details, and the configuration behind each of them, are under
 [Dashboard card](#dashboard-card).
@@ -1068,13 +1062,13 @@ npm run preview        # serves the repository; open the URL it prints
 Two query parameters make that page reproducible rather than something to
 click through: `?theme=dark` opens it in the dark palette, and `?gallery=1480`
 drops the prose and the narrow-column tests and lays the rest out at a fixed
-width. That is how the two pictures at the top of this file are made:
+width. That is how the picture at the top of this file is made:
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1480,1730 --screenshot=assets/card-light.png \
-  "http://localhost:8765/frontend/preview.html?gallery=1480&theme=light"
+  --window-size=1480,1730 --screenshot=assets/card-dark.png \
+  "http://localhost:8765/frontend/preview.html?gallery=1480&theme=dark"
 ```
 
 [frontend/preview.html](frontend/preview.html) puts every variant on one page —
