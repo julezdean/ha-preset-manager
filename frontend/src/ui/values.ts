@@ -9,6 +9,14 @@
  * read-only column goes away with them: the editor of the active mode holds
  * exactly the value the sensor resolves, so showing both would be the same
  * number twice with nothing to tell the two apart.
+ *
+ * With `editor.confirm` on top of that, the card starts on the values and the
+ * editors sit behind a switch. What is changed there is held, not written, and
+ * an *Apply* button sends the lot and closes the view again. Two things follow
+ * from that shape and are worth stating: the mode picker still works while the
+ * editors are open, so one round of editing can touch several modes, and
+ * turning the switch back off throws the draft away because none of it was
+ * ever written.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
@@ -192,6 +200,43 @@ function editModePicker(context: CardContext): TemplateResult | typeof nothing {
   `;
 }
 
+/** The switch that opens and closes the editors. */
+function editSwitch(context: CardContext): TemplateResult {
+  const label = localize(context.hass, "editing");
+  return html`
+    <div class="toolbar">
+      <span class="toolbar-label">${label}</span>
+      <label class="switch">
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label=${label}
+          .checked=${context.editing}
+          @change=${(event: Event) =>
+            context.setEditing((event.target as HTMLInputElement).checked)}
+        />
+      </label>
+    </div>
+  `;
+}
+
+/** Sends what the editors collected, and closes them again. */
+function applyButton(context: CardContext): TemplateResult {
+  return html`
+    <div class="toolbar">
+      <span class="toolbar-label"></span>
+      <button
+        class="apply"
+        type="button"
+        ?disabled=${context.draft.size === 0}
+        @click=${() => context.apply()}
+      >
+        ${localize(context.hass, "apply")}
+      </button>
+    </div>
+  `;
+}
+
 export function renderValues(context: CardContext): TemplateResult | typeof nothing {
   if (context.subject.kind !== "preset") return nothing;
   if (!context.config.values.visible) return nothing;
@@ -213,19 +258,23 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
 
   const reserved = iconColumn(context, list);
   const { editor } = context.config;
-  if (!editor.enabled) {
-    return html`
-      <div class="section rows">
-        ${note}${list.map((row) => readOnlyRow(context, row, reserved))}
-      </div>
-    `;
-  }
+  const values = () => html`
+    <div class="section rows">
+      ${note}${editor.confirm ? editSwitch(context) : nothing}
+      ${list.map((row) => readOnlyRow(context, row, reserved))}
+    </div>
+  `;
+
+  if (!editor.enabled) return values();
+  // Confirmed editing starts closed: the card is a card until asked otherwise.
+  if (editor.confirm && !context.editing) return values();
 
   if (editor.mode === "all") {
     const modes = modesOf(context.subject);
     return html`
       <div class="section rows">
-        ${note}${list.map(
+        ${note}${editor.confirm ? editSwitch(context) : nothing}
+        ${list.map(
           (row) => html`
             <div class="group-label">${row.label}</div>
             ${modes.map((mode) =>
@@ -233,6 +282,7 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
             )}
           `,
         )}
+        ${editor.confirm ? applyButton(context) : nothing}
       </div>
     `;
   }
@@ -242,8 +292,10 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
 
   return html`
     <div class="section rows">
-      ${note}${editor.mode === "picker" ? editModePicker(context) : nothing}
+      ${note}${editor.confirm ? editSwitch(context) : nothing}
+      ${editor.mode === "picker" ? editModePicker(context) : nothing}
       ${list.map((row) => editorRow(context, row, modeKey, row.label, reserved))}
+      ${editor.confirm ? applyButton(context) : nothing}
     </div>
   `;
 }

@@ -30,12 +30,12 @@ export interface HeaderConfig {
 /**
  * When the mode row is shown.
  *
- * `automatic` means "while the automatic is on" - the modes are then a reading
- * of what the conditions picked rather than something to click, and that is
- * exactly when some dashboards want them and others do not. `true` and `false`
- * are accepted for `always` and `never`.
+ * `manual` means "while the mode can actually be set from here" - the automatic
+ * is off, or there is none to be on. A row of chips nobody may click is a row
+ * that only takes space, and this is the option that says so. `true` and
+ * `false` are accepted for `always` and `never`.
  */
-export type ModeVisibility = "always" | "never" | "automatic";
+export type ModeVisibility = "always" | "never" | "manual";
 
 export interface ModesConfig {
   /** Defaults to on for a preset mode card and off for a preset card. */
@@ -73,6 +73,13 @@ export interface EditorConfig {
   style?: "chips" | "dropdown";
   /** Mode key the picker starts on; defaults to the active mode. */
   default_mode?: string;
+  /**
+   * Make editing a deliberate act: the card shows the values, offers a switch
+   * to edit them, holds what is changed and writes it only when applied - then
+   * goes back to the values. Implies `enabled`, because there is nothing to
+   * switch into otherwise.
+   */
+  confirm?: boolean;
 }
 
 export interface PresetsConfig {
@@ -134,7 +141,8 @@ export interface ResolvedConfig {
     colors: Record<string, string>;
   };
   values: { visible: boolean; parameters: ResolvedParameterRow[] | null; icons: boolean };
-  editor: Required<Pick<EditorConfig, "enabled" | "mode" | "style">> & EditorConfig;
+  editor: Required<Pick<EditorConfig, "enabled" | "mode" | "style" | "confirm">> &
+    EditorConfig;
   presets: Required<PresetsConfig>;
   footer: { visible: boolean; content: FooterItem[] };
   tap_action?: ActionConfig;

@@ -24,7 +24,7 @@ import type {
 export class CardConfigError extends Error {}
 
 const MODE_STYLES = ["chips", "dropdown"] as const;
-const MODE_VISIBILITIES: ModeVisibility[] = ["always", "never", "automatic"];
+const MODE_VISIBILITIES: ModeVisibility[] = ["always", "never", "manual"];
 const EDITOR_MODES = ["picker", "active", "all"] as const;
 const FOOTER_ITEMS: FooterItem[] = [
   "preset_mode",
@@ -173,6 +173,7 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   const footer = section(config.footer, "footer");
 
   const presetsEditable = bool(presets.editable, "presets.editable", false);
+  const editorConfirm = bool(editor.confirm, "editor.confirm", false);
 
   const resolved: ResolvedConfig = {
     type: String(config.type ?? ""),
@@ -197,7 +198,9 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
       icons: bool(values.icons, "values.icons", false),
     },
     editor: {
-      enabled: bool(editor.enabled, "editor.enabled", false),
+      // A card that asks for confirmed editing is a card that has editors.
+      enabled: bool(editor.enabled, "editor.enabled", editorConfirm),
+      confirm: editorConfirm,
       mode: oneOf(editor.mode, "editor.mode", EDITOR_MODES, "picker"),
       style: oneOf(editor.style, "editor.style", MODE_STYLES, "chips"),
       default_mode: text(editor.default_mode, "editor.default_mode"),

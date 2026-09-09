@@ -10,6 +10,7 @@
 import type { ResolvedConfig } from "../types/config";
 import type { HomeAssistant } from "../types/ha";
 import type { Subject } from "../data/subject";
+import type { StagedWrite } from "./controls";
 
 export interface CardContext {
   hass: HomeAssistant;
@@ -23,6 +24,16 @@ export interface CardContext {
   selectEditMode(modeKey: string): void;
   /** Run a service call and surface a rejection on the card itself. */
   call(promise: Promise<unknown>): void;
+  /**
+   * Confirmed editing, when `editor.confirm` is on: whether the editors are
+   * open, what has been changed but not written, and the three things the user
+   * can do about it.
+   */
+  editing: boolean;
+  draft: ReadonlyMap<string, StagedWrite>;
+  setEditing(open: boolean): void;
+  stage(entityId: string, write: StagedWrite): void;
+  apply(): void;
   /** Whether the header carries a tap/hold action worth a cursor and a role. */
   tappable: boolean;
   /** Pointer plumbing of the header action; see `card.ts`. */

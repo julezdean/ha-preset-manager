@@ -35,6 +35,7 @@ import { renderValues } from "./ui/values";
 import { renderPresets } from "./ui/presets";
 import { renderFooter } from "./ui/footer";
 import type { CardContext } from "./ui/context";
+import type { StagedWrite } from "./ui/controls";
 
 /** How long a press has to last to count as a hold. */
 const HOLD_MS = 500;
@@ -53,6 +54,9 @@ export class PresetManagerCard extends LitElement {
   @state() private _config?: ResolvedConfig;
   @state() private _structure?: PresetManagerConfig;
   @state() private _editModeOverride: string | null = null;
+  /** Confirmed editing: whether the editors are open, and what they changed. */
+  @state() private _editing = false;
+  @state() private _draft: Map<string, StagedWrite> = new Map();
   @state() private _error?: string;
 
   private _hass?: HomeAssistant;
@@ -71,6 +75,8 @@ export class PresetManagerCard extends LitElement {
     // `resolveConfig` speaks in sentences rather than in stack traces.
     this._config = resolveConfig(config);
     this._editModeOverride = null;
+    this._editing = false;
+    this._draft = new Map();
     this._watched = [];
   }
 
@@ -235,6 +241,29 @@ export class PresetManagerCard extends LitElement {
   }
 
   /**
+   * Write everything the editors collected, then go back to the values.
+   *
+   * One call per changed value, because that is what the entities offer; they
+   * write into a debounced store, so this is cheap. The view closes on the
+   * first answer rather than after all of them: a refusal puts its message on
+   * the card either way, and staying open would leave the user looking at
+   * fields that already went through.
+   */
+  private _apply(): void {
+    if (!this._hass || !this._draft.size) return;
+    const hass = this._hass;
+    const writes = [...this._draft].map(([entityId, write]) =>
+      hass.callService(entityId.split(".", 1)[0], write.service, write.data, {
+        entity_id: entityId,
+      }),
+    );
+    this._editing = false;
+    this._draft = new Map();
+    this._editModeOverride = null;
+    this._call(Promise.all(writes));
+  }
+
+  /**
    * Run a call and put a failure on the card.
    *
    * Home Assistant raises a translated `ServiceValidationError` when a write
@@ -322,6 +351,20 @@ export class PresetManagerCard extends LitElement {
         this._editModeOverride = key;
       },
       call: (promise) => this._call(promise),
+      editing: this._editing,
+      draft: this._draft,
+      setEditing: (open) => {
+        // Closing throws the draft away. Nothing was written, so there is
+        // nothing to undo - and a confirmation dialog for abandoning values
+        // the user has not committed to is a dialog for its own sake.
+        this._editing = open;
+        this._draft = new Map();
+        if (!open) this._editModeOverride = null;
+      },
+      stage: (entityId, write) => {
+        this._draft = new Map(this._draft).set(entityId, write);
+      },
+      apply: () => this._apply(),
       tappable: hasAction(this._tapAction) || hasAction(config.hold_action),
       onHeaderDown: () => this._headerDown(subject),
       onHeaderUp: () => this._headerUp(),

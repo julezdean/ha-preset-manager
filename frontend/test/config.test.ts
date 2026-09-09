@@ -62,7 +62,7 @@ describe("resolveConfig", () => {
     [false, "never"],
     ["always", "always"],
     ["never", "never"],
-    ["automatic", "automatic"],
+    ["manual", "manual"],
   ])("takes %s as %s for the mode row", (written, expected) => {
     expect(resolveConfig({ ...MINIMAL, modes: { visible: written } }).modes.visible).toBe(
       expected,
@@ -71,7 +71,7 @@ describe("resolveConfig", () => {
 
   it("names what it accepts for the mode row", () => {
     expect(() => resolveConfig({ ...MINIMAL, modes: { visible: "sometimes" } })).toThrow(
-      /always, never, automatic/,
+      /always, never, manual/,
     );
   });
 

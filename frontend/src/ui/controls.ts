@@ -16,6 +16,12 @@
  * Writes go out on `change`, not on `input`: a slider dragged across its range
  * would otherwise be one service call and one store write per pixel.
  *
+ * **A write can be held back instead.** With a `draft`, a control collects
+ * what the user did and shows it, and nothing reaches Home Assistant until the
+ * card applies the lot. The draft is keyed by entity id, which already says
+ * which mode of which parameter a value belongs to, so nothing else has to be
+ * threaded through here.
+ *
  * **`unknown` is not `unavailable`.** An editor entity reports `unknown` while
  * the mode has no value for its parameter - which is the state of every
  * parameter of every mode of a preset nobody has filled in yet. Those controls
@@ -30,9 +36,20 @@ import type { HassEntity, HomeAssistant } from "../types/ha";
 import type { ParameterType } from "../types/data";
 import { hasNoValue, isMissing } from "../util/ha";
 
+/** One held-back write: what to call, and what the control should show. */
+export interface StagedWrite {
+  service: string;
+  data: Record<string, unknown>;
+  /** The value in the form the control displays, not the entity's. */
+  display: string;
+}
+
 export interface ControlContext {
   hass: HomeAssistant;
   call(promise: Promise<unknown>): void;
+  /** Present while the card collects changes instead of writing them. */
+  draft?: ReadonlyMap<string, StagedWrite>;
+  stage?(entityId: string, write: StagedWrite): void;
 }
 
 function set(
@@ -40,7 +57,12 @@ function set(
   entity: HassEntity,
   service: string,
   data: Record<string, unknown>,
+  display: string,
 ): void {
+  if (context.stage) {
+    context.stage(entity.entity_id, { service, data, display });
+    return;
+  }
   const domain = entity.entity_id.split(".", 1)[0];
   context.call(
     context.hass.callService(domain, service, data, { entity_id: entity.entity_id }),
@@ -55,10 +77,20 @@ interface ControlState {
   disabled: boolean;
   /** There is no value yet, so the control starts empty. */
   empty: boolean;
+  /** What the control shows: the staged value if there is one. */
+  staged: string | undefined;
 }
 
-function controlState(entity: HassEntity): ControlState {
-  return { disabled: isMissing(entity.state), empty: hasNoValue(entity.state) };
+function controlState(context: ControlContext, entity: HassEntity): ControlState {
+  const staged = context.draft?.get(entity.entity_id)?.display;
+  if (staged !== undefined) {
+    return { disabled: false, empty: false, staged };
+  }
+  return {
+    disabled: isMissing(entity.state),
+    empty: hasNoValue(entity.state),
+    staged: undefined,
+  };
 }
 
 function attr<T>(entity: HassEntity, name: string, fallback: T): T {
@@ -71,12 +103,13 @@ function numberControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const { disabled, empty } = controlState(entity);
+  const { disabled, empty, staged } = controlState(context, entity);
   const min = attr<number>(entity, "min", 0);
   const max = attr<number>(entity, "max", 100);
   const step = attr<number>(entity, "step", 1);
   const unit = entity.attributes.unit_of_measurement ?? "";
-  const value = empty ? "" : entity.state;
+  const shown = staged ?? entity.state;
+  const value = empty ? "" : shown;
   // `valueAsNumber`, not `value`: a number input renders and accepts the
   // decimal separator of the browser's locale, so a German user typing "19,5"
   // leaves `value` empty while this reads 19.5. It is also the only reading
@@ -84,7 +117,7 @@ function numberControl(
   const commit = (event: Event) => {
     const number = (event.target as HTMLInputElement).valueAsNumber;
     if (Number.isNaN(number)) return;
-    set(context, entity, "set_value", { value: number });
+    set(context, entity, "set_value", { value: number }, String(number));
   };
 
   if (attr<string>(entity, "mode", "box") === "slider") {
@@ -101,7 +134,7 @@ function numberControl(
         @change=${commit}
       />
       <span class="slider-value">
-        ${empty ? UNSET : `${entity.state}${unit ? ` ${unit}` : ""}`}
+        ${empty ? UNSET : `${shown}${unit ? ` ${unit}` : ""}`}
       </span>
     `;
   }
@@ -122,7 +155,7 @@ function numberControl(
     // Rounded to the step, or 0.1 + 0.2 arrives in the store as it famously is.
     const decimals = (String(step).split(".")[1] ?? "").length;
     input.value = next.toFixed(decimals);
-    set(context, entity, "set_value", { value: Number(input.value) });
+    set(context, entity, "set_value", { value: Number(input.value) }, input.value);
   };
 
   return html`
@@ -148,23 +181,20 @@ function booleanControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const { disabled, empty } = controlState(entity);
+  const { disabled, empty, staged } = controlState(context, entity);
   return html`
     <label class="switch">
       <input
         type="checkbox"
         role="switch"
         aria-label=${label}
-        .checked=${entity.state === "on"}
+        .checked=${(staged ?? entity.state) === "on"}
         .indeterminate=${empty}
         ?disabled=${disabled}
-        @change=${(event: Event) =>
-          set(
-            context,
-            entity,
-            (event.target as HTMLInputElement).checked ? "turn_on" : "turn_off",
-            {},
-          )}
+        @change=${(event: Event) => {
+          const on = (event.target as HTMLInputElement).checked;
+          set(context, entity, on ? "turn_on" : "turn_off", {}, on ? "on" : "off");
+        }}
       />
     </label>
   `;
@@ -175,24 +205,25 @@ function selectControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const { disabled, empty } = controlState(entity);
+  const { disabled, empty, staged } = controlState(context, entity);
   const options = attr<string[]>(entity, "options", []);
+  const shown = staged ?? entity.state;
   return html`
     <select
       class="select-input"
       aria-label=${label}
       ?disabled=${disabled}
-      @change=${(event: Event) =>
-        set(context, entity, "select_option", {
-          option: (event.target as HTMLSelectElement).value,
-        })}
+      @change=${(event: Event) => {
+        const option = (event.target as HTMLSelectElement).value;
+        set(context, entity, "select_option", { option }, option);
+      }}
     >
       ${empty
         ? html`<option value="" selected disabled>${UNSET}</option>`
         : nothing}
       ${options.map(
         (option) => html`
-          <option value=${option} ?selected=${option === entity.state}>
+          <option value=${option} ?selected=${option === shown}>
             ${option}
           </option>
         `,
@@ -206,7 +237,7 @@ function textControl(
   entity: HassEntity,
   label: string,
 ): TemplateResult {
-  const { disabled, empty } = controlState(entity);
+  const { disabled, empty, staged } = controlState(context, entity);
   const pattern = entity.attributes.pattern as string | undefined;
   return html`
     <input
@@ -216,12 +247,12 @@ function textControl(
       minlength=${attr<number>(entity, "min", 0)}
       maxlength=${attr<number>(entity, "max", 255)}
       pattern=${pattern ?? nothing}
-      .value=${empty ? "" : entity.state}
+      .value=${empty ? "" : (staged ?? entity.state)}
       ?disabled=${disabled}
-      @change=${(event: Event) =>
-        set(context, entity, "set_value", {
-          value: (event.target as HTMLInputElement).value,
-        })}
+      @change=${(event: Event) => {
+        const value = (event.target as HTMLInputElement).value;
+        set(context, entity, "set_value", { value }, value);
+      }}
     />
   `;
 }
@@ -243,12 +274,16 @@ function temporalControl(
   label: string,
   type: "date" | "time" | "datetime",
 ): TemplateResult {
-  const { disabled, empty } = controlState(entity);
-  let value = empty ? "" : entity.state;
-  if (type === "datetime") value = empty ? "" : localDateTimeValue(entity.state);
-  // A time entity reports seconds; the input wants minutes unless it is told
-  // otherwise, and a preset's time is a wall clock time, not a stopwatch.
-  if (type === "time") value = value.slice(0, 5);
+  const { disabled, empty, staged } = controlState(context, entity);
+  // A staged value is already in the form the input shows, so it needs none of
+  // the conversions below - it came out of this very field.
+  let value = staged ?? (empty ? "" : entity.state);
+  if (staged === undefined) {
+    if (type === "datetime") value = empty ? "" : localDateTimeValue(entity.state);
+    // A time entity reports seconds; the input wants minutes unless it is told
+    // otherwise, and a preset's time is a wall clock time, not a stopwatch.
+    if (type === "time") value = value.slice(0, 5);
+  }
 
   return html`
     <input
@@ -260,15 +295,19 @@ function temporalControl(
       @change=${(event: Event) => {
         const raw = (event.target as HTMLInputElement).value;
         if (!raw) return;
-        if (type === "date") set(context, entity, "set_value", { date: raw });
+        if (type === "date") set(context, entity, "set_value", { date: raw }, raw);
         else if (type === "time") {
-          set(context, entity, "set_value", { time: `${raw}:00` });
+          set(context, entity, "set_value", { time: `${raw}:00` }, raw);
         } else {
           // `datetime-local` has no zone; the entity takes it as local time,
           // which is the zone the user just typed in.
-          set(context, entity, "set_value", {
-            datetime: raw.replace("T", " ") + ":00",
-          });
+          set(
+            context,
+            entity,
+            "set_value",
+            { datetime: `${raw.replace("T", " ")}:00` },
+            raw,
+          );
         }
       }}
     />

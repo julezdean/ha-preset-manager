@@ -420,6 +420,41 @@ export const cardStyles = css`
     cursor: default;
   }
 
+  /* The row that opens the editors, and the one that closes them. */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--pm-gap);
+    min-height: 28px;
+  }
+
+  .toolbar-label {
+    flex: 1 1 auto;
+    min-width: 0;
+    color: var(--pm-muted);
+    font-size: 14px;
+  }
+
+  .apply {
+    appearance: none;
+    min-height: 32px;
+    padding: 0 16px;
+    border: none;
+    border-radius: var(--pm-chip-radius);
+    background: var(--pm-accent);
+    color: var(--text-primary-color, #fff);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+  }
+
+  .apply:disabled {
+    background: color-mix(in srgb, var(--pm-text) 10%, transparent);
+    color: var(--pm-disabled);
+    cursor: default;
+  }
+
   /* Footer and messages ---------------------------------------------------- */
 
   .footer {

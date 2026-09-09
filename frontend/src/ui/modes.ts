@@ -14,12 +14,7 @@
 
 import { html, nothing, type TemplateResult } from "lit";
 
-import {
-  activeModeKey,
-  automaticState,
-  modeLockReason,
-  modesOf,
-} from "../data/state";
+import { activeModeKey, modeLockReason, modesOf } from "../data/state";
 import { localize } from "../localize";
 import { icon } from "./icon";
 import type { CardContext } from "./context";
@@ -40,11 +35,11 @@ export function modesVisible(context: CardContext): boolean {
     // after one preset change what every other preset of that dimension does.
     return context.subject.kind === "preset_mode";
   }
-  if (setting === "automatic") {
-    // Only while something else is choosing. A preset mode with no automatic
-    // at all - no conditions, or handed to an entity - is never in that state,
-    // so the row stays away, which is the same answer read literally.
-    return automaticState(context.hass, context.subject.presetMode) === true;
+  if (setting === "manual") {
+    // Exactly while a click would do something: the automatic is off, or the
+    // preset mode never had one because none of its modes has conditions.
+    // A preset mode handed to an entity is never settable and never shows.
+    return modeLockReason(context.hass, context.subject.presetMode) === null;
   }
   return setting === "always";
 }

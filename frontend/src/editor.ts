@@ -54,6 +54,7 @@ const LABELS: Record<string, string> = {
   parameters: "Parameters",
   parameters_note: "Parameters",
   enabled: "Editable",
+  confirm: "Confirm with a button",
   editable: "Editable",
   mode: "Which mode",
   default_mode: "Start on",
@@ -190,7 +191,7 @@ export class PresetManagerCardEditor extends LitElement {
             ...options([
               ["always", "Always"],
               ["never", "Never"],
-              ["automatic", "While the automatic is on"],
+              ["manual", "While the mode can be set by hand"],
             ]),
           },
           {
@@ -244,6 +245,7 @@ export class PresetManagerCardEditor extends LitElement {
           title: LABELS.editor,
           schema: [
             { name: "enabled", selector: { boolean: {} } },
+            { name: "confirm", selector: { boolean: {} } },
             {
               name: "mode",
               ...options([

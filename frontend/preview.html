@@ -650,6 +650,13 @@
         },
       ],
       [
+        "Preset — edit behind a switch",
+        {
+          entity: "sensor.motion_active_mode",
+          editor: { confirm: true, style: "dropdown" },
+        },
+      ],
+      [
         "Preset — one value",
         {
           entity: "sensor.motion_active_mode",
@@ -701,10 +708,10 @@
         { entity: "sensor.motion_active_mode", modes: { visible: true } },
       ],
       [
-        "Preset mode — modes only while automatic",
+        "Preset mode — modes only while settable",
         {
           entity: "sensor.house_mode_mode",
-          modes: { visible: "automatic" },
+          modes: { visible: "manual" },
           footer: { content: ["preset_mode"] },
         },
       ],

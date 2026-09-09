@@ -42,14 +42,21 @@ versioning [Semantic Versioning](https://semver.org/).
   the integration keeps the two apart itself.
 - `modes.visible` takes `true`, `false` or `automatic`, and the new
   `header.automatic` is a switch of its own: which mode is one decision, who
-  gets to decide it is another, and they are now decided separately. `automatic`
-  shows the mode row only while the automatic is on — when the modes are a
-  reading of what the conditions picked rather than something to click. Left
+  gets to decide it is another, and they are now decided separately. `manual`
+  shows the mode row only while a click would do something: the automatic is
+  off, or the preset mode never had one. A row of chips nobody may press is a
+  row that only takes space. Left
   alone, a preset mode card offers both and a preset card neither; it does not
   own the dimension. The old `auto`, which meant "guess from the entity", is
   gone: that is what the default does, and it needed no name.
 - The mode picker of the editors is an *Edit:* line rather than a heading, and
   can be a dropdown instead of chips (`editor.style`).
+- `editor.confirm`: the card shows its values and puts the editors behind an
+  **Edit** switch. What is changed there is held rather than written, the
+  *Edit:* picker still changes which mode is being edited so one round can
+  touch several modes, and an **Apply** button sends the lot and returns to the
+  values. Turning the switch off discards the draft — nothing had been written,
+  so there is nothing to undo.
 - The second line of a preset's header names the active mode and stops there.
   Which preset mode it follows was on every card and every render; the footer
   carries it where it is wanted.

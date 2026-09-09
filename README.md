@@ -514,7 +514,7 @@ time.
 | `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
-| `modes.visible` | on a preset mode | `true`, `false`, or `automatic` for “only while the automatic is on”. Off by default on a preset, which does not own the dimension. |
+| `modes.visible` | on a preset mode | `true`, `false`, or `manual` for “only while the mode can be set from here”. Off by default on a preset, which does not own the dimension. |
 | `modes.style` | `chips` | `chips` or `dropdown`. |
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
 | `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |
@@ -524,6 +524,7 @@ time.
 | `editor.enabled` | `false` | Turn the rows into the per-mode editors. |
 | `editor.mode` | `picker` | `picker`, `active` or `all`; see below. |
 | `editor.style` | `chips` | How `picker` is drawn: `chips` or `dropdown`. |
+| `editor.confirm` | `false` | Editing behind a switch, written only when applied. Implies `enabled`. |
 | `editor.default_mode` | the active mode | Mode key the picker starts on. |
 | `presets.visible` | `false` | On a preset mode: list the presets following it. |
 | `presets.values` | `false` | And their values. |
@@ -594,6 +595,31 @@ The read-only column goes away when the editors appear. The editor of the
 active mode holds exactly the value the sensor resolves, so showing both would
 be the same number twice with nothing to tell them apart.
 
+### Editing as a deliberate act
+
+`editor.confirm` turns the whole thing into a step you take on purpose:
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.motion_sensor_living_room_active_mode
+editor:
+  confirm: true
+  style: dropdown
+```
+
+The card shows its values. An **Edit** switch opens the editors on the mode
+that is active right now, and the *Edit:* picker changes which mode they write
+to — one round of editing can touch several modes. Nothing reaches Home
+Assistant while you type: what you change is held, the **Apply** button sends
+all of it at once, and the card goes back to the values.
+
+Turning the switch back off discards what was held. Nothing had been written,
+so there is nothing to undo, and a dialog asking whether you meant it would be
+a dialog for its own sake.
+
+`confirm` implies `enabled`, because a card with no editors has nothing to
+switch into.
+
 On a **preset mode** card the same applies to the presets it lists:
 `presets.editable` turns their values into editors for the mode each preset is
 on. There is no mode picker per preset there — the card already has one row of
@@ -616,11 +642,11 @@ active mode and, where there is one, the entity the preset mode was handed to,
 and the automatic sits beside it as a switch. What a preset *follows* is not in
 there — that is what `footer.content: [preset_mode]` is for.
 
-`modes.visible: automatic` shows the row only while the automatic is on — when
-the modes are a reading of what the conditions picked rather than something to
-click. A preset mode with no automatic at all, because no mode has conditions
-or because it was handed to an entity, is never in that state and never shows
-the row.
+`modes.visible: manual` shows the row only while a click would do something —
+the automatic is off, or the preset mode never had one because none of its
+modes has conditions. A preset mode handed to an entity can never be set from
+here and never shows the row. A row of chips nobody may press is a row that
+only takes space, and this is the option that says so.
 
 On a preset card the chips are hidden by default, and so is the automatic
 switch. Showing either there is deliberate: a preset does not own its
