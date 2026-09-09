@@ -59,6 +59,9 @@ as they are rather than renamed mid-series.
   gone: that is what the default does, and it needed no name.
 - The mode picker of the editors is an *Edit:* line rather than a heading, and
   can be a dropdown instead of chips (`editor.style`).
+- The mode picker says *Mode:* rather than *Edit:* when it sits under the edit
+  switch of `editor.confirm`, which said “edit” one line above. Two labels with
+  the same word read like two settings for one thing.
 - `editor.confirm`: the card shows its values and puts the editors behind an
   **Edit** switch. What is changed there is held rather than written, the
   *Edit:* picker still changes which mode is being edited so one round can

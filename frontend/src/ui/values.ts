@@ -151,7 +151,10 @@ function editModePicker(context: CardContext): TemplateResult | typeof nothing {
   const active = activeModeKey(context.hass, context.subject);
   const activeMode = modes.find((mode) => mode.key === active);
 
-  const label = localize(context.hass, "editing");
+  // Under the edit switch the word "edit" has already been said, and saying it
+  // twice reads like two settings for one thing. There the line only has to
+  // name what it picks - which mode the editors write to.
+  const label = localize(context.hass, context.config.editor.confirm ? "mode" : "editing");
   const control =
     context.config.editor.style === "dropdown"
       ? html`

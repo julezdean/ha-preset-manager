@@ -598,7 +598,9 @@ resolved values — which is what a dashboard is for. Turn it on and the same
 rows become the per-mode helpers:
 
 * `mode: picker` — an *Edit:* line picks which mode is edited, as chips or, with
-  `editor.style: dropdown`, as a menu. A line below names the active mode
+  `editor.style: dropdown`, as a menu. Under the switch of `editor.confirm` that
+  line reads *Mode:* instead: the switch has already said “edit”, and saying it
+  twice reads like two settings for one thing. A line below names the active mode
   whenever the two differ. The chips are deliberately quieter than the mode row
   above: smaller, without icons, and coloured from the text rather than the
   accent. One row changes the house, the other changes what this card shows,
