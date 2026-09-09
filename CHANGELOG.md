@@ -4,6 +4,14 @@ All notable changes to this project are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 versioning [Semantic Versioning](https://semver.org/).
 
+**Pre-releases are tagged `vX.Y.Z-beta.N` from 0.4.0 on.** The 0.3.0 series used
+`vX.Y.ZbN`, which is Python's convention and not SemVer, and nothing in the
+chain could read it: GitHub's release API returns such tags in an order that is
+neither alphabetical nor chronological, and HACS and the README badge show
+whatever it hands them — `b10` and `b11` landed between `b4` and `b3`. A final
+release sorts above every beta in either spelling, so the 0.3.0 tags were left
+as they are rather than renamed mid-series.
+
 ## [Unreleased]
 
 ### Added

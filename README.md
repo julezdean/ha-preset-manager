@@ -1,7 +1,7 @@
 # Preset Manager for Home Assistant
 
 [![HACS: custom repository](https://img.shields.io/badge/HACS-custom%20repository-41BDF5.svg)](https://github.com/hacs/integration)
-[![Release](https://img.shields.io/github/v/release/julezdean/ha-preset-manager?include_prereleases&sort=semver)](https://github.com/julezdean/ha-preset-manager/releases)
+[![Release](https://img.shields.io/github/v/release/julezdean/ha-preset-manager)](https://github.com/julezdean/ha-preset-manager/releases)
 [![Tests](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml)
 [![Validate](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
