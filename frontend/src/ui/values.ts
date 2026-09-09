@@ -1,0 +1,193 @@
+/**
+ * The value list of a preset - read-only, or editable per mode.
+ *
+ * Read-only is the default and shows the main sensors: one row per parameter
+ * carrying the value of whichever mode is active. That is the whole point of
+ * the integration, and it is what a dashboard wants to see.
+ *
+ * With `editor.enabled` the same rows become the per-mode editors, and the
+ * read-only column goes away with them: the editor of the active mode holds
+ * exactly the value the sensor resolves, so showing both would be the same
+ * number twice with nothing to tell the two apart.
+ */
+
+import { html, nothing, type TemplateResult } from "lit";
+
+import { activeModeKey, modesOf } from "../data/state";
+import { orderedParameters } from "../data/subject";
+import { localize } from "../localize";
+import { icon } from "./icon";
+import { isWideControl, renderControl } from "./controls";
+import type { CardContext } from "./context";
+import type { ParameterInfo, PresetInfo } from "../types/data";
+import type { ResolvedParameterRow } from "../types/config";
+import { formatState, isUnavailable, stateOf, UNKNOWN } from "../util/ha";
+
+interface Row {
+  parameter: ParameterInfo;
+  label: string;
+  icon: string | false | undefined;
+}
+
+function rows(context: CardContext, preset: PresetInfo): Row[] {
+  const wanted = context.config.values.parameters;
+  const overrides = new Map<string, ResolvedParameterRow>(
+    (wanted ?? []).map((row) => [row.parameter, row]),
+  );
+  return orderedParameters(
+    preset,
+    wanted ? wanted.map((row) => row.parameter) : null,
+  ).map((parameter) => {
+    const override = overrides.get(parameter.key);
+    return {
+      parameter,
+      label: override?.name ?? parameter.name,
+      icon: override?.icon,
+    };
+  });
+}
+
+function rowIcon(context: CardContext, row: Row): TemplateResult | typeof nothing {
+  if (row.icon === false) return nothing;
+  if (row.icon) return icon(row.icon);
+  if (!context.config.values.icons) return nothing;
+  return icon(stateOf(context.hass, row.parameter.entity)?.attributes.icon);
+}
+
+/** What one value reads as: its formatted state, or why there is none. */
+function valueText(context: CardContext, parameter: ParameterInfo): {
+  text: string;
+  muted: boolean;
+} {
+  const entity = stateOf(context.hass, parameter.entity);
+  if (!entity) {
+    return { text: localize(context.hass, "unavailable"), muted: true };
+  }
+  if (entity.state === UNKNOWN) {
+    // `unknown` on a value sensor means one thing here: the mode has no value
+    // for this parameter and the parameter has no default.
+    return { text: localize(context.hass, "not_set"), muted: true };
+  }
+  if (isUnavailable(entity.state)) {
+    return { text: localize(context.hass, "unavailable"), muted: true };
+  }
+  return { text: formatState(context.hass, entity), muted: false };
+}
+
+function readOnlyRow(context: CardContext, row: Row): TemplateResult {
+  const { text, muted } = valueText(context, row.parameter);
+  return html`
+    <div class="row">
+      <div class="row-label">
+        ${rowIcon(context, row)}<span>${row.label}</span>
+      </div>
+      <div class="row-value ${muted ? "muted" : ""}">${text}</div>
+    </div>
+  `;
+}
+
+function editorRow(
+  context: CardContext,
+  row: Row,
+  modeKey: string | null,
+  label: string,
+): TemplateResult {
+  const entityId = modeKey ? row.parameter.editors[modeKey] : undefined;
+  const entity = stateOf(context.hass, entityId);
+  const wide = isWideControl(row.parameter.type, entity);
+  return html`
+    <div class="row ${wide ? "wide" : ""}">
+      <div class="row-label">
+        ${rowIcon(context, row)}<span>${label}</span>
+      </div>
+      <div class="row-control">
+        ${renderControl(context, row.parameter.type, entity, label)}
+      </div>
+    </div>
+  `;
+}
+
+/** The chips choosing which mode the editors write to. */
+function editModePicker(context: CardContext): TemplateResult | typeof nothing {
+  const modes = modesOf(context.subject);
+  if (modes.length < 2) return nothing;
+  const active = activeModeKey(context.hass, context.subject);
+  const activeMode = modes.find((mode) => mode.key === active);
+
+  return html`
+    <div class="group-label">${localize(context.hass, "editing")}</div>
+    <div class="chips" role="group" aria-label=${localize(context.hass, "editing")}>
+      ${modes.map(
+        (mode) => html`
+          <button
+            class="chip"
+            type="button"
+            aria-pressed=${mode.key === context.editMode ? "true" : "false"}
+            @click=${() => context.selectEditMode(mode.key)}
+          >
+            ${context.config.modes.icons ? icon(mode.icon) : nothing}
+            <span>${mode.name}</span>
+          </button>
+        `,
+      )}
+    </div>
+    ${activeMode && activeMode.key !== context.editMode
+      ? html`<div class="note">
+          ${localize(context.hass, "active_is", { mode: activeMode.name })}
+        </div>`
+      : nothing}
+  `;
+}
+
+export function renderValues(context: CardContext): TemplateResult | typeof nothing {
+  if (context.subject.kind !== "preset") return nothing;
+  if (!context.config.values.visible) return nothing;
+
+  const preset = context.subject.preset;
+  const list = rows(context, preset);
+  if (!list.length) {
+    return html`<div class="section note">
+      ${localize(context.hass, "no_parameters")}
+    </div>`;
+  }
+
+  // Every row of an orphaned preset reads "Not set", and each of them is
+  // literally true and none of them says why. One line does.
+  const note =
+    context.subject.presetMode === null
+      ? html`<div class="note warning">${localize(context.hass, "orphaned")}</div>`
+      : nothing;
+
+  const { editor } = context.config;
+  if (!editor.enabled) {
+    return html`
+      <div class="section rows">
+        ${note}${list.map((row) => readOnlyRow(context, row))}
+      </div>
+    `;
+  }
+
+  if (editor.mode === "all") {
+    const modes = modesOf(context.subject);
+    return html`
+      <div class="section rows">
+        ${note}${list.map(
+          (row) => html`
+            <div class="group-label">${row.label}</div>
+            ${modes.map((mode) => editorRow(context, row, mode.key, mode.name))}
+          `,
+        )}
+      </div>
+    `;
+  }
+
+  const modeKey =
+    editor.mode === "active" ? activeModeKey(context.hass, context.subject) : context.editMode;
+
+  return html`
+    <div class="section rows">
+      ${note}${editor.mode === "picker" ? editModePicker(context) : nothing}
+      ${list.map((row) => editorRow(context, row, modeKey, row.label))}
+    </div>
+  `;
+}

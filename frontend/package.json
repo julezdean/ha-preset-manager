@@ -1,0 +1,27 @@
+{
+  "name": "preset-manager-card",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dashboard card of the Preset Manager integration for Home Assistant",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "rollup -c",
+    "preview": "echo 'Open http://localhost:8765/frontend/preview.html' && python3 -m http.server 8765 --directory ..",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "watch": "rollup -c --watch"
+  },
+  "dependencies": {
+    "lit": "^3.2.1"
+  },
+  "devDependencies": {
+    "@rollup/plugin-node-resolve": "^16.0.0",
+    "@rollup/plugin-terser": "^0.4.4",
+    "@rollup/plugin-typescript": "^12.1.2",
+    "rollup": "^4.34.0",
+    "tslib": "^2.8.1",
+    "typescript": "^5.7.3",
+    "vitest": "^3.0.5"
+  }
+}

@@ -4,6 +4,44 @@ All notable changes to this project are documented in this file. The format
 follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/) and the
 versioning [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Added
+
+- **A dashboard card**, shipped with the integration and served by it — no
+  resource to add, and no way for card and backend to end up at different
+  versions. `type: custom:preset-manager-card` with an `entity:` is the whole
+  configuration: point it at any entity of a preset or a preset mode — a value
+  sensor, a per-mode editor, the mode selector, the automatic switch — and it
+  draws the object that entity belongs to. Values and the active mode on a
+  preset, the modes as chips and the automatic on a preset mode, the per-mode
+  editors on request, and the presets of a preset mode with their values.
+  Grouped options for the header, the modes, the values, the editors, the
+  footer, the layout and the appearance, plus Home Assistant's three action
+  keys, and a visual editor built on `ha-form`.
+- The websocket command `preset_manager/config`, which the card asks for the
+  *structure*: the modes with their keys and icons, the parameters, and which
+  entity edits which mode of which parameter. None of that is derivable from
+  the states, and a card that reconstructed it from display names would break
+  on the first rename — which is the one thing this integration promises not to
+  do. It carries no values.
+
+  It is deliberately **not** part of the public surface frozen in 0.1.0: the
+  card and the integration ship in one version and a user cannot separate them,
+  so it may change with any release.
+- Mode icons are drawn for the first time. They were configurable, stored and
+  until now unused.
+- `frontend/preview.html`, which renders every variant of the card against a
+  fake Home Assistant — including the states that are awkward to produce on
+  purpose, and a column too narrow for the card. It found three bugs that
+  neither the type checker nor the tests can see.
+
+### Changed
+
+- `frontend` is an *after* dependency and `websocket_api` a real one. An
+  instance without a frontend sets the integration up exactly as before and
+  only skips the card.
+
 ## [0.2.0] - 2026-09-08
 
 0.1.0 was withdrawn; this is the release that supersedes it. Entries written

@@ -7,3 +7,6 @@ __pycache__/
 .coverage
 htmlcov/
 .DS_Store
+
+# Frontend build
+frontend/node_modules/

@@ -105,6 +105,10 @@ Assistant 2026.3 onwards.
   per mode stay individual.
 * **Helpers editable straight from the dashboard** — `number`/`switch`/`select`/
   `text` entities in the category *Configuration*.
+* **A dashboard card of its own**, shipped with the integration and served by
+  it: point it at any entity of a preset or a preset mode and it draws that
+  object — values, modes, and the per-mode editors when you want them. Nothing
+  to install, nothing to add as a resource.
 * **Instant updates** on a mode switch, without a restart and without polling.
 * Fully configurable through the UI, no YAML configuration.
 
@@ -448,6 +452,289 @@ values:
 blueprint: Heating       # only while the preset follows a blueprint
 ```
 
+## Dashboard card
+
+The integration ships its own Lovelace card. There is nothing to install and no
+resource to add: it comes with the integration, is served by it, and can
+therefore never be a version out of step with it.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.motion_sensor_living_room_active_mode
+```
+
+That is the whole configuration. The card works out what the entity belongs to
+and draws the preset behind it — its name, the mode that is effective right
+now, and one row per parameter with the value that is valid:
+
+```
+  Motion Sensor Living Room
+  Night · House Mode
+
+  Brightness                             15 %
+  Color temperature                   2 200 K
+  Off delay                              30 s
+```
+
+Point it at an entity of a **preset mode** instead and it draws that: the modes
+as a row of chips, the active one marked, and the automatic switch beside the
+name.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.house_mode_mode
+```
+
+```
+  House Mode                          [Auto ●]
+  Night
+
+  [ Home ] [ Away ] [ Night ] [ Window open ]
+```
+
+**Any entity of the object does.** The active mode sensor of a preset, one of
+its value sensors, one of its per-mode editors, the mode sensor of a preset
+mode, its selector, its automatic switch — all of them name the same object and
+give the same card. Nothing is matched by name, so renaming a preset, a mode or
+a parameter leaves every card that shows it working.
+
+### Configuration
+
+Every option is optional and lives in the group it belongs to. What is not
+written is not configured — the card decides, and it decides the same way every
+time.
+
+| Option | Default | Meaning |
+| --- | --- | --- |
+| `entity` | – | Any entity of Preset Manager. The only required option. |
+| `header.visible` | `true` | The name, the state line and the automatic. |
+| `header.title` | the object's name | Overrides the first line. |
+| `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
+| `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
+| `header.icon_color` | the mode's colour | Overrides the icon colour. |
+| `modes.visible` | `auto` | `auto` shows the chips on a preset mode and hides them on a preset. `always`/`never` decide it. |
+| `modes.style` | `chips` | `chips` or `dropdown`. |
+| `modes.icons` | `true` | Show the icon of each mode. |
+| `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |
+| `values.visible` | `true` | The parameter rows of a preset. |
+| `values.parameters` | all of them | Which parameters to show, in which order. |
+| `values.icons` | `false` | Show each parameter's icon. |
+| `editor.enabled` | `false` | Turn the rows into the per-mode editors. |
+| `editor.mode` | `picker` | `picker`, `active` or `all`; see below. |
+| `editor.default_mode` | the active mode | Mode key the picker starts on. |
+| `presets.visible` | `false` | On a preset mode: list the presets following it. |
+| `presets.values` | `false` | And their values. |
+| `footer.visible` | `false` | The footer line. |
+| `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
+| `layout.density` | `comfortable` | `comfortable` or `compact`. |
+| `appearance.background` | the theme's | Card background. |
+| `appearance.radius` | the theme's | Corner radius. |
+| `appearance.shadow` | the theme's | `false` removes it. |
+| `appearance.border` | the theme's | `false` removes it. |
+| `appearance.state_color` | `true` | Colour the icon and the active chip after the mode. |
+| `tap_action` | `more-info` | Home Assistant's action config, on the header. |
+| `hold_action` | – | Same. |
+| `double_tap_action` | – | Same. |
+
+The three action keys sit at the top level rather than in a group of their own,
+because that is where every other Home Assistant card has them and a dashboard
+is copied between cards more often than it is read.
+
+Everything else is grouped, so a long configuration stays readable:
+
+```yaml
+values:
+  parameters: [brightness, off_delay]
+
+editor:
+  enabled: true
+  mode: picker
+```
+
+instead of `show_values`, `value_parameters`, `show_editor`, `editor_mode`.
+
+### Picking parameters
+
+`values.parameters` selects and orders in one list. A row is a parameter key,
+or a group that renames it or gives it an icon:
+
+```yaml
+values:
+  parameters:
+    - brightness
+    - parameter: off_delay
+      name: Run-on
+      icon: mdi:timer-outline
+```
+
+A key that no longer exists is skipped rather than drawn as an error, so
+deleting a parameter does not break every dashboard that named it.
+
+### Editing values
+
+The editors are `Configuration` entities: they are how a preset is **set up**,
+not how it is used. So `editor.enabled` is off by default and a card shows the
+resolved values — which is what a dashboard is for. Turn it on and the same
+rows become the per-mode helpers:
+
+* `mode: picker` — a row of chips picks which mode is edited. The mode that is
+  active right now is marked with a dot.
+* `mode: active` — always edits the mode that is active.
+* `mode: all` — every mode of every parameter, one row each. The full picture,
+  and the widest.
+
+The read-only column goes away when the editors appear. The editor of the
+active mode holds exactly the value the sensor resolves, so showing both would
+be the same number twice with nothing to tell them apart.
+
+### Switching the mode
+
+Clicking a chip calls `preset_manager.set_active_mode` with the mode's **key**,
+so it keeps working after a rename. The chips are disabled, with the reason
+underneath, when the integration would refuse the write anyway:
+
+* while the **automatic** is on — turn the switch in the header off first,
+* when the preset mode **follows another entity**, which owns the mode.
+
+On a preset card the chips are hidden by default (`modes.visible: auto`).
+Showing them there is deliberate: a preset does not own its dimension, so
+switching the mode from one preset's card changes what every preset of that
+preset mode does.
+
+### Examples
+
+**Minimal** — the values of one preset.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.motion_sensor_living_room_active_mode
+```
+
+**Compact** — a dense row in a grid of many.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.motion_sensor_living_room_active_mode
+layout:
+  density: compact
+header:
+  subtitle: false
+values:
+  parameters: [brightness]
+```
+
+**The dimension** — the modes of a preset mode with its automatic.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.house_mode_mode
+modes:
+  colors:
+    night: "#5c6bc0"
+    window_open: "#ef6c00"
+```
+
+**The room** — one preset mode with everything that follows it.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.house_mode_mode
+presets:
+  visible: true
+  values: true
+footer:
+  content: [last_changed]
+```
+
+**Setting up a preset** — the per-mode helpers, without leaving the dashboard.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.heating_bath_active_mode
+editor:
+  enabled: true
+  mode: picker
+footer:
+  content: [preset_mode, blueprint]
+```
+
+**Everything at once** — every group, for reading rather than for using.
+
+```yaml
+type: custom:preset-manager-card
+entity: sensor.motion_sensor_living_room_active_mode
+
+layout:
+  density: comfortable
+
+header:
+  visible: true
+  title: Living room light
+  subtitle: false
+  icon: mdi:lightbulb-outline
+  icon_color: "#f9a825"
+
+modes:
+  visible: always
+  style: chips
+  icons: true
+  colors:
+    night: "#5c6bc0"
+
+values:
+  visible: true
+  icons: true
+  parameters:
+    - brightness
+    - parameter: color_temperature
+      name: Warmth
+    - parameter: off_delay
+      name: Run-on
+      icon: mdi:timer-outline
+
+editor:
+  enabled: true
+  mode: picker
+  default_mode: night
+
+footer:
+  content: [preset_mode, blueprint, last_changed]
+
+appearance:
+  radius: 16px
+  shadow: false
+  state_color: true
+
+tap_action:
+  action: more-info
+hold_action:
+  action: navigate
+  navigation_path: /config/devices/dashboard
+```
+
+### If something is wrong
+
+| What the card says | What it means |
+| --- | --- |
+| “… does not belong to Preset Manager” | The entity is not one of this integration's. Any entity of the preset or preset mode does. |
+| “Preset Manager is not set up” | No preset mode and no preset exists yet, or the integration failed to load. |
+| “No mode active” | No condition matched, the source entity names no mode, or the preset has no preset mode. Same causes as an `unknown` sensor. |
+| “Not set” on a row | That mode has no value for the parameter and the parameter has no default. |
+| “Unavailable” on a row | The entity behind the row is disabled or gone. |
+| “Waiting for a preset mode” | The preset outlived its preset mode; assign it a new one. |
+| The card stays empty | The browser has an older bundle. A hard reload picks up the new one; the URL carries the version, so this only happens mid-upgrade. |
+
+The card asks the integration for its structure once per browser connection and
+follows the entity and device registries for changes, so a new mode, a renamed
+parameter or a moved preset arrives without a reload of the page.
+
+> **For the record:** that request is the websocket command
+> `preset_manager/config`. It returns the structure — modes with their keys and
+> icons, the parameters, and which entity is which — and no values. It is
+> **not** part of the public surface listed under [Upgrading](#upgrading): the
+> card and the integration ship in one version and a user cannot separate them,
+> so it may change with any release.
+
 ## Managing a preset mode
 
 Preset mode → **Edit**:
@@ -659,6 +946,36 @@ VIRTUAL_ENV=.venv uv pip install -r requirements_test.txt
 All four run in CI on every push and pull request, and all four have to be
 clean. `mypy` covers `custom_components` only — the tests lean on fixtures
 whose types are looser than anything the integration itself does.
+
+The dashboard card lives in `frontend/` and is committed as a built bundle in
+`custom_components/preset_manager/www/`, because Home Assistant serves it
+straight from the integration:
+
+```bash
+cd frontend
+npm ci
+npm run typecheck
+npm test
+npm run build          # writes custom_components/preset_manager/www/
+```
+
+CI runs the same four and then checks that the committed bundle matches the
+source, so a change to `frontend/` without a rebuild does not get through.
+`frontend/` is not part of what HACS downloads — users get the bundle only.
+
+To look at the card without Home Assistant:
+
+```bash
+npm run preview        # serves the repository; open the URL it prints
+```
+
+[frontend/preview.html](frontend/preview.html) puts every variant on one page —
+both kinds of subject, every parameter type, an unset value, a preset that lost
+its preset mode, the error state, and the same set again in a column too narrow
+for it — against a fake `hass` that answers service calls, so switching a mode
+or moving a slider really does redraw every card. Three Home Assistant elements
+(`ha-card`, `ha-icon`, `ha-alert`) are stood in for; the card itself is the
+built bundle, unmodified.
 
 The brand images in `custom_components/preset_manager/brand/` are rendered from
 [assets/preset_manager_icon.svg](assets/preset_manager_icon.svg) with
