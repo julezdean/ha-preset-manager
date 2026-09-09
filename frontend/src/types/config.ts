@@ -10,11 +10,14 @@
 
 import type { ActionConfig } from "./ha";
 
-/** How much of the card is visible when the card decides for itself. */
-export type Visibility = "auto" | "always" | "never";
-
 export interface HeaderConfig {
   visible?: boolean;
+  /**
+   * The automatic switch of the preset mode. Independent of the mode row: one
+   * decides the mode, the other decides who decides the mode. Defaults to on
+   * for a preset mode card and off for a preset card, which does not own it.
+   */
+  automatic?: boolean;
   /** Overrides the name of the preset or preset mode. */
   title?: string;
   /** Overrides the second line; `false` removes it. */
@@ -24,9 +27,19 @@ export interface HeaderConfig {
   icon_color?: string;
 }
 
+/**
+ * When the mode row is shown.
+ *
+ * `automatic` means "while the automatic is on" - the modes are then a reading
+ * of what the conditions picked rather than something to click, and that is
+ * exactly when some dashboards want them and others do not. `true` and `false`
+ * are accepted for `always` and `never`.
+ */
+export type ModeVisibility = "always" | "never" | "automatic";
+
 export interface ModesConfig {
-  /** `auto`: shown on a preset mode, hidden on a preset. */
-  visible?: Visibility;
+  /** Defaults to on for a preset mode card and off for a preset card. */
+  visible?: boolean | ModeVisibility;
   style?: "chips" | "dropdown";
   icons?: boolean;
   /** Mode key -> colour, for the chip of that mode while it is active. */
@@ -56,6 +69,8 @@ export interface EditorConfig {
    * mode that is active right now, `all` shows every mode of every parameter.
    */
   mode?: "picker" | "active" | "all";
+  /** How `picker` is drawn. */
+  style?: "chips" | "dropdown";
   /** Mode key the picker starts on; defaults to the active mode. */
   default_mode?: string;
 }
@@ -109,9 +124,17 @@ export interface ResolvedConfig {
   type: string;
   entity: string;
   header: Required<Pick<HeaderConfig, "visible">> & HeaderConfig;
-  modes: Required<Omit<ModesConfig, "colors">> & { colors: Record<string, string> };
+  /**
+   * `visible` is left undefined where the user said nothing: what a card shows
+   * by default depends on what it turned out to be about, and that is only
+   * known once the structure has arrived.
+   */
+  modes: Required<Omit<ModesConfig, "colors" | "visible">> & {
+    visible: ModeVisibility | undefined;
+    colors: Record<string, string>;
+  };
   values: { visible: boolean; parameters: ResolvedParameterRow[] | null; icons: boolean };
-  editor: Required<Pick<EditorConfig, "enabled" | "mode">> & EditorConfig;
+  editor: Required<Pick<EditorConfig, "enabled" | "mode" | "style">> & EditorConfig;
   presets: Required<PresetsConfig>;
   footer: { visible: boolean; content: FooterItem[] };
   tap_action?: ActionConfig;

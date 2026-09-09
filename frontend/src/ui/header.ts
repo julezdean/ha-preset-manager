@@ -12,7 +12,6 @@ import { html, nothing, type TemplateResult } from "lit";
 import { activeMode, automaticState } from "../data/state";
 import { localize } from "../localize";
 import { DEFAULT_PRESET_ICON, DEFAULT_PRESET_MODE_ICON, icon } from "./icon";
-import { modesVisible } from "./modes";
 import type { CardContext } from "./context";
 
 /** The colour the active mode paints the icon and its chip with. */
@@ -59,10 +58,11 @@ function defaultSubtitle(context: CardContext): string {
     return modeName;
   }
 
-  if (!subject.presetMode) {
-    return `${modeName} · ${localize(hass, "no_preset_mode")}`;
-  }
-  return `${modeName} · ${subject.presetMode.name}`;
+  // The preset mode a preset follows is not news on every render - the footer
+  // carries it where it is wanted. What is news is that there is none.
+  return subject.presetMode
+    ? modeName
+    : `${modeName} · ${localize(hass, "no_preset_mode")}`;
 }
 
 function automaticToggle(context: CardContext): TemplateResult | typeof nothing {
@@ -122,15 +122,13 @@ export function renderHeader(context: CardContext): TemplateResult | typeof noth
   const colour = config.header.icon_color ?? modeColor(context);
   const { tappable } = context;
 
-  // The automatic belongs to a preset mode, and switching it changes what
-  // every preset of that dimension does. So a preset card only offers it when
-  // it offers the modes as well: a card that can switch the mode has to be
-  // able to reach the switch that gates it, and a card that only reads values
-  // has no business owning that decision.
-  const controls =
-    context.subject.kind === "preset_mode" || modesVisible(context)
-      ? automaticToggle(context)
-      : nothing;
+  // The automatic and the mode row are two decisions - which mode, and who
+  // gets to decide it - so they are two switches. Left alone, a preset mode
+  // card offers its own automatic and a preset card does not: switching it
+  // there would change what every other preset of that dimension does.
+  const wanted =
+    config.header.automatic ?? context.subject.kind === "preset_mode";
+  const controls = wanted ? automaticToggle(context) : nothing;
 
   // A row that contains a switch must not also be a button: nesting one
   // control inside another is neither valid nor announceable. The tap action

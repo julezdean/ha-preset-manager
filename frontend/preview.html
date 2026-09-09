@@ -635,6 +635,13 @@
       ["Preset — default", { entity: "sensor.motion_active_mode" }],
       ["Preset mode — default", { entity: "sensor.house_mode_mode" }],
       [
+        "Preset — editors, dropdown picker",
+        {
+          entity: "sensor.motion_active_mode",
+          editor: { enabled: true, mode: "picker", style: "dropdown" },
+        },
+      ],
+      [
         "Preset — editors, mode picker",
         {
           entity: "sensor.motion_active_mode",
@@ -691,7 +698,15 @@
       ],
       [
         "Preset — modes forced on",
-        { entity: "sensor.motion_active_mode", modes: { visible: "always" } },
+        { entity: "sensor.motion_active_mode", modes: { visible: true } },
+      ],
+      [
+        "Preset mode — modes only while automatic",
+        {
+          entity: "sensor.house_mode_mode",
+          modes: { visible: "automatic" },
+          footer: { content: ["preset_mode"] },
+        },
       ],
       [
         "Preset mode — dropdown",

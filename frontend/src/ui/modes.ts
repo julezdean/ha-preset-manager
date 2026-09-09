@@ -14,7 +14,12 @@
 
 import { html, nothing, type TemplateResult } from "lit";
 
-import { activeModeKey, modeLockReason, modesOf } from "../data/state";
+import {
+  activeModeKey,
+  automaticState,
+  modeLockReason,
+  modesOf,
+} from "../data/state";
 import { localize } from "../localize";
 import { icon } from "./icon";
 import type { CardContext } from "./context";
@@ -28,13 +33,20 @@ export function drivenPresetMode(context: CardContext): PresetModeInfo | null {
 }
 
 export function modesVisible(context: CardContext): boolean {
-  const { visible } = context.config.modes;
-  if (visible === "never") return false;
-  if (visible === "always") return true;
-  // Automatic: a preset mode *is* its modes, so it shows them. A preset shows
-  // its values, and the mode row would let a card named after one preset
-  // change what every other preset of that dimension does.
-  return context.subject.kind === "preset_mode";
+  const setting = context.config.modes.visible;
+  if (setting === undefined) {
+    // Where the user said nothing: a preset mode *is* its modes, so it shows
+    // them. A preset shows its values, and the mode row would let a card named
+    // after one preset change what every other preset of that dimension does.
+    return context.subject.kind === "preset_mode";
+  }
+  if (setting === "automatic") {
+    // Only while something else is choosing. A preset mode with no automatic
+    // at all - no conditions, or handed to an entity - is never in that state,
+    // so the row stays away, which is the same answer read literally.
+    return automaticState(context.hass, context.subject.presetMode) === true;
+  }
+  return setting === "always";
 }
 
 function selectMode(context: CardContext, presetMode: PresetModeInfo, key: string) {

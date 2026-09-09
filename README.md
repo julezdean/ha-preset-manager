@@ -508,12 +508,13 @@ time.
 | Option | Default | Meaning |
 | --- | --- | --- |
 | `entity` | – | Any entity of Preset Manager. The only required option. |
-| `header.visible` | `true` | The name, the state line and the automatic. |
+| `header.visible` | `true` | The name and the state line. |
+| `header.automatic` | on a preset mode | The automatic switch, beside the name. |
 | `header.title` | the object's name | Overrides the first line. |
 | `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
-| `modes.visible` | `auto` | `auto` shows the chips on a preset mode and hides them on a preset. `always`/`never` decide it. |
+| `modes.visible` | on a preset mode | `true`, `false`, or `automatic` for “only while the automatic is on”. Off by default on a preset, which does not own the dimension. |
 | `modes.style` | `chips` | `chips` or `dropdown`. |
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
 | `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |
@@ -522,6 +523,7 @@ time.
 | `values.icons` | `false` | Show each parameter's icon. |
 | `editor.enabled` | `false` | Turn the rows into the per-mode editors. |
 | `editor.mode` | `picker` | `picker`, `active` or `all`; see below. |
+| `editor.style` | `chips` | How `picker` is drawn: `chips` or `dropdown`. |
 | `editor.default_mode` | the active mode | Mode key the picker starts on. |
 | `presets.visible` | `false` | On a preset mode: list the presets following it. |
 | `presets.values` | `false` | And their values. |
@@ -578,11 +580,12 @@ not how it is used. So `editor.enabled` is off by default and a card shows the
 resolved values — which is what a dashboard is for. Turn it on and the same
 rows become the per-mode helpers:
 
-* `mode: picker` — a row of chips picks which mode is edited, and a line below
-  names the active mode whenever the two differ. Those chips are deliberately
-  quieter than the mode row above: smaller, without icons, and coloured from
-  the text rather than the accent. One row changes the house, the other changes
-  what this card shows, and they should not look like the same act.
+* `mode: picker` — an *Edit:* line picks which mode is edited, as chips or, with
+  `editor.style: dropdown`, as a menu. A line below names the active mode
+  whenever the two differ. The chips are deliberately quieter than the mode row
+  above: smaller, without icons, and coloured from the text rather than the
+  accent. One row changes the house, the other changes what this card shows,
+  and they should not look like the same act.
 * `mode: active` — always edits the mode that is active.
 * `mode: all` — every mode of every parameter, one row each. The full picture,
   and the widest.
@@ -608,14 +611,23 @@ would refuse the write anyway:
 * while the **automatic** is on — turn the switch in the header off first,
 * when the preset mode **follows another entity**, which owns the mode.
 
-The header says which of the two it is, so the row itself carries no
-explanation: the second line names the mode and, where there is one, the entity
-the preset mode was handed to, and the automatic sits beside it as a switch.
+The row itself carries no explanation: the second line of the header names the
+active mode and, where there is one, the entity the preset mode was handed to,
+and the automatic sits beside it as a switch. What a preset *follows* is not in
+there — that is what `footer.content: [preset_mode]` is for.
 
-On a preset card the chips are hidden by default (`modes.visible: auto`).
-Showing them there is deliberate: a preset does not own its dimension, so
-switching the mode from one preset's card changes what every preset of that
-preset mode does.
+`modes.visible: automatic` shows the row only while the automatic is on — when
+the modes are a reading of what the conditions picked rather than something to
+click. A preset mode with no automatic at all, because no mode has conditions
+or because it was handed to an entity, is never in that state and never shows
+the row.
+
+On a preset card the chips are hidden by default, and so is the automatic
+switch. Showing either there is deliberate: a preset does not own its
+dimension, so switching the mode — or the automatic — from one preset's card
+changes what every preset of that preset mode does. The two are separate
+options, because they are separate decisions: which mode, and who gets to
+decide it.
 
 ### Examples
 
@@ -686,7 +698,7 @@ header:
   icon_color: "#f9a825"
 
 modes:
-  visible: always
+  visible: true
   style: chips
   icons: true
   colors:

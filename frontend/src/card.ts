@@ -152,16 +152,14 @@ export class PresetManagerCard extends LitElement {
     const config = this._config;
     if (!config) return 2;
     let size = config.header.visible ? 1 : 0;
-    // `auto` depends on what the entity turned out to be, which is known here
-    // only after the structure arrived. Before that it counts as shown, so a
-    // card is never given less room than it needs.
+    // The default depends on what the entity turned out to be, which is known
+    // here only after the structure arrived. Before that it counts as shown,
+    // so a card is never given less room than it needs.
     const subject = this._subject;
     const modes =
-      config.modes.visible === "never"
-        ? false
-        : config.modes.visible === "always" ||
-          subject === null ||
-          subject.kind === "preset_mode";
+      config.modes.visible === undefined
+        ? subject === null || subject.kind === "preset_mode"
+        : config.modes.visible !== "never";
     if (modes) size += 1;
     if (config.values.visible) size += 2;
     if (config.presets.visible) size += 2;

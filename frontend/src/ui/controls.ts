@@ -106,6 +106,25 @@ function numberControl(
     `;
   }
 
+  // Up and down step the value and write it straight away. A number input
+  // does the stepping itself, but whether that also counts as a change - and
+  // therefore reaches the store - is up to the browser. Doing it here makes
+  // the arrow keys the quickest way to set a value on every one of them, and
+  // keeps the step and the range the entity's own.
+  const arrows = (event: KeyboardEvent) => {
+    const direction = event.key === "ArrowUp" ? 1 : event.key === "ArrowDown" ? -1 : 0;
+    if (!direction || disabled) return;
+    event.preventDefault();
+    const input = event.target as HTMLInputElement;
+    const current = Number.isNaN(input.valueAsNumber) ? min : input.valueAsNumber;
+    const next = Math.min(max, Math.max(min, current + direction * step));
+    if (next === current) return;
+    // Rounded to the step, or 0.1 + 0.2 arrives in the store as it famously is.
+    const decimals = (String(step).split(".")[1] ?? "").length;
+    input.value = next.toFixed(decimals);
+    set(context, entity, "set_value", { value: Number(input.value) });
+  };
+
   return html`
     <input
       class="number-input"
@@ -118,6 +137,7 @@ function numberControl(
       .value=${value}
       ?disabled=${disabled}
       @change=${commit}
+      @keydown=${arrows}
     />
     ${unit ? html`<span class="row-value">${unit}</span>` : nothing}
   `;

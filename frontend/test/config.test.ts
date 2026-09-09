@@ -10,7 +10,7 @@ describe("resolveConfig", () => {
     expect(config.entity).toBe("sensor.house_mode_mode");
     expect(config.header.visible).toBe(true);
     expect(config.values.visible).toBe(true);
-    expect(config.modes.visible).toBe("auto");
+    expect(config.modes.visible).toBeUndefined();
   });
 
   it("keeps the editors closed unless asked", () => {
@@ -34,8 +34,44 @@ describe("resolveConfig", () => {
   });
 
   it("names the option when a value is out of range", () => {
+    expect(() => resolveConfig({ ...MINIMAL, editor: { mode: "sometimes" } })).toThrow(
+      /picker, active, all/,
+    );
+  });
+
+  it("leaves the two visibility switches alone until they are set", () => {
+    // What a card shows by default depends on what its entity turned out to
+    // be, and that is not known here. Undefined means "the card decides".
+    const config = resolveConfig(MINIMAL);
+    expect(config.modes.visible).toBeUndefined();
+    expect(config.header.automatic).toBeUndefined();
+  });
+
+  it("takes them as plain switches once they are", () => {
+    const config = resolveConfig({
+      ...MINIMAL,
+      modes: { visible: false },
+      header: { automatic: true },
+    });
+    expect(config.modes.visible).toBe("never");
+    expect(config.header.automatic).toBe(true);
+  });
+
+  it.each([
+    [true, "always"],
+    [false, "never"],
+    ["always", "always"],
+    ["never", "never"],
+    ["automatic", "automatic"],
+  ])("takes %s as %s for the mode row", (written, expected) => {
+    expect(resolveConfig({ ...MINIMAL, modes: { visible: written } }).modes.visible).toBe(
+      expected,
+    );
+  });
+
+  it("names what it accepts for the mode row", () => {
     expect(() => resolveConfig({ ...MINIMAL, modes: { visible: "sometimes" } })).toThrow(
-      /auto, always, never/,
+      /always, never, automatic/,
     );
   });
 
@@ -91,14 +127,14 @@ describe("pruneConfig", () => {
       type: MINIMAL.type,
       entity: MINIMAL.entity,
       editor: { enabled: true, mode: "picker" },
-      modes: { visible: "always", style: "chips" },
+      modes: { visible: true, style: "chips" },
     });
     // `mode: picker` and `style: chips` are the defaults and go; the other two
     // stay.
     expect(pruned).toEqual({
       ...MINIMAL,
       editor: { enabled: true },
-      modes: { visible: "always" },
+      modes: { visible: true },
     });
   });
 
@@ -106,7 +142,7 @@ describe("pruneConfig", () => {
     const written = pruneConfig({
       type: MINIMAL.type,
       entity: MINIMAL.entity,
-      modes: { visible: "always" },
+      modes: { visible: true },
     });
     expect(resolveConfig(written).modes.visible).toBe("always");
   });

@@ -44,6 +44,7 @@ const LABELS: Record<string, string> = {
   footer: "Footer",
   actions: "Actions",
   visible: "Show",
+  automatic: "Automatic switch",
   title: "Title",
   subtitle: "Subtitle",
   icon: "Icon",
@@ -172,6 +173,7 @@ export class PresetManagerCardEditor extends LitElement {
         title: LABELS.header,
         schema: [
           { name: "visible", selector: { boolean: {} } },
+          { name: "automatic", selector: { boolean: {} } },
           { name: "title", selector: { text: {} } },
           { name: "subtitle", selector: { text: {} } },
           { name: "icon", selector: { icon: {} } },
@@ -186,9 +188,9 @@ export class PresetManagerCardEditor extends LitElement {
           {
             name: "visible",
             ...options([
-              ["auto", "Automatic"],
               ["always", "Always"],
               ["never", "Never"],
+              ["automatic", "While the automatic is on"],
             ]),
           },
           {
@@ -248,6 +250,13 @@ export class PresetManagerCardEditor extends LitElement {
                 ["picker", "Pick a mode in the card"],
                 ["active", "The active mode"],
                 ["all", "Every mode"],
+              ]),
+            },
+            {
+              name: "style",
+              ...options([
+                ["chips", "Chips"],
+                ["dropdown", "Dropdown"],
               ]),
             },
             {

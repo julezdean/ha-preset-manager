@@ -40,6 +40,21 @@ versioning [Semantic Versioning](https://semver.org/).
   has filled in, which is every new preset, every control was dead. A toggle
   without a value now shows that it has none instead of resting on off, the way
   the integration keeps the two apart itself.
+- `modes.visible` takes `true`, `false` or `automatic`, and the new
+  `header.automatic` is a switch of its own: which mode is one decision, who
+  gets to decide it is another, and they are now decided separately. `automatic`
+  shows the mode row only while the automatic is on — when the modes are a
+  reading of what the conditions picked rather than something to click. Left
+  alone, a preset mode card offers both and a preset card neither; it does not
+  own the dimension. The old `auto`, which meant "guess from the entity", is
+  gone: that is what the default does, and it needed no name.
+- The mode picker of the editors is an *Edit:* line rather than a heading, and
+  can be a dropdown instead of chips (`editor.style`).
+- The second line of a preset's header names the active mode and stops there.
+  Which preset mode it follows was on every card and every render; the footer
+  carries it where it is wanted.
+- Arrow keys step a number that is shown as an input field, and write the value
+  straight away. The step and the range are the entity's own.
 - The row that picks which mode is edited no longer looks like the row that
   sets the active mode. It is smaller, carries no icons and takes its colour
   from the text rather than the accent — one changes the house, the other

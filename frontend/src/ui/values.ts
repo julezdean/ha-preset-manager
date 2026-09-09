@@ -143,25 +143,46 @@ function editModePicker(context: CardContext): TemplateResult | typeof nothing {
   const active = activeModeKey(context.hass, context.subject);
   const activeMode = modes.find((mode) => mode.key === active);
 
-  return html`
-    <div class="group-label">${localize(context.hass, "editing")}</div>
-    <div
-      class="chips secondary"
-      role="group"
-      aria-label=${localize(context.hass, "editing")}
-    >
-      ${modes.map(
-        (mode) => html`
-          <button
-            class="chip"
-            type="button"
-            aria-pressed=${mode.key === context.editMode ? "true" : "false"}
-            @click=${() => context.selectEditMode(mode.key)}
+  const label = localize(context.hass, "editing");
+  const control =
+    context.config.editor.style === "dropdown"
+      ? html`
+          <select
+            class="select-input"
+            aria-label=${label}
+            @change=${(event: Event) =>
+              context.selectEditMode((event.target as HTMLSelectElement).value)}
           >
-            <span>${mode.name}</span>
-          </button>
-        `,
-      )}
+            ${modes.map(
+              (mode) => html`
+                <option value=${mode.key} ?selected=${mode.key === context.editMode}>
+                  ${mode.name}
+                </option>
+              `,
+            )}
+          </select>
+        `
+      : html`
+          <div class="chips secondary" role="group" aria-label=${label}>
+            ${modes.map(
+              (mode) => html`
+                <button
+                  class="chip"
+                  type="button"
+                  aria-pressed=${mode.key === context.editMode ? "true" : "false"}
+                  @click=${() => context.selectEditMode(mode.key)}
+                >
+                  <span>${mode.name}</span>
+                </button>
+              `,
+            )}
+          </div>
+        `;
+
+  return html`
+    <div class="row">
+      <div class="row-label"><span>${label}:</span></div>
+      <div class="row-control">${control}</div>
     </div>
     ${activeMode && activeMode.key !== context.editMode
       ? html`<div class="note">

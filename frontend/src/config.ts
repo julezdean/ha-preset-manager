@@ -14,17 +14,17 @@
 import { CARD_TYPE } from "./const";
 import type {
   FooterItem,
+  ModeVisibility,
   ParameterRowConfig,
   PresetManagerCardConfig,
   ResolvedConfig,
   ResolvedParameterRow,
-  Visibility,
 } from "./types/config";
 
 export class CardConfigError extends Error {}
 
-const VISIBILITIES: Visibility[] = ["auto", "always", "never"];
 const MODE_STYLES = ["chips", "dropdown"] as const;
+const MODE_VISIBILITIES: ModeVisibility[] = ["always", "never", "automatic"];
 const EDITOR_MODES = ["picker", "active", "all"] as const;
 const FOOTER_ITEMS: FooterItem[] = [
   "preset_mode",
@@ -49,6 +49,29 @@ function bool(value: unknown, path: string, fallback: boolean): boolean {
   if (value === undefined) return fallback;
   if (typeof value !== "boolean") fail(`"${path}" has to be true or false`);
   return value;
+}
+
+/** A switch the user may leave alone, so the card can decide for itself. */
+function optionalBool(value: unknown, path: string): boolean | undefined {
+  if (value === undefined) return undefined;
+  if (typeof value !== "boolean") fail(`"${path}" has to be true or false`);
+  return value;
+}
+
+/**
+ * When to show the mode row, with `true`/`false` as the obvious shorthands.
+ *
+ * Left unset it stays undefined, because what a card shows by default depends
+ * on what its entity turned out to be, and that is not known here.
+ */
+function modeVisibility(value: unknown, path: string): ModeVisibility | undefined {
+  if (value === undefined) return undefined;
+  if (value === true) return "always";
+  if (value === false) return "never";
+  if (typeof value !== "string" || !MODE_VISIBILITIES.includes(value as ModeVisibility)) {
+    fail(`"${path}" has to be true, false, or one of ${MODE_VISIBILITIES.join(", ")}`);
+  }
+  return value as ModeVisibility;
 }
 
 function text(value: unknown, path: string): string | undefined {
@@ -156,13 +179,14 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     entity,
     header: {
       visible: bool(header.visible, "header.visible", true),
+      automatic: optionalBool(header.automatic, "header.automatic"),
       title: text(header.title, "header.title"),
       subtitle: textOrFalse(header.subtitle, "header.subtitle"),
       icon: textOrFalse(header.icon, "header.icon"),
       icon_color: text(header.icon_color, "header.icon_color"),
     },
     modes: {
-      visible: oneOf(modes.visible, "modes.visible", VISIBILITIES, "auto"),
+      visible: modeVisibility(modes.visible, "modes.visible"),
       style: oneOf(modes.style, "modes.style", MODE_STYLES, "chips"),
       icons: bool(modes.icons, "modes.icons", true),
       colors: colors(modes.colors, "modes.colors"),
@@ -175,6 +199,7 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     editor: {
       enabled: bool(editor.enabled, "editor.enabled", false),
       mode: oneOf(editor.mode, "editor.mode", EDITOR_MODES, "picker"),
+      style: oneOf(editor.style, "editor.style", MODE_STYLES, "chips"),
       default_mode: text(editor.default_mode, "editor.default_mode"),
     },
     presets: {
