@@ -94,16 +94,31 @@
   .narrow preset-manager-card {
     width: 200px;
   }
+
+  /* Gallery: columns rather than a grid, so a short card does not leave a
+     tall card's worth of air beneath it. */
+  .grid.gallery {
+    display: block;
+    column-count: 4;
+    column-gap: 24px;
+  }
+
+  .grid.gallery > div {
+    break-inside: avoid;
+    margin-bottom: 24px;
+  }
 </style>
 
 <body>
+  <div id="intro">
   <h1>Preset Manager card</h1>
   <p class="hint">
     Live: switching a mode, moving a slider or typing a value writes into the
     fake state machine below and every card follows, the way they would in Home
     Assistant.
   </p>
-  <button class="theme" onclick="document.body.classList.toggle('dark')">
+  </div>
+  <button id="theme-toggle" class="theme" onclick="document.body.classList.toggle('dark')">
     Light / dark
   </button>
   <div class="grid" id="grid"></div>
@@ -464,11 +479,11 @@
         unset ? "unknown" : at({ home: 60, away: 0, night: 35, window_open: 35 }),
         { min: 0, max: 100, step: 5, mode: "slider", unit_of_measurement: "%" },
       );
-      put(`switch.clock_${mode.key}_enabled`, unset ? "unknown" : mode.key === "away" ? "off" : "on");
-      put(`select.clock_${mode.key}_scene`, unset ? "unknown" : "Sunrise", {
+      put(`switch.clock_${mode.key}_enabled`, mode.key === "away" ? "off" : "on");
+      put(`select.clock_${mode.key}_scene`, "Sunrise", {
         options: ["Sunrise", "Soft", "Off"],
       });
-      put(`text.clock_${mode.key}_label`, unset ? "unknown" : "Weekday", {
+      put(`text.clock_${mode.key}_label`, "Weekday", {
         min: 0,
         max: 40,
         mode: "text",
@@ -479,8 +494,8 @@
         mode: "password",
       });
       put(`time.clock_${mode.key}_wake_up`, unset ? "unknown" : "06:30:00");
-      put(`date.clock_${mode.key}_holiday`, unset ? "unknown" : "2026-12-24");
-      put(`datetime.clock_${mode.key}_deadline`, unset ? "unknown" : "2026-09-30T16:00:00+00:00");
+      put(`date.clock_${mode.key}_holiday`, "2026-12-24");
+      put(`datetime.clock_${mode.key}_deadline`, "2026-09-30T16:00:00+00:00");
       // Deliberately without a value: an unset parameter of one mode.
       if (mode.key !== "night") {
         put(`number.fan_${mode.key}_speed`, 2, { min: 0, max: 5, step: 1, mode: "box" });
@@ -544,9 +559,11 @@
           continue;
         }
         if (parameter.type === "time") {
-          put(parameter.entity, `2026-09-10T${editor.state}+02:00`, attributes);
+          // Naive, so it is read as local time. With an offset the browser
+          // shifts it and a date lands on the day before.
+          put(parameter.entity, `2026-09-10T${editor.state}`, attributes);
         } else if (parameter.type === "date") {
-          put(parameter.entity, `${editor.state}T00:00:00+02:00`, attributes);
+          put(parameter.entity, `${editor.state}T00:00:00`, attributes);
         } else {
           put(parameter.entity, editor.state, attributes);
         }
@@ -754,10 +771,29 @@
 
     resolveAll();
 
+    // Two query parameters, so a screenshot is a command rather than a series
+    // of clicks: `?theme=dark` opens in the dark palette, and `?gallery=1`
+    // drops the prose, the toggle and the narrow column tests - what is left
+    // is the set of cards worth putting in front of a reader.
+    const params = new URLSearchParams(location.search);
+    if (params.get("theme") === "dark") document.body.classList.add("dark");
+    const gallery = params.has("gallery");
+    if (gallery) {
+      for (const id of ["intro", "theme-toggle"]) document.getElementById(id)?.remove();
+      // A fixed width so the same command produces the same picture, whatever
+      // the window happens to be.
+      document.body.style.width = `${params.get("gallery") || 1480}px`;
+      document.body.style.boxSizing = "border-box";
+      document.getElementById("grid").classList.add("gallery");
+    }
+
     import("../custom_components/preset_manager/www/preset-manager-card.js")
       .then(() => {
         const grid = document.getElementById("grid");
         for (const [title, config, className] of CARDS) {
+          if (gallery && (className === "narrow" || title.includes("Not an entity"))) {
+            continue;
+          }
           const column = document.createElement("div");
           if (className) column.className = className;
           const heading = document.createElement("h2");

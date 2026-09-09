@@ -55,6 +55,22 @@ handed to an entity you already have.
 > preset's device page under *Configuration*, not under
 > Settings → Devices & Services → Helpers.
 
+## What it looks like
+
+The integration brings its own dashboard card. Every shape it takes is below —
+you write one line for the first one and add options only where you want them.
+
+**Light**
+
+![The Preset Manager card in light mode: seventeen variations, from a preset with three values to a preset mode with every preset it drives](assets/card-light.png)
+
+**Dark**
+
+![The same seventeen variations in dark mode](assets/card-dark.png)
+
+Details, and the configuration behind each of them, are under
+[Dashboard card](#dashboard-card).
+
 ## Installation
 
 [![Open your Home Assistant instance and open a repository inside the Home Assistant Community Store.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=julezdean&repository=ha-preset-manager&category=integration)
@@ -1045,6 +1061,18 @@ To look at the card without Home Assistant:
 
 ```bash
 npm run preview        # serves the repository; open the URL it prints
+```
+
+Two query parameters make that page reproducible rather than something to
+click through: `?theme=dark` opens it in the dark palette, and `?gallery=1480`
+drops the prose and the narrow-column tests and lays the rest out at a fixed
+width. That is how the two pictures at the top of this file are made:
+
+```bash
+"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
+  --headless=new --hide-scrollbars --force-device-scale-factor=2 \
+  --window-size=1480,1730 --screenshot=assets/card-light.png \
+  "http://localhost:8765/frontend/preview.html?gallery=1480&theme=light"
 ```
 
 [frontend/preview.html](frontend/preview.html) puts every variant on one page —
