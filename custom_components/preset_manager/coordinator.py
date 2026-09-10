@@ -41,6 +41,7 @@ from .models import (
     ParameterDef,
     PresetConfig,
     PresetModeConfig,
+    find_mode,
     modes_to_data,
     resolve_mode,
 )
@@ -155,6 +156,10 @@ class PresetManagerRuntime:
             coordinator = PresetCoordinator(self, config, entry)
             self.presets[subentry_id] = coordinator
             coordinator.async_initialize()
+            # A mode can also disappear while this hub is not loaded, and the
+            # pruning below would take the evidence with it.
+            if coordinator.async_release_lost_hold():
+                coordinator.async_update_state()
 
         self.async_attach()
         self.async_prune_store()
@@ -247,6 +252,10 @@ class PresetManagerRuntime:
                 subentry.title,
                 hubs.async_resolve_preset_data(self.hass, subentry.data),
             )
+            # Before the shape decides anything: this is the one moment where
+            # the modes the preset had and the ones it is about to have are
+            # both in reach, and the deleted one still has a name.
+            coordinator.async_release_lost_hold(config.modes)
             if _preset_shape(config) != _preset_shape(coordinator.config):
                 return True
             applied.append((coordinator, config))
@@ -603,6 +612,8 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
         if self.automatic == value:
             return
         if not value:
+            # Taking it out by hand again is the decision the repair asked for.
+            following.async_clear_manual_mode_issue(self.hass, self.config.subentry_id)
             # Switching off changes nothing that is on screen: the mode the
             # preset mode was handing over becomes the hand-set one. Without
             # this the preset would drop onto whatever was set by hand last -
@@ -640,6 +651,45 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
         if not self.store.set_manual_mode(self.config.subentry_id, mode.key):
             return
         self._async_push_mode_change()
+
+    @callback
+    def async_release_lost_hold(self, modes: tuple[ModeDef, ...] | None = None) -> bool:
+        """Rejoin the preset mode when the mode this preset held was deleted.
+
+        Holding nothing is not the same as being held: the preset would follow
+        every switch of its preset mode from then on, with a switch that says
+        it does not - which is worse than either of the two honest states. So
+        it really does follow again, and a repair says what happened, because
+        the mode was deleted somewhere else and nothing else would mention it.
+
+        ``modes`` are the modes the preset is about to have; without them the
+        ones it has now. The name for the repair comes from the configuration
+        this coordinator still holds, which is where the deleted mode was last
+        written down.
+        """
+        if self.automatic:
+            return False
+        held = self.store.manual_mode(self.config.subentry_id)
+        available = self.config.modes if modes is None else modes
+        if held is None or find_mode(available, held) is not None:
+            return False
+
+        deleted = self.config.mode(held)
+        self.store.set_manual_mode(self.config.subentry_id, None)
+        self.store.set_preset_automatic(self.config.subentry_id, True)
+        following.async_create_manual_mode_issue(
+            self.hass,
+            self.config.subentry_id,
+            self.config.name,
+            deleted.name if deleted else held,
+        )
+        _LOGGER.info(
+            "Preset '%s' was set to mode '%s', which no longer exists; "
+            "it follows its preset mode again",
+            self.config.name,
+            deleted.name if deleted else held,
+        )
+        return True
 
     @callback
     def _async_push_mode_change(self) -> None:

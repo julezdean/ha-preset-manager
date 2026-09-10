@@ -12,6 +12,7 @@ from __future__ import annotations
 import pytest
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ServiceValidationError
+from homeassistant.helpers import issue_registry as ir
 
 from custom_components.preset_manager.const import DOMAIN, SERVICE_SET_ACTIVE_MODE
 
@@ -19,6 +20,7 @@ from .conftest import (
     BRIGHTNESS,
     COLOR_TEMPERATURE,
     OFF_DELAY,
+    PRESET_ID,
     PRESET_MODE_ID,
     Hubs,
     async_set_active_mode,
@@ -259,10 +261,15 @@ async def test_orphaned_preset_stays_orphaned(hass: HomeAssistant) -> None:
     assert hass.states.get(SENSOR).state == "unknown"
 
 
-async def test_deleted_mode_falls_back_to_the_dimension(
+async def test_a_deleted_mode_hands_the_preset_back_to_its_dimension(
     hass: HomeAssistant, motion: Hubs
 ) -> None:
-    """The mode a preset holds can be taken away under it."""
+    """The mode a preset holds can be taken away under it.
+
+    Holding nothing is not the same as being held, so the preset really does
+    follow again rather than behaving like it with a switch that says
+    otherwise - and a repair says so, because nothing else would.
+    """
     await _set_values(hass, motion)
     await async_set_active_mode(hass, "home")
     await _turn(hass, "turn_off")
@@ -277,8 +284,90 @@ async def test_deleted_mode_falls_back_to_the_dimension(
     )
     await hass.async_block_till_done()
 
-    # Back on the mode of the preset mode - not on no mode at all.
+    # Back on the mode of the preset mode - and following it again for real.
     assert hass.states.get(SENSOR).state == "Home"
     assert hass.states.get(BRIGHTNESS_SENSOR).state == "80.0"
-    # And still not following it: the switch was not touched.
+    assert hass.states.get(SWITCH).state == "on"
+
+    issues = ir.async_get(hass)
+    issue = issues.async_get_issue(DOMAIN, f"manual_mode_deleted_{PRESET_ID}")
+    assert issue is not None
+    # The name of the deleted mode, which only the old configuration still had.
+    assert issue.translation_placeholders == {
+        "preset": "Motion Sensor Living Room",
+        "mode": "Night",
+    }
+
+
+async def test_it_keeps_following_after_a_deleted_mode(
+    hass: HomeAssistant, motion: Hubs
+) -> None:
+    """The state it is left in has to survive the next switch of the dimension.
+
+    This is what the old fall-back got wrong: the preset followed every switch
+    from here on with a switch that read "off".
+    """
+    await _set_values(hass, motion)
+    await _turn(hass, "turn_off")
+    await _select(hass, "Night")
+
+    hub = motion.entry("preset_modes")
+    subentry = hub.subentries[PRESET_MODE_ID]
+    modes = [item for item in subentry.data["modes"] if item["key"] != "night"]
+    hass.config_entries.async_update_subentry(
+        hub, subentry, data={**subentry.data, "modes": modes}
+    )
+    await hass.async_block_till_done()
+
+    await async_set_active_mode(hass, "away")
+    assert hass.states.get(SENSOR).state == "Away"
+    assert hass.states.get(SWITCH).state == "on"
+
+
+async def test_the_repair_goes_when_the_preset_is_taken_out_again(
+    hass: HomeAssistant, motion: Hubs
+) -> None:
+    """It asks for a decision, and making it is what withdraws the question."""
+    await _set_values(hass, motion)
+    await _turn(hass, "turn_off")
+    await _select(hass, "Night")
+
+    hub = motion.entry("preset_modes")
+    subentry = hub.subentries[PRESET_MODE_ID]
+    modes = [item for item in subentry.data["modes"] if item["key"] != "night"]
+    hass.config_entries.async_update_subentry(
+        hub, subentry, data={**subentry.data, "modes": modes}
+    )
+    await hass.async_block_till_done()
+    issues = ir.async_get(hass)
+    issue_id = f"manual_mode_deleted_{PRESET_ID}"
+    assert issues.async_get_issue(DOMAIN, issue_id) is not None
+
+    await _turn(hass, "turn_off")
+
+    assert issues.async_get_issue(DOMAIN, issue_id) is None
+    assert hass.states.get(SENSOR).state == "Home"
+
+
+async def test_a_deleted_preset_mode_does_not_raise_it(
+    hass: HomeAssistant, motion: Hubs
+) -> None:
+    """Losing the whole dimension is the other repair, not this one.
+
+    A deleted preset mode hands its modes to the presets that followed it, so
+    the one they are held on is still there - nothing was lost that this issue
+    is about, and two repairs for one event would only compete.
+    """
+    await _set_values(hass, motion)
+    await _turn(hass, "turn_off")
+    await _select(hass, "Night")
+
+    hub = motion.entry("preset_modes")
+    hass.config_entries.async_remove_subentry(hub, PRESET_MODE_ID)
+    await hass.async_block_till_done()
+
+    issues = ir.async_get(hass)
+    assert issues.async_get_issue(DOMAIN, f"manual_mode_deleted_{PRESET_ID}") is None
+    assert issues.async_get_issue(DOMAIN, f"orphaned_preset_{PRESET_ID}") is not None
+    # Still taken out by hand; it just has nothing to be taken out of.
     assert hass.states.get(SWITCH).state == "off"

@@ -31,6 +31,12 @@ as they are rather than renamed mid-series.
 - `sensor.<preset>_active_mode` carries an `automatic` attribute. `mode_source`
   keeps naming the preset mode, which stays true while the preset holds its own
   mode.
+- A preset whose hand-set mode is deleted from its preset mode **rejoins it**:
+  its automatic goes back on, and a repair issue names the mode that went. The
+  quiet fall-back this replaces was not a fall-back at all - the preset went on
+  following every switch of its preset mode, with a switch that read "off" and
+  a card that said "set by hand". The repair is withdrawn when the preset is
+  taken out by hand again, which is the decision it asks for.
 - The preset's switch is `follows_preset_mode`, not `automatic`: the preset
   mode's switch already owns that object id, and a preset named like its preset
   mode would push one of the two into an `_2` suffix. The symmetric-looking

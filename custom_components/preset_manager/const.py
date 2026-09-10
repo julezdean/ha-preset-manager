@@ -186,3 +186,5 @@ PRESET_MODE_NONE: Final = "__none__"
 
 #: Issue id of a preset whose preset mode was deleted, per preset.
 ISSUE_ORPHANED_PRESET: Final = "orphaned_preset"
+#: Issue id of a preset whose hand-set mode was deleted under it, per preset.
+ISSUE_MANUAL_MODE_DELETED: Final = "manual_mode_deleted"

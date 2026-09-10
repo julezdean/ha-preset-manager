@@ -419,8 +419,12 @@ dimension. What it cannot do is rescue an orphaned preset: a preset that follows
 no preset mode has no modes to choose between, and both its switch and its
 selector say so instead of pretending otherwise.
 
-The mode a preset holds is dropped if it is deleted from the preset mode; the
-preset then shows the mode of the dimension again, still without following it.
+**If the mode it holds is deleted from the preset mode, the preset rejoins it**
+— its automatic goes back on, and a repair issue says so. Holding nothing is
+not the same as being held: the preset would follow every switch of its preset
+mode from then on, with a switch that reads "off". The repair stays until the
+preset is taken out by hand again, which is the decision it asks for.
+
 The switch position and the held mode survive restarts.
 
 ## Handing the preset mode to an entity
@@ -1003,6 +1007,7 @@ the rest are dropped, the same way a deleted parameter's values are.
 | Restart with no stored active mode | The first mode, or `unknown` once conditions are in play |
 | No mode's conditions match | No mode is active; the preset mode and its presets report `unknown` |
 | A condition fails | Warning in the log, that mode is skipped |
+| The mode a preset was set to by hand is deleted | Its automatic goes back on, it follows its preset mode again, repair issue |
 | Source entity names no mode, or is unavailable | Warning in the log, no mode is active |
 | Blueprint deleted | Its presets keep its parameters as their own, values included, and are editable again |
 

@@ -569,6 +569,10 @@
     "orphaned_preset": {
       "title": "Preset \"{preset}\" has no preset mode",
       "description": "Nothing decides which mode is active for this preset, so its values do not resolve. Either it was created without a preset mode, or the one it followed was deleted - in which case it kept its parameters, its values and its modes.\n\nAssign it a preset mode: Settings > Devices & services > Preset Manager > Presets, then the preset, then “Assign preset mode”."
+    },
+    "manual_mode_deleted": {
+      "title": "Preset \"{preset}\" lost the mode it was set to",
+      "description": "It was set by hand to \"{mode}\", and that mode has been deleted from its preset mode. A preset that holds nothing is not held at all - it would follow every switch of its preset mode with a switch that says it does not - so its automatic is back on and it follows its preset mode again.\n\nIf it should stand on its own, switch the automatic of the preset off and pick one of the remaining modes."
     }
   }
 }

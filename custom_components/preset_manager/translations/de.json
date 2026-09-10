@@ -569,6 +569,10 @@
     "orphaned_preset": {
       "title": "Preset „{preset}“ hat keinen Preset Mode",
       "description": "Für dieses Preset bestimmt nichts den aktiven Mode, also lösen seine Werte nicht auf. Entweder wurde es ohne Preset Mode angelegt, oder der, dem es folgte, wurde gelöscht – dann hat es seine Parameter, seine Werte und seine Modes behalten.\n\nWeise ihm einen Preset Mode zu: Einstellungen > Geräte & Dienste > Preset Manager > Presets, dann das Preset, dann „Preset Mode zuweisen“."
+    },
+    "manual_mode_deleted": {
+      "title": "Preset „{preset}“ hat den Mode verloren, auf dem es stand",
+      "description": "Es stand von Hand auf „{mode}“, und dieser Mode wurde aus seinem Preset Mode gelöscht. Ein Preset, das nichts hält, steht auch nicht von Hand – es würde jedem Wechsel seines Preset Mode folgen, mit einem Schalter, der das Gegenteil sagt. Seine Automatik ist deshalb wieder an und es folgt wieder seinem Preset Mode.\n\nSoll es weiter eigenständig stehen: die Automatik des Presets ausschalten und einen der verbliebenen Modes wählen."
     }
   }
 }
