@@ -17,15 +17,16 @@ as they are rather than renamed mid-series.
 ### Added
 
 - **An automatic per preset.** Every preset gets
-  `switch.<preset>_follows_preset_mode` and `select.<preset>_mode_selection`. With the switch off, that one preset holds a
-  mode of its own while its preset mode carries on switching for every other
-  preset that follows it. Switching it off changes nothing on the spot — the
-  mode being handed over becomes the one the preset holds; switching it back on
-  rejoins the dimension and drops what was set by hand. It exists on every
-  preset, including those under a preset mode with no conditions or one that
-  follows another entity: this switch is not about conditions, it is about
-  whether a preset listens to its dimension at all. A preset that follows no
-  preset mode has nothing to hold and says so instead of pretending to work.
+  `switch.<preset>_follows_preset_mode` and `select.<preset>_mode_selection`.
+  With the switch off, that one preset holds a mode of its own while its preset
+  mode carries on switching for every other preset that follows it. Switching it
+  off changes nothing on the spot — the mode being handed over becomes the one
+  the preset holds; switching it back on rejoins the dimension and drops what
+  was set by hand. It exists on every preset, including those under a preset
+  mode with no conditions or one that follows another entity: this switch is
+  not about conditions, it is about whether a preset listens to its dimension.
+  A preset that follows no preset mode has nothing to hold and says so instead
+  of pretending to work.
 - `preset_manager.set_active_mode` now also takes a preset, addressed by its own
   selector. Same service, same field.
 - `sensor.<preset>_active_mode` carries an `automatic` attribute. `mode_source`
