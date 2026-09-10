@@ -99,7 +99,7 @@
      tall card's worth of air beneath it. */
   .grid.gallery {
     display: block;
-    column-count: 4;
+    column-count: var(--gallery-columns, 4);
     column-gap: 24px;
   }
 
@@ -646,11 +646,16 @@
 
     // ---------------------------------------------------------------------
     // 4. One card per thing worth looking at.
+    //
+    // The third element tags a card: `narrow` puts it in a 200 pixel column,
+    // `showcase` marks the handful that stand for the rest. Which cards the
+    // picture in the README shows is decided here, not on the command line -
+    // so a card that changes shape changes the picture with it.
     // ---------------------------------------------------------------------
 
     const CARDS = [
-      ["Preset — default", { entity: "sensor.motion_active_mode" }],
-      ["Preset mode — default", { entity: "sensor.house_mode_mode" }],
+      ["Preset — default", { entity: "sensor.motion_active_mode" }, "showcase"],
+      ["Preset mode — default", { entity: "sensor.house_mode_mode" }, "showcase"],
       [
         "Preset — editors, dropdown picker",
         {
@@ -665,6 +670,7 @@
           editor: { enabled: true, mode: "picker" },
           footer: { content: ["preset_mode", "last_changed"] },
         },
+        "showcase",
       ],
       [
         "Preset — edit behind a switch",
@@ -696,6 +702,7 @@
           modes: { colors: { night: "#5c6bc0", window_open: "#ef6c00" } },
           footer: { content: ["last_changed"] },
         },
+        "showcase",
       ],
       [
         "Preset — every mode at once",
@@ -704,6 +711,7 @@
           editor: { enabled: true, mode: "all" },
           footer: { content: ["preset_mode", "blueprint"] },
         },
+        "showcase",
       ],
       [
         "Every parameter type — values",
@@ -715,6 +723,7 @@
           entity: "sensor.clock_active_mode",
           editor: { enabled: true, mode: "active" },
         },
+        "showcase",
       ],
       [
         "Preset mode — handed to an entity",
@@ -771,13 +780,15 @@
 
     resolveAll();
 
-    // Two query parameters, so a screenshot is a command rather than a series
-    // of clicks: `?theme=dark` opens in the dark palette, and `?gallery=1`
-    // drops the prose, the toggle and the narrow column tests - what is left
-    // is the set of cards worth putting in front of a reader.
+    // Query parameters, so a screenshot is a command rather than a series of
+    // clicks: `?theme=dark` opens in the dark palette, `?gallery=1480` drops
+    // the prose, the toggle and the narrow column tests and lays the rest out
+    // at that width, `?showcase=1` narrows it further to the tagged few, and
+    // `?columns=3` says how many columns they are poured into.
     const params = new URLSearchParams(location.search);
     if (params.get("theme") === "dark") document.body.classList.add("dark");
     const gallery = params.has("gallery");
+    const showcase = params.has("showcase");
     if (gallery) {
       for (const id of ["intro", "theme-toggle"]) document.getElementById(id)?.remove();
       // A fixed width so the same command produces the same picture, whatever
@@ -785,17 +796,21 @@
       document.body.style.width = `${params.get("gallery") || 1480}px`;
       document.body.style.boxSizing = "border-box";
       document.getElementById("grid").classList.add("gallery");
+      if (params.has("columns")) {
+        document.body.style.setProperty("--gallery-columns", params.get("columns"));
+      }
     }
 
     import("../custom_components/preset_manager/www/preset-manager-card.js")
       .then(() => {
         const grid = document.getElementById("grid");
-        for (const [title, config, className] of CARDS) {
-          if (gallery && (className === "narrow" || title.includes("Not an entity"))) {
+        for (const [title, config, tags = ""] of CARDS) {
+          if (gallery && (tags.includes("narrow") || title.includes("Not an entity"))) {
             continue;
           }
+          if (showcase && !tags.includes("showcase")) continue;
           const column = document.createElement("div");
-          if (className) column.className = className;
+          if (tags) column.className = tags;
           const heading = document.createElement("h2");
           heading.textContent = title;
           column.appendChild(heading);

@@ -57,12 +57,12 @@ handed to an entity you already have.
 
 ## What it looks like
 
-The integration brings its own dashboard card. Every shape it takes is below —
+The integration brings its own dashboard card. Six of its shapes are below —
 you write one line for the first one and add options only where you want them.
 
-![The Preset Manager card: seventeen variations, from a preset with three values to a preset mode with every preset it drives](assets/card-dark.png)
+![The Preset Manager card in six shapes: a preset showing three values, a preset mode with its four modes, the same preset with editors, a preset mode listing every preset it drives, one preset edited across all four modes at once, and every parameter type as an editor](assets/card-dark.png)
 
-Details, and the configuration behind each of them, are under
+The rest of them, and the configuration behind each, are under
 [Dashboard card](#dashboard-card).
 
 ## Installation
@@ -1059,16 +1059,19 @@ To look at the card without Home Assistant:
 npm run preview        # serves the repository; open the URL it prints
 ```
 
-Two query parameters make that page reproducible rather than something to
-click through: `?theme=dark` opens it in the dark palette, and `?gallery=1480`
-drops the prose and the narrow-column tests and lays the rest out at a fixed
-width. That is how the picture at the top of this file is made:
+Query parameters make that page reproducible rather than something to click
+through: `?theme=dark` opens it in the dark palette, `?gallery=1100` drops the
+prose and the narrow-column tests and lays the rest out at that width,
+`?showcase=1` keeps only the cards tagged for the picture below, and
+`?columns=3` says how many columns they are poured into. Which cards those are
+is decided in `preview.html`, not here, so a card that changes shape changes
+the picture with it. That is how the picture at the top of this file is made:
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1480,1730 --screenshot=assets/card-dark.png \
-  "http://localhost:8765/frontend/preview.html?gallery=1480&theme=dark"
+  --window-size=1100,1028 --screenshot=assets/card-dark.png \
+  "http://localhost:8765/frontend/preview.html?gallery=1100&columns=3&showcase=1&theme=dark"
 ```
 
 [frontend/preview.html](frontend/preview.html) puts every variant on one page —
