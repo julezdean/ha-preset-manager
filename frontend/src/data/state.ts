@@ -20,11 +20,9 @@ function modeKeyOf(entity: HassEntity | undefined): string | null {
   return typeof key === "string" && key ? key : null;
 }
 
-/** The entity whose `mode_key` says what is active for this subject. */
+/** The entity whose `mode_key` says what this preset resolves right now. */
 export function modeSourceEntityId(subject: Subject): string | undefined {
-  return subject.kind === "preset_mode"
-    ? subject.presetMode.entities.mode
-    : subject.preset.entities.active_mode;
+  return subject.preset.entities.active_mode;
 }
 
 export function activeModeKey(
@@ -48,9 +46,7 @@ export function presetModeKey(
 }
 
 export function modesOf(subject: Subject): ModeInfo[] {
-  return subject.kind === "preset_mode"
-    ? subject.presetMode.modes
-    : subject.preset.modes;
+  return subject.preset.modes;
 }
 
 export function activeMode(
@@ -62,22 +58,14 @@ export function activeMode(
   return modesOf(subject).find((mode) => mode.key === key) ?? null;
 }
 
-/**
- * The switch saying whether a preset follows its preset mode.
- *
- * Only a preset has one. A preset mode gets its mode from its conditions or
- * from the entity it follows and is never operated, so a card for one shows
- * what it is doing and offers nothing to press.
- */
+/** The switch saying whether a preset follows its preset mode. */
 export function followsEntityId(subject: Subject): string | undefined {
-  return subject.kind === "preset" ? subject.preset.entities.automatic : undefined;
+  return subject.preset.entities.automatic;
 }
 
 /** The entity the mode of this subject is set on, if it can be set at all. */
 export function modeSelectEntityId(subject: Subject): string | undefined {
-  return subject.kind === "preset"
-    ? subject.preset.entities.mode_selection
-    : undefined;
+  return subject.preset.entities.mode_selection;
 }
 
 /**
@@ -97,10 +85,7 @@ export function followsPresetMode(
 export function modeLockReason(
   hass: HomeAssistant,
   subject: Subject,
-): "computed" | "following" | "missing" | null {
-  // A preset mode is not settable at all: its mode is computed, and that is
-  // the whole point of it.
-  if (subject.kind === "preset_mode") return "computed";
+): "following" | "missing" | null {
   // A preset without a preset mode has no modes to choose between.
   if (!subject.presetMode) return "missing";
   if (!modeSelectEntityId(subject)) return "missing";

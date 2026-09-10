@@ -70,34 +70,11 @@ export interface EditorConfig {
   mode?: "picker" | "active" | "all";
   /** How `picker` is drawn. */
   style?: "chips" | "dropdown";
-  /** Mode key the picker starts on; defaults to the active mode. */
+  /**
+   * Mode the picker starts on. Left out it starts on *Active*, which is the
+   * resolved values and edits nothing.
+   */
   default_mode?: string;
-  /**
-   * Make editing a deliberate act: the card shows the values, offers a switch
-   * to edit them, holds what is changed and writes it only when applied - then
-   * goes back to the values. Implies `enabled`, because there is nothing to
-   * switch into otherwise.
-   */
-  confirm?: boolean;
-}
-
-/**
- * How much of the presets of a preset mode a card shows.
- *
- * A ladder, not three switches: the four are exclusive renderings of the same
- * list, and `editable` replaces the values rather than adding to them. Three
- * booleans made eight combinations of which half contradicted themselves - a
- * switch standing at "on" and doing nothing, silently.
- */
-export type PresetsContent = "none" | "names" | "values" | "editable";
-
-export interface PresetsConfig {
-  /**
-   * `names` lists the presets of a preset mode with the mode each is on,
-   * `values` adds what that resolves to, `editable` turns those into the
-   * editors of that mode.
-   */
-  show?: PresetsContent;
 }
 
 export type FooterItem =
@@ -119,7 +96,6 @@ export interface PresetManagerCardConfig {
   modes?: ModesConfig;
   values?: ValuesConfig;
   editor?: EditorConfig;
-  presets?: PresetsConfig;
   footer?: FooterConfig;
   /** Home Assistant's own action keys, at the top level as everywhere else. */
   tap_action?: ActionConfig;
@@ -142,9 +118,7 @@ export interface ResolvedConfig {
     colors: Record<string, string>;
   };
   values: { visible: boolean; parameters: ResolvedParameterRow[] | null; icons: boolean };
-  editor: Required<Pick<EditorConfig, "enabled" | "mode" | "style" | "confirm">> &
-    EditorConfig;
-  presets: Required<PresetsConfig>;
+  editor: Required<Pick<EditorConfig, "enabled" | "mode" | "style">> & EditorConfig;
   footer: { visible: boolean; content: FooterItem[] };
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;

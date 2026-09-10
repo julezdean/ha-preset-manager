@@ -23,7 +23,7 @@ import { html, nothing, type TemplateResult } from "lit";
 
 import { activeMode, followsEntityId, followsPresetMode } from "../data/state";
 import { localize } from "../localize";
-import { DEFAULT_PRESET_ICON, DEFAULT_PRESET_MODE_ICON, icon } from "./icon";
+import { DEFAULT_PRESET_ICON, icon } from "./icon";
 import type { CardContext } from "./context";
 
 /** The colour the active mode paints the icon and its chip with. */
@@ -37,38 +37,21 @@ function headerIcon(context: CardContext): string | null {
   if (configured === false) return null;
   if (configured) return configured;
   const mode = activeMode(context.hass, context.subject);
-  if (mode?.icon) return mode.icon;
-  return context.subject.kind === "preset_mode"
-    ? DEFAULT_PRESET_MODE_ICON
-    : DEFAULT_PRESET_ICON;
+  return mode?.icon ?? DEFAULT_PRESET_ICON;
 }
 
 function defaultTitle(context: CardContext): string {
-  return context.subject.kind === "preset_mode"
-    ? context.subject.presetMode.name
-    : context.subject.preset.name;
+  return context.subject.preset.name;
 }
 
 /**
- * The second line, which answers "what is going on" in one glance.
- *
- * A preset says which mode is effective; a preset mode says its own mode, or
- * the entity it handed itself to.
+ * The second line, which answers "what is going on" in one glance: which mode
+ * is effective, and where it comes from.
  */
 function defaultSubtitle(context: CardContext): string {
   const { hass, subject } = context;
   const mode = activeMode(hass, subject);
   const modeName = mode?.name ?? localize(hass, "no_mode");
-
-  if (subject.kind === "preset_mode") {
-    const { presetMode } = subject;
-    if (presetMode.source_entity) {
-      const followed = hass.states[presetMode.source_entity];
-      const name = followed?.attributes.friendly_name ?? presetMode.source_entity;
-      return `${modeName} · ${localize(hass, "follows", { entity: name })}`;
-    }
-    return modeName;
-  }
 
   // The preset mode a preset follows is not news on every render - the footer
   // carries it where it is wanted. Where the mode *comes from* is, on every

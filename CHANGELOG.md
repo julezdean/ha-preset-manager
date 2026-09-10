@@ -16,6 +16,13 @@ as they are rather than renamed mid-series.
 
 ### Added
 
+- **The value list has a mode picker.** With `editor.enabled` a row of chips
+  above it says which mode it shows: *Active* first - the resolved values, and
+  where the card rests - then one chip per mode, each opening that mode's
+  values as editors. Nothing is written until *Apply*, the draft is keyed by
+  entity so one round can touch several modes, and the button appears exactly
+  while something is waiting. Reading a mode can therefore never change the
+  house, which is what made it worth showing at all.
 - **An automatic per preset.** Every preset gets
   `switch.<preset>_follows_preset_mode` and `select.<preset>_mode_selection`.
   With the switch off, that one preset holds a mode of its own while its preset
@@ -49,17 +56,28 @@ as they are rather than renamed mid-series.
 
 ### Fixed
 
-- **The plain editors wrote nothing at all.** With `editor.enabled` and without
-  `editor.confirm`, every change was collected into the draft that confirmed
-  editing flushes - and without an *Apply* button nothing ever flushed it. The
-  control stages as soon as the card hands it something to stage with, and the
-  card handed it over unconditionally. It is handed over now only where an
-  *Apply* exists to write it out again. Present since the card's first release
-  in 0.3.0, and it affected the default way of editing rather than the opt-in
-  one.
+- **The plain editors wrote nothing at all.** A control collects instead of
+  writing as soon as the card gives it somewhere to collect into, and the card
+  did that unconditionally - so unless editing sat behind a switch with an
+  *Apply* button, every change went into a draft nothing ever flushed. Silently,
+  and in the default way of editing rather than the opt-in one, since the card's
+  first release in 0.3.0. There is one way to write now and it always ends in
+  *Apply*, so the two paths that disagreed no longer exist.
 
 ### Removed
 
+- **A preset mode has no card.** It is a definition plus the logic that picks a
+  mode, it is not operated, and what it computes is one sensor that every core
+  card already draws - so the card is about a preset, and the entity picker
+  offers presets only. Pointing a card at a preset mode entity says that rather
+  than drawing something read-only. With it go `presets.visible`,
+  `presets.values` and `presets.editable`, which listed the presets of a
+  dimension.
+- **`editor.confirm` is gone**, and the *Edit* switch with it. The mode picker
+  starts on **Active** - the resolved values, read-only - and picking a mode is
+  itself the deliberate act the switch used to be: one gesture instead of two.
+  Every editor collects and nothing writes without *Apply*, so there is no
+  second way of editing left to switch into.
 - **A preset mode is not operated any more.** `select.<preset_mode>_active_mode`
   and `switch.<preset_mode>_automatic` are gone, and
   `preset_manager.set_active_mode` no longer has anything on a preset mode to be
@@ -79,19 +97,6 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
-- **Editing the presets of a preset mode goes through a switch and an *Apply***,
-  the way `editor.confirm` does on a preset card - but not optionally. One row
-  of editors there reaches into every device of the dimension at once, so it is
-  not a thing to send by dragging a slider past the wrong number.
-- **`presets.visible`, `presets.values` and `presets.editable` are one option**,
-  `presets.show`, taking `none`, `names`, `values` or `editable`. They were
-  never three decisions but four rungs of one ladder - `editable` replaces the
-  values rather than adding to them - and three booleans made eight
-  combinations of which half contradicted themselves: `values: true` alone
-  rendered nothing, `editable: true` with `values: false` rendered a read-only
-  list under a switch that read "editable". Silently, in both cases. The old
-  keys are refused with the line to write instead, because translating them
-  quietly would leave two spellings in the wild and no way to tell which won.
 - **`modes.style` is gone.** It had two settings and one of them stopped
   existing: a preset mode draws its modes as a list, so the option did nothing
   there at all, and an option that is silently inert on one kind of card is

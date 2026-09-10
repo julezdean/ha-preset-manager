@@ -60,7 +60,7 @@ what its own switch is for.
 The integration brings its own dashboard card. Six of its shapes are below —
 you write one line for the first one and add options only where you want them.
 
-![The Preset Manager card in six shapes: a preset showing three values, a preset mode with its four modes, the same preset with editors, a preset mode listing every preset it drives, one preset edited across all four modes at once, and every parameter type as an editor](assets/card-dark.png)
+![The Preset Manager card in six shapes: a preset showing three values, the same preset with its mode picker and editors, one preset edited across all four modes at once, every parameter type as an editor, a preset set to a mode of its own, and a single value in a compact card](assets/card-dark.png)
 
 The rest of them, and the configuration behind each, are under
 [Dashboard card](#dashboard-card).
@@ -117,9 +117,9 @@ Assistant 2026.3 onwards.
 * **Helpers editable straight from the dashboard** — `number`/`switch`/`select`/
   `text` entities in the category *Configuration*.
 * **A dashboard card of its own**, shipped with the integration and served by
-  it: point it at any entity of a preset or a preset mode and it draws that
-  object — values, modes, and the per-mode editors when you want them. Nothing
-  to install, nothing to add as a resource.
+  it: point it at any entity of a preset and it draws that preset — its values,
+  its modes, and the per-mode editors when you want them. Nothing to install,
+  nothing to add as a resource.
 * **Instant updates** on a mode switch, without a restart and without polling.
 * Fully configurable through the UI, no YAML configuration.
 
@@ -539,26 +539,14 @@ something is unusual:
 | `Night` | neither — the switch is missing or unavailable |
 | `No mode active · No preset mode` | it follows none, so nothing resolves |
 
-Point it at an entity of a **preset mode** instead and it draws that: its modes
-as a list with the active one marked. Nothing on it can be pressed — a preset
-mode is not operated.
+**A card is about a preset.** A preset mode has none: it is a definition plus
+the logic that picks a mode, it is not operated, and what it computes is one
+sensor — `sensor.<preset_mode>_mode` — that every core card already draws.
+Pointing a card at one says so rather than drawing something read-only.
 
-```yaml
-type: custom:preset-manager-card
-entity: sensor.house_mode_mode
-```
-
-```
-  House Mode
-  Night
-
-  ( Home ) ( Away ) ( Night ) ( Window open )
-```
-
-**Any entity of the object does.** The active mode sensor of a preset, one of
-its value sensors, one of its per-mode editors, its own selector or switch, and
-the mode sensor of a preset mode — all of them name the same object and give
-the same card. Nothing is matched by name, so renaming a preset, a mode or
+**Any entity of the preset does.** Its active mode sensor, one of its value
+sensors, one of its per-mode editors, its selector, its switch — all of them
+name the same preset and give the same card. Nothing is matched by name, so renaming a preset, a mode or
 a parameter leaves every card that shows it working.
 
 ### Configuration
@@ -585,9 +573,7 @@ time.
 | `editor.enabled` | `false` | Turn the rows into the per-mode editors. |
 | `editor.mode` | `picker` | `picker`, `active` or `all`; see below. |
 | `editor.style` | `chips` | How `picker` is drawn: `chips` or `dropdown`. |
-| `editor.confirm` | `false` | Editing behind a switch, written only when applied. Implies `enabled`. |
 | `editor.default_mode` | the active mode | Mode key the picker starts on. |
-| `presets.show` | `none` | On a preset mode, how much of the presets following it to show: `none`, `names`, `values`, or `editable`. `editable` always edits behind a switch and an *Apply*. |
 | `footer.visible` | `false` | The footer line. |
 | `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
 | `tap_action` | `more-info` | Home Assistant's action config, on the header. |
@@ -637,59 +623,44 @@ deleting a parameter does not break every dashboard that named it.
 
 The editors are `Configuration` entities: they are how a preset is **set up**,
 not how it is used. So `editor.enabled` is off by default and a card shows the
-resolved values — which is what a dashboard is for. Turn it on and the same
-rows become the per-mode helpers:
+resolved values — which is what a dashboard is for.
 
-* `mode: picker` — an *Edit:* line picks which mode is edited, as chips or, with
-  `editor.style: dropdown`, as a menu. Under the switch of `editor.confirm` that
-  line reads *Mode:* instead: the switch has already said “edit”, and saying it
-  twice reads like two settings for one thing. A line below names the active mode
-  whenever the two differ. The chips are deliberately quieter than the mode row
-  above: smaller, without icons, and coloured from the text rather than the
-  accent. One row changes the house, the other changes what this card shows,
-  and they should not look like the same act.
-* `mode: active` — always edits the mode that is active.
+Turn it on and a row of chips appears above the list saying which mode it
+shows. The first chip is **Active**, and that is where the card rests: the
+values as they are, read-only, exactly what a card without editors shows. Any
+other chip shows that mode's values as editors.
+
+```
+  [ Active ] ( Home ) ( Away ) ( Night ) ( Window open )
+  Brightness                            15 %
+```
+
+Picking a mode is therefore the deliberate act — one gesture, not a switch and
+then a choice. And **nothing is written until *Apply***: what you change is
+collected in the card's draft, and the button appears exactly while something
+is waiting. Reading is always safe; no gesture in this list changes the house
+by itself.
+
+The draft is keyed by entity, so one round can touch several modes: pick Night,
+change a value, pick Away, change another, apply once. Switching back to
+*Active* keeps the button — a draft left behind must not become invisible.
+After *Apply* the card returns to *Active*, because what was just written is
+now what those values say.
+
+`editor.style: dropdown` draws the picker as a menu instead of chips. The chips
+are deliberately quieter than the mode row above them: smaller, without icons,
+and coloured from the text rather than the accent. One row changes the house,
+the other changes what this card shows, and they should not look like the same
+act.
+
+Two shapes skip the picker:
+
+* `mode: active` — the editors of the mode that is active, always open.
 * `mode: all` — every mode of every parameter, one row each. The full picture,
   and the widest.
 
-The read-only column goes away when the editors appear. The editor of the
-active mode holds exactly the value the sensor resolves, so showing both would
-be the same number twice with nothing to tell them apart.
-
-### Editing as a deliberate act
-
-`editor.confirm` turns the whole thing into a step you take on purpose:
-
-```yaml
-type: custom:preset-manager-card
-entity: sensor.motion_sensor_living_room_active_mode
-editor:
-  confirm: true
-  style: dropdown
-```
-
-The card shows its values. An **Edit** switch opens the editors on the mode
-that is active right now, and the *Edit:* picker changes which mode they write
-to — one round of editing can touch several modes. Nothing reaches Home
-Assistant while you type: what you change is held, the **Apply** button sends
-all of it at once, and the card goes back to the values.
-
-Turning the switch back off discards what was held. Nothing had been written,
-so there is nothing to undo, and a dialog asking whether you meant it would be
-a dialog for its own sake.
-
-`confirm` implies `enabled`, because a card with no editors has nothing to
-switch into.
-
-On a **preset mode** card the presets it lists work the same way, except that
-there the switch is not optional: `presets.show: editable` always puts the
-editors behind it and always ends in *Apply*. One row of editors there reaches
-into every device of the dimension at once, and that is not something to send
-by dragging a slider past the wrong number. There is no mode picker per preset — the card already has one row of
-chips deciding the mode, and a second way to choose one would be a different
-question wearing the same clothes. Switching the mode moves these editors with
-it, which is the point: having seen what Night means for every device in the
-room, this is where it is changed.
+Both still collect and still end in *Apply*; there is only one way to write on
+this card.
 
 ### Switching the mode
 
@@ -701,24 +672,18 @@ would refuse the write anyway:
   header off first,
 * when a preset **follows no preset mode**, so there is nothing to choose from.
 
-On a **preset mode** card the modes are not chips at all but a list: they are
-not buttons, and they are not disabled buttons either — a disabled control says
-"later, or elsewhere", and there is no later here. What the list is good for is
-the one thing the mode name alone does not say: which modes exist.
-
 The row carries no explanation: the switch in the header says who is deciding,
-and the second line names the active mode, the entity a preset mode
-was handed to, and whether a preset is on a mode of its own. What a preset
-*follows* is not in there — that is what `footer.content: [preset_mode]` is for.
+and the second line names the active mode and whether the preset is on one of
+its own. What a preset *follows* is not in there — that is what
+`footer.content: [preset_mode]` is for.
 
-`modes.visible: manual` shows the row only while a click would do something —
-so on a preset that is not following, and never on a preset mode. A row of
-chips nobody may press is a row that only takes space, and this is the option
-that says so.
+`modes.visible: manual` shows the row only while a click would do something, so
+only while the preset is not following. A row of chips nobody may press is a
+row that only takes space, and this is the option that says so.
 
-**A card only ever operates the object it is about**, and a preset mode card
-operates nothing at all. Clicking around on a card named after one preset can
-therefore never change what the others do.
+**A card only ever operates the preset it is about.** Clicking around on it can
+never change what the other presets of the same dimension do — there is nothing
+on the other side to write to.
 
 ### Examples
 
@@ -741,29 +706,6 @@ modes:
   visible: false
 values:
   parameters: [brightness]
-```
-
-**The dimension** — what "Night" currently means, read-only.
-
-```yaml
-type: custom:preset-manager-card
-entity: sensor.house_mode_mode
-modes:
-  colors:
-    night: "#5c6bc0"
-    window_open: "#ef6c00"
-```
-
-**The room** — one preset mode with everything that follows it, and the values
-of the mode it is on, editable.
-
-```yaml
-type: custom:preset-manager-card
-entity: sensor.house_mode_mode
-presets:
-  show: editable
-footer:
-  content: [last_changed]
 ```
 
 **Setting up a preset** — the per-mode helpers, without leaving the dashboard.
@@ -1131,7 +1073,7 @@ changes visibly:
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1100,1226 --screenshot=assets/card-dark.png \
+  --window-size=1100,871 --screenshot=assets/card-dark.png \
   "http://localhost:8765/frontend/preview.html?gallery=1100&columns=3&showcase=1&theme=dark"
 ```
 

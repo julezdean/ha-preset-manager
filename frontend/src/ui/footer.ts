@@ -10,7 +10,7 @@
 
 import { html, nothing, type TemplateResult } from "lit";
 
-import { localize, localizeCount } from "../localize";
+import { localize } from "../localize";
 import { modeSourceEntityId } from "../data/state";
 import { stateOf } from "../util/ha";
 import type { CardContext } from "./context";
@@ -44,25 +44,18 @@ function item(context: CardContext, kind: FooterItem): string | null {
 
   switch (kind) {
     case "preset_mode":
-      if (subject.kind === "preset") {
-        return subject.presetMode
-          ? `${localize(hass, "preset_mode")}: ${subject.presetMode.name}`
-          : localize(hass, "orphaned");
-      }
-      return localizeCount(
-        hass,
-        "presets_one",
-        "presets_other",
-        subject.presets.length,
-      );
+      return subject.presetMode
+        ? `${localize(hass, "preset_mode")}: ${subject.presetMode.name}`
+        : localize(hass, "orphaned");
 
     case "blueprint":
-      if (subject.kind !== "preset" || !subject.blueprint) return null;
+      if (!subject.blueprint) return null;
       return `${localize(hass, "blueprint")}: ${subject.blueprint.name}`;
 
     case "source": {
-      const entityId =
-        subject.kind === "preset_mode" ? subject.presetMode.source_entity : null;
+      // The entity the *dimension* follows, where it follows one - which is
+      // where this preset's mode ultimately comes from.
+      const entityId = subject.presetMode?.source_entity ?? null;
       if (!entityId) return null;
       const entity = hass.states[entityId];
       return `${localize(hass, "source")}: ${

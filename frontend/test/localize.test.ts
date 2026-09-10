@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { localize, localizeCount } from "../src/localize";
+import { localize } from "../src/localize";
 
 describe("localize", () => {
   it("speaks the language of the instance", () => {
@@ -41,17 +41,5 @@ describe("localize", () => {
     ]) {
       expect(localize({ language: "de" }, key)).not.toBe(localize({ language: "en" }, key));
     }
-  });
-});
-
-describe("localizeCount", () => {
-  it.each([
-    [0, "0 presets"],
-    [1, "1 preset"],
-    [3, "3 presets"],
-  ])("counts %i as %s", (count, expected) => {
-    expect(localizeCount({ language: "en" }, "presets_one", "presets_other", count)).toBe(
-      expected,
-    );
   });
 });

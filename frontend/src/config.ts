@@ -15,7 +15,6 @@ import { CARD_TYPE } from "./const";
 import type {
   FooterItem,
   ModeVisibility,
-  PresetsContent,
   ParameterRowConfig,
   PresetManagerCardConfig,
   ResolvedConfig,
@@ -28,7 +27,6 @@ export class CardConfigError extends Error {}
 const PICKER_STYLES = ["chips", "dropdown"] as const;
 const MODE_VISIBILITIES: ModeVisibility[] = ["always", "never", "manual"];
 const EDITOR_MODES = ["picker", "active", "all"] as const;
-const PRESETS_CONTENT: PresetsContent[] = ["none", "names", "values", "editable"];
 const FOOTER_ITEMS: FooterItem[] = [
   "preset_mode",
   "blueprint",
@@ -160,27 +158,8 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   const modes = section(config.modes, "modes");
   const values = section(config.values, "values");
   const editor = section(config.editor, "editor");
-  const presets = section(config.presets, "presets");
   const footer = section(config.footer, "footer");
 
-  // One ladder, not three switches. The old spelling could say things like
-  // "editable but no values", which rendered a read-only list under a switch
-  // that read "editable" - so it is refused rather than guessed at.
-  for (const [key, replacement] of [
-    ["editable", "editable"],
-    ["values", "values"],
-    ["visible", "names"],
-  ] as const) {
-    if (presets[key] !== undefined) {
-      fail(
-        `"presets.${key}" is now "presets.show", which takes one of ` +
-          `${PRESETS_CONTENT.join(", ")} - here "presets: {show: ${
-            presets[key] ? replacement : "none"
-          }}".`,
-      );
-    }
-  }
-  const editorConfirm = bool(editor.confirm, "editor.confirm", false);
 
   const resolved: ResolvedConfig = {
     type: String(config.type ?? ""),
@@ -204,15 +183,10 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
       icons: bool(values.icons, "values.icons", false),
     },
     editor: {
-      // A card that asks for confirmed editing is a card that has editors.
-      enabled: bool(editor.enabled, "editor.enabled", editorConfirm),
-      confirm: editorConfirm,
+      enabled: bool(editor.enabled, "editor.enabled", false),
       mode: oneOf(editor.mode, "editor.mode", EDITOR_MODES, "picker"),
       style: oneOf(editor.style, "editor.style", PICKER_STYLES, "chips"),
       default_mode: text(editor.default_mode, "editor.default_mode"),
-    },
-    presets: {
-      show: oneOf(presets.show, "presets.show", PRESETS_CONTENT, "none"),
     },
     footer: {
       // A footer that lists something is a footer that is wanted; asking for

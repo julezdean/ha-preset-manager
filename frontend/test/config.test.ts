@@ -18,6 +18,12 @@ describe("resolveConfig", () => {
     expect(resolveConfig(MINIMAL).editor.enabled).toBe(false);
   });
 
+  it("has no editor.confirm any more", () => {
+    // Every editor stages and nothing writes without Apply, so there is no
+    // second way of editing to switch into.
+    expect(resolveConfig(MINIMAL).editor).not.toHaveProperty("confirm");
+  });
+
   it("says what to write when the entity is missing", () => {
     expect(() => resolveConfig({ type: "x" })).toThrow(CardConfigError);
     expect(() => resolveConfig({ type: "x" })).toThrow(/entity of Preset Manager/);
@@ -143,37 +149,5 @@ describe("pruneConfig", () => {
       modes: { visible: true },
     });
     expect(resolveConfig(written).modes.visible).toBe("always");
-  });
-});
-
-describe("the presets of a preset mode", () => {
-  const MODE_CARD = { ...MINIMAL, entity: "sensor.house_mode_mode" };
-
-  it("shows nothing until asked", () => {
-    expect(resolveConfig(MODE_CARD).presets.show).toBe("none");
-  });
-
-  it.each(["names", "values", "editable"])("takes %s", (show) => {
-    expect(resolveConfig({ ...MODE_CARD, presets: { show } }).presets.show).toBe(show);
-  });
-
-  it("names the four rungs when handed something else", () => {
-    expect(() =>
-      resolveConfig({ ...MODE_CARD, presets: { show: "everything" } }),
-    ).toThrow(/none, names, values, editable/);
-  });
-
-  it.each([
-    [{ editable: true }, "editable"],
-    [{ values: true }, "values"],
-    [{ visible: true }, "names"],
-    [{ visible: false }, "none"],
-  ])("refuses the old spelling %j and says what to write", (presets, expected) => {
-    // Three switches for four exclusive states let half their combinations
-    // contradict themselves - "editable but no values" rendered a read-only
-    // list under a switch that read "editable". Refused rather than guessed.
-    expect(() => resolveConfig({ ...MODE_CARD, presets })).toThrow(
-      new RegExp(`presets: \\{show: ${expected}\\}`),
-    );
   });
 });

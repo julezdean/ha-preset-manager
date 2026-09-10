@@ -714,7 +714,6 @@
 
     const CARDS = [
       ["Preset — default", { entity: "sensor.motion_active_mode" }, "showcase"],
-      ["Preset mode — default", { entity: "sensor.house_mode_mode" }, "showcase"],
       [
         "Preset — editors, dropdown picker",
         {
@@ -732,13 +731,6 @@
         "showcase",
       ],
       [
-        "Preset — edit behind a switch",
-        {
-          entity: "sensor.motion_active_mode",
-          editor: { confirm: true, style: "dropdown" },
-        },
-      ],
-      [
         "Preset — one value",
         {
           entity: "sensor.motion_active_mode",
@@ -747,22 +739,6 @@
           header: { subtitle: false, automatic: false },
           modes: { visible: false },
           values: { parameters: ["brightness"] },
-        },
-      ],
-      [
-        "Preset mode — editing its presets",
-        {
-          entity: "sensor.house_mode_mode",
-          presets: { show: "editable" },
-        },
-      ],
-      [
-        "Preset mode — with its presets",
-        {
-          entity: "sensor.house_mode_mode",
-          presets: { show: "values" },
-          modes: { colors: { night: "#5c6bc0", window_open: "#ef6c00" } },
-          footer: { content: ["last_changed"] },
         },
         "showcase",
       ],
@@ -788,20 +764,8 @@
         "showcase",
       ],
       [
-        "Preset mode — handed to an entity",
-        { entity: "sensor.window_state_mode", footer: { content: ["source"] } },
-      ],
-      [
         "Preset — modes forced on",
         { entity: "sensor.motion_active_mode", modes: { visible: true } },
-      ],
-      [
-        "Preset mode — modes only while settable",
-        {
-          entity: "sensor.house_mode_mode",
-          modes: { visible: "manual" },
-          footer: { content: ["preset_mode"] },
-        },
       ],
       [
         "Preset — set by hand",
@@ -809,6 +773,7 @@
           entity: "sensor.shutter_active_mode",
           footer: { content: ["preset_mode"] },
         },
+        "showcase",
       ],
       ["Preset without a preset mode", { entity: "sensor.fan_active_mode" }],
       [
@@ -836,7 +801,6 @@
         },
         "narrow",
       ],
-      ["Narrow — preset mode", { entity: "sensor.house_mode_mode" }, "narrow"],
     ];
 
     resolveAll();

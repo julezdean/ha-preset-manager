@@ -1,22 +1,23 @@
 /**
- * The value list of a preset - read-only, or editable per mode.
+ * The value list of a preset - what is valid now, or the values of one mode.
  *
- * Read-only is the default and shows the main sensors: one row per parameter
- * carrying the value of whichever mode is active. That is the whole point of
- * the integration, and it is what a dashboard wants to see.
+ * Without `editor.enabled` it is one row per parameter carrying the value of
+ * whichever mode is active. That is the whole point of the integration, and it
+ * is what a dashboard wants to see.
  *
- * With `editor.enabled` the same rows become the per-mode editors, and the
- * read-only column goes away with them: the editor of the active mode holds
- * exactly the value the sensor resolves, so showing both would be the same
- * number twice with nothing to tell the two apart.
+ * With the editors on, a row of chips above the list says which mode it shows.
+ * The first chip is **Active**, and it is where the card rests: the values as
+ * they are, read-only, exactly as a card without editors would show them. Any
+ * other chip shows that mode's values as editors. Picking a mode is therefore
+ * the deliberate act that a separate "edit" switch used to be, and it is one
+ * gesture instead of two.
  *
- * With `editor.confirm` on top of that, the card starts on the values and the
- * editors sit behind a switch. What is changed there is held, not written, and
- * an *Apply* button sends the lot and closes the view again. Two things follow
- * from that shape and are worth stating: the mode picker still works while the
- * editors are open, so one round of editing can touch several modes, and
- * turning the switch back off throws the draft away because none of it was
- * ever written.
+ * **Nothing is written until *Apply*.** Changes are collected in the card's
+ * draft, which is keyed by entity, so one round can touch several modes: pick
+ * Night, change a value, pick Away, change another, apply once. The button
+ * appears exactly while something is waiting, so it cannot be missed and does
+ * not sit there empty. Reading is therefore always safe - there is no gesture
+ * in this list that changes the house by itself.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
@@ -25,7 +26,6 @@ import { activeModeKey, modesOf } from "../data/state";
 import { orderedParameters } from "../data/subject";
 import { localize } from "../localize";
 import { icon } from "./icon";
-import { applyButton, editSwitch } from "./confirm";
 import { isWideControl, renderControl } from "./controls";
 import type { CardContext } from "./context";
 import type { ParameterInfo, PresetInfo } from "../types/data";
@@ -145,67 +145,92 @@ function editorRow(
   `;
 }
 
-/** The chips choosing which mode the editors write to. */
-function editModePicker(context: CardContext): TemplateResult | typeof nothing {
-  const modes = modesOf(context.subject);
-  if (modes.length < 2) return nothing;
-  const active = activeModeKey(context.hass, context.subject);
-  const activeMode = modes.find((mode) => mode.key === active);
+/** Sends what the editors collected, and returns to the resolved values. */
+function applyButton(context: CardContext): TemplateResult {
+  return html`
+    <div class="toolbar">
+      <span class="toolbar-label"></span>
+      <button class="apply" type="button" @click=${() => context.apply()}>
+        ${localize(context.hass, "apply")}
+      </button>
+    </div>
+  `;
+}
 
-  // Under the edit switch the word "edit" has already been said, and saying it
-  // twice reads like two settings for one thing. There the line only has to
-  // name what it picks - which mode the editors write to.
-  const label = localize(context.hass, context.config.editor.confirm ? "mode" : "editing");
-  const control =
-    context.config.editor.style === "dropdown"
-      ? html`
+/**
+ * The chips choosing which mode the list shows.
+ *
+ * "Active" first, and it is not a mode: it is the resolved view, the one the
+ * card shows when nobody has asked for anything else. The rest are the modes,
+ * and picking one opens its values for editing.
+ */
+function modePicker(context: CardContext): TemplateResult | typeof nothing {
+  const modes = modesOf(context.subject);
+  if (!modes.length) return nothing;
+  const label = localize(context.hass, "mode");
+  const picked = context.editMode;
+
+  if (context.config.editor.style === "dropdown") {
+    return html`
+      <div class="row">
+        <div class="row-label"><span>${label}:</span></div>
+        <div class="row-control">
           <select
             class="select-input"
             aria-label=${label}
-            @change=${(event: Event) =>
-              context.selectEditMode((event.target as HTMLSelectElement).value)}
+            @change=${(event: Event) => {
+              const value = (event.target as HTMLSelectElement).value;
+              context.selectEditMode(value === "" ? null : value);
+            }}
           >
+            <option value="" ?selected=${picked === null}>
+              ${localize(context.hass, "active")}
+            </option>
             ${modes.map(
               (mode) => html`
-                <option value=${mode.key} ?selected=${mode.key === context.editMode}>
+                <option value=${mode.key} ?selected=${mode.key === picked}>
                   ${mode.name}
                 </option>
               `,
             )}
           </select>
-        `
-      : html`
-          <div class="chips secondary" role="group" aria-label=${label}>
-            ${modes.map(
-              (mode) => html`
-                <button
-                  class="chip"
-                  type="button"
-                  aria-pressed=${mode.key === context.editMode ? "true" : "false"}
-                  @click=${() => context.selectEditMode(mode.key)}
-                >
-                  <span>${mode.name}</span>
-                </button>
-              `,
-            )}
-          </div>
-        `;
+        </div>
+      </div>
+    `;
+  }
 
   return html`
     <div class="row">
       <div class="row-label"><span>${label}:</span></div>
-      <div class="row-control">${control}</div>
+      <div class="row-control">
+        <div class="chips secondary" role="group" aria-label=${label}>
+          <button
+            class="chip"
+            type="button"
+            aria-pressed=${picked === null ? "true" : "false"}
+            @click=${() => context.selectEditMode(null)}
+          >
+            <span>${localize(context.hass, "active")}</span>
+          </button>
+          ${modes.map(
+            (mode) => html`
+              <button
+                class="chip"
+                type="button"
+                aria-pressed=${mode.key === picked ? "true" : "false"}
+                @click=${() => context.selectEditMode(mode.key)}
+              >
+                <span>${mode.name}</span>
+              </button>
+            `,
+          )}
+        </div>
+      </div>
     </div>
-    ${activeMode && activeMode.key !== context.editMode
-      ? html`<div class="note">
-          ${localize(context.hass, "active_is", { mode: activeMode.name })}
-        </div>`
-      : nothing}
   `;
 }
 
 export function renderValues(context: CardContext): TemplateResult | typeof nothing {
-  if (context.subject.kind !== "preset") return nothing;
   if (!context.config.values.visible) return nothing;
 
   const preset = context.subject.preset;
@@ -225,22 +250,23 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
 
   const reserved = iconColumn(context, list);
   const { editor } = context.config;
-  const values = () => html`
-    <div class="section rows">
-      ${note}${editor.confirm ? editSwitch(context) : nothing}
-      ${list.map((row) => readOnlyRow(context, row, reserved))}
-    </div>
-  `;
+  // The button is here whenever something is waiting, whichever mode is on
+  // screen - a draft left behind by switching chips must not be invisible.
+  const apply = context.draft.size ? applyButton(context) : nothing;
 
-  if (!editor.enabled) return values();
-  // Confirmed editing starts closed: the card is a card until asked otherwise.
-  if (editor.confirm && !context.editing) return values();
+  if (!editor.enabled) {
+    return html`
+      <div class="section rows">
+        ${note}${list.map((row) => readOnlyRow(context, row, reserved))}
+      </div>
+    `;
+  }
 
   if (editor.mode === "all") {
     const modes = modesOf(context.subject);
     return html`
       <div class="section rows">
-        ${note}${editor.confirm ? editSwitch(context) : nothing}
+        ${note}
         ${list.map(
           (row) => html`
             <div class="group-label">${row.label}</div>
@@ -249,20 +275,32 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
             )}
           `,
         )}
-        ${editor.confirm ? applyButton(context) : nothing}
+        ${apply}
       </div>
     `;
   }
 
-  const modeKey =
-    editor.mode === "active" ? activeModeKey(context.hass, context.subject) : context.editMode;
+  if (editor.mode === "active") {
+    const modeKey = activeModeKey(context.hass, context.subject);
+    return html`
+      <div class="section rows">
+        ${note}
+        ${list.map((row) => editorRow(context, row, modeKey, row.label, reserved))}
+        ${apply}
+      </div>
+    `;
+  }
 
+  // The picker, resting on "Active": the same rows a card without editors
+  // shows, until a mode is asked for.
+  const picked = context.editMode;
   return html`
     <div class="section rows">
-      ${note}${editor.confirm ? editSwitch(context) : nothing}
-      ${editor.mode === "picker" ? editModePicker(context) : nothing}
-      ${list.map((row) => editorRow(context, row, modeKey, row.label, reserved))}
-      ${editor.confirm ? applyButton(context) : nothing}
+      ${note}${modePicker(context)}
+      ${picked === null
+        ? list.map((row) => readOnlyRow(context, row, reserved))
+        : list.map((row) => editorRow(context, row, picked, row.label, reserved))}
+      ${apply}
     </div>
   `;
 }

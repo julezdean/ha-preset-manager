@@ -1,17 +1,12 @@
 /**
- * Which mode is active, and - on a preset - setting it.
+ * Which mode this preset is on, and setting it.
  *
- * The two kinds of card differ here, because the two objects do. **A preset
- * mode is not operated**: its mode comes from its conditions or from the
- * entity it follows, so its modes are drawn as a list that says which of them
- * is on, and nothing on it can be pressed. **A preset is**: while its
- * automatic is off - the switch for that sits in the header, beside the name
- * it belongs to - the chips set its own mode.
- *
- * Nothing here ever reaches into the dimension from a preset. A click on a
- * card named after one preset must not change what every other preset of that
- * dimension does, and now it structurally cannot - there is nothing to write
- * to on the other side.
+ * The chips are live while the preset is not following its preset mode - the
+ * switch for that sits in the header, beside the name it belongs to - and
+ * disabled while it is. Nothing here ever reaches into the dimension: a click
+ * on a card named after one preset must not change what every other preset of
+ * that dimension does, and it structurally cannot, because a preset mode has
+ * nothing to write to.
  *
  * Setting goes through `preset_manager.set_active_mode` with the mode *key*,
  * not through `select.select_option` with its display name - the key is what
@@ -84,40 +79,6 @@ function chips(
   `;
 }
 
-/**
- * The modes of a preset mode, as a list rather than as controls.
- *
- * They are not buttons and not disabled buttons: a disabled control says
- * "later, or elsewhere", and there is no later here. What the list is good for
- * is the thing the mode name alone does not say - which modes exist at all.
- */
-function modeList(
-  context: CardContext,
-  modes: ModeInfo[],
-  active: string | null,
-): TemplateResult {
-  const { config } = context;
-  return html`
-    <div class="chips" role="list">
-      ${modes.map((mode) => {
-        const colour = config.modes.colors[mode.key];
-        return html`
-          <span
-            class="chip"
-            role="listitem"
-            aria-current=${mode.key === active ? "true" : nothing}
-            aria-pressed=${mode.key === active ? "true" : "false"}
-            style=${colour ? `--pm-chip-color: ${colour}` : ""}
-          >
-            ${config.modes.icons ? icon(mode.icon) : nothing}
-            <span>${mode.name}</span>
-          </span>
-        `;
-      })}
-    </div>
-  `;
-}
-
 /** The mode row proper: the chips or the dropdown, or why there are neither. */
 function modeControl(context: CardContext): TemplateResult {
   const modes = modesOf(context.subject);
@@ -126,10 +87,6 @@ function modeControl(context: CardContext): TemplateResult {
   }
 
   const active = activeModeKey(context.hass, context.subject);
-  if (context.subject.kind === "preset_mode") {
-    return modeList(context, modes, active);
-  }
-
   // No line explaining why a locked row is locked. Every version of that
   // sentence said again what the switch above and the header say, and repeated
   // it on every card and every render. The chips being visibly disabled is the

@@ -9,9 +9,9 @@
  * Two rules shape it.
  *
  * **Only the entity is on the surface.** Everything else sits in a collapsed
- * group, so a new card asks for one thing. The groups the current subject
- * cannot use - the preset list of a preset mode, the editors of a preset - are
- * not shown at all rather than shown and ignored.
+ * group, so a new card asks for one thing. The entity picker offers the mode
+ * sensor of each preset and nothing else - a preset mode has no card, and a
+ * picker that offered one would be an invitation to an error message.
  *
  * **What is left at its default is not written.** The form has to show a
  * checkbox in its real position, so it is fed the resolved configuration; what
@@ -40,11 +40,9 @@ const LABELS: Record<string, string> = {
   modes: "Modes",
   values: "Values",
   editor: "Editing",
-  presets: "Presets",
   footer: "Footer",
   actions: "Actions",
   visible: "Show",
-  show: "Show",
   automatic: "Automatic switch",
   title: "Title",
   subtitle: "Subtitle",
@@ -55,7 +53,6 @@ const LABELS: Record<string, string> = {
   parameters: "Parameters",
   parameters_note: "Parameters",
   enabled: "Editable",
-  confirm: "Confirm with a button",
   mode: "Which mode",
   default_mode: "Start on",
   content: "Content",
@@ -133,10 +130,9 @@ export class PresetManagerCardEditor extends LitElement {
    * narrow it with, so it falls back to the whole integration.
    */
   private _entityPicker(): Record<string, unknown> {
-    const canonical = [
-      ...(this._structure?.preset_modes ?? []).map((item) => item.entities.mode),
-      ...(this._structure?.presets ?? []).map((item) => item.entities.active_mode),
-    ].filter((entityId): entityId is string => Boolean(entityId));
+    const canonical = (this._structure?.presets ?? [])
+      .map((item) => item.entities.active_mode)
+      .filter((entityId): entityId is string => Boolean(entityId));
     return canonical.length
       ? { include_entities: canonical }
       : { integration: "preset_manager" };
@@ -156,11 +152,7 @@ export class PresetManagerCardEditor extends LitElement {
   }
 
   private _schema(subject: Subject | null): Schema[] {
-    const isPreset = subject?.kind === "preset";
-    const isPresetMode = subject?.kind === "preset_mode";
-    const modes = subject
-      ? (subject.kind === "preset_mode" ? subject.presetMode.modes : subject.preset.modes)
-      : [];
+    const modes = subject ? subject.preset.modes : [];
 
     const schema: Schema[] = [
       {
@@ -174,8 +166,7 @@ export class PresetManagerCardEditor extends LitElement {
         title: LABELS.header,
         schema: [
           { name: "visible", selector: { boolean: {} } },
-          // Only a preset has an automatic; a preset mode is not operated.
-          ...(isPresetMode ? [] : [{ name: "automatic", selector: { boolean: {} } }]),
+          { name: "automatic", selector: { boolean: {} } },
           { name: "title", selector: { text: {} } },
           { name: "subtitle", selector: { text: {} } },
           { name: "icon", selector: { icon: {} } },
@@ -187,20 +178,14 @@ export class PresetManagerCardEditor extends LitElement {
         name: "modes",
         title: LABELS.modes,
         schema: [
-          // "While the mode can be set by hand" is a third answer only where
-          // the mode can be set by hand at all. On a preset mode it means the
-          // same as "never", and a choice between two words for one outcome
-          // is a choice the user has to work out before discarding.
-          isPresetMode
-            ? { name: "visible", selector: { boolean: {} } }
-            : {
-                name: "visible",
-                ...options([
-                  ["always", "Always"],
-                  ["never", "Never"],
-                  ["manual", "While the mode can be set by hand"],
-                ]),
-              },
+          {
+            name: "visible",
+            ...options([
+              ["always", "Always"],
+              ["never", "Never"],
+              ["manual", "While the mode can be set by hand"],
+            ]),
+          },
           // Only where there is an icon to show. Mode icons are set per mode
           // in the config flow, and most setups have none - a switch that
           // visibly does nothing is worse than no switch, because the user
@@ -212,7 +197,7 @@ export class PresetManagerCardEditor extends LitElement {
       },
     ];
 
-    if (isPreset) {
+    if (subject) {
       const parameters = subject.preset.parameters.map((parameter) => ({
         value: parameter.key,
         label: parameter.name,
@@ -245,7 +230,6 @@ export class PresetManagerCardEditor extends LitElement {
           title: LABELS.editor,
           schema: [
             { name: "enabled", selector: { boolean: {} } },
-            { name: "confirm", selector: { boolean: {} } },
             {
               name: "mode",
               ...options([
@@ -268,27 +252,6 @@ export class PresetManagerCardEditor extends LitElement {
           ],
         },
       );
-    }
-
-    if (isPresetMode) {
-      schema.push({
-        type: "expandable",
-        name: "presets",
-        title: LABELS.presets,
-        schema: [
-          // One ladder, one control. Three switches for four exclusive
-          // states let half their combinations contradict themselves.
-          {
-            name: "show",
-            ...options([
-              ["none", "Nothing"],
-              ["names", "Their names and modes"],
-              ["values", "Their values as well"],
-              ["editable", "Their values, editable"],
-            ]),
-          },
-        ],
-      });
     }
 
     schema.push(
@@ -344,19 +307,9 @@ export class PresetManagerCardEditor extends LitElement {
         ...this._config,
         entity: this._config.entity ?? "sensor.placeholder",
       }) as unknown as Record<string, unknown>;
-      const modes = resolved.modes as Record<string, unknown>;
       return {
         ...resolved,
         entity: this._config.entity ?? "",
-        modes: {
-          ...modes,
-          // A preset mode is offered a plain switch for this, because the
-          // third setting has no separate meaning there - so it is handed a
-          // boolean rather than the word the rest of the card works with.
-          ...(this._subject?.kind === "preset_mode"
-            ? { visible: modes.visible !== "never" }
-            : {}),
-        },
         values: {
           ...(resolved.values as Record<string, unknown>),
           // The form picks parameters, the configuration also allows renaming
@@ -375,14 +328,6 @@ export class PresetManagerCardEditor extends LitElement {
   private _valueChanged(event: CustomEvent): void {
     event.stopPropagation();
     const data = { ...(event.detail.value as Record<string, unknown>) };
-    // Undo the boolean a preset mode was offered for the mode row. Pruning
-    // compares against the resolved default, which is the word "always", so a
-    // `true` left alone would not look like a default and would be written -
-    // and opening the editor once is exactly when that must not happen.
-    const modes = data.modes as Record<string, unknown> | undefined;
-    if (this._subject?.kind === "preset_mode" && typeof modes?.visible === "boolean") {
-      data.modes = { ...modes, visible: modes.visible ? "always" : "never" };
-    }
     fireEvent(this, "config-changed", { config: pruneConfig(data) });
   }
 
