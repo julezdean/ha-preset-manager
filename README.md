@@ -512,20 +512,32 @@ entity: sensor.motion_sensor_living_room_active_mode
 ```
 
 That is the whole configuration. The card works out what the entity belongs to
-and draws the preset behind it — its name, the mode that is effective right
-now, and one row per parameter with the value that is valid:
+and draws the preset behind it — its name, where its mode comes from, the modes
+it could be on, and one row per parameter with the value that is valid:
 
 ```
-  Motion Sensor Living Room
-  Night · House Mode
+  Motion Sensor Living Room                  [●]
+  Night · Automatic
+
+  ( Home ) ( Away ) [ Night ] ( Window open )
 
   Brightness                             15 %
   Color temperature                   2 200 K
   Off delay                              30 s
 ```
 
-Its *automatic mode selection* sits beside the name it belongs to: switch it
-off and the chips below become clickable, for this preset alone.
+The switch beside the name is that preset's *automatic mode selection*: turn it
+off and the chips become clickable, for this preset alone.
+
+**The second line always says where the mode comes from**, not only when
+something is unusual:
+
+| It reads | Meaning |
+| --- | --- |
+| `Night · Automatic` | takes the mode of its preset mode |
+| `Night · Manual` | on a mode of its own |
+| `Night` | neither — the switch is missing or unavailable |
+| `No mode active · No preset mode` | it follows none, so nothing resolves |
 
 Point it at an entity of a **preset mode** instead and it draws that: its modes
 as a list with the active one marked. Nothing on it can be pressed — a preset

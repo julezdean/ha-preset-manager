@@ -71,16 +71,16 @@ function defaultSubtitle(context: CardContext): string {
   }
 
   // The preset mode a preset follows is not news on every render - the footer
-  // carries it where it is wanted. What is news is that there is none, and
-  // that this preset is on a mode of its own. The switch beside it says the
-  // same thing, but that is the control; this is the state, and it stays
-  // readable when the switch is configured away.
+  // carries it where it is wanted. Where the mode *comes from* is, on every
+  // render: both states are named, not only the deviating one, because there
+  // is a third - a switch that is missing or unavailable - and leaving the
+  // normal case blank would hide it behind the same blank.
   if (!subject.presetMode) {
     return `${modeName} · ${localize(hass, "no_preset_mode")}`;
   }
-  return followsPresetMode(hass, subject) === false
-    ? `${modeName} · ${localize(hass, "manual")}`
-    : modeName;
+  const follows = followsPresetMode(hass, subject);
+  if (follows === null) return modeName;
+  return `${modeName} · ${localize(hass, follows ? "automatic" : "manual")}`;
 }
 
 /**

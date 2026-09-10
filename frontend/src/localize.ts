@@ -18,6 +18,7 @@ type Strings = Record<string, string>;
 const EN: Strings = {
   active_is: "Active: {mode}",
   apply: "Apply",
+  automatic: "Automatic",
   blueprint: "Blueprint",
   changed: "Changed",
   editing: "Edit",
@@ -46,6 +47,7 @@ const EN: Strings = {
 const DE: Strings = {
   active_is: "Aktiv: {mode}",
   apply: "Übernehmen",
+  automatic: "Automatik",
   blueprint: "Blueprint",
   changed: "Geändert",
   editing: "Bearbeiten",

@@ -68,6 +68,11 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
+- **The second line of a preset card always says where the mode comes from** -
+  `Night · Automatic` or `Night · Manual`, not only the deviating one. Three
+  states used to collapse into two: a bare `Night` meant either "follows" or
+  "the switch is missing or unavailable", and naming both leaves the bare form
+  to mean only the third.
 - **The header is a real button again.** It had to give up `role="button"` and
   its keyboard handling for as long as the whole row was one and contained a
   switch, so `tap_action` and `hold_action` were reachable with the mouse and
