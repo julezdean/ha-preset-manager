@@ -592,18 +592,43 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
           </span>
         `})}
     </div>
-  `}(e,t,s):_t(e,t,s,null!==it(e.hass,e.subject))}function vt(e){return function(e){const t=e.config.modes.visible;return"manual"===t?null===it(e.hass,e.subject):"never"!==t}(e)?W`<div class="section">${bt(e)}</div>`:F}function gt(e,t,s,i,n){if(e.stage)return void e.stage(t.entity_id,{service:s,data:i,display:n});const r=t.entity_id.split(".",1)[0];e.call(e.hass.callService(r,s,i,{entity_id:t.entity_id}))}function $t(e,t){const s=e.draft?.get(t.entity_id)?.display;return void 0!==s?{disabled:!1,empty:!1,staged:s}:{disabled:(i=t.state,void 0===i||i===Re),empty:Le(t.state),staged:void 0};var i}function yt(e,t,s){const i=e.attributes[t];return null==i?s:i}function wt(e,t,s,i){const{disabled:n,empty:r,staged:o}=$t(e,t);let a=o??(r?"":t.state);return void 0===o&&("datetime"===i&&(a=r?"":function(e){const t=new Date(e);if(Number.isNaN(t.getTime()))return"";const s=e=>String(e).padStart(2,"0");return`${t.getFullYear()}-${s(t.getMonth()+1)}-${s(t.getDate())}T${s(t.getHours())}:${s(t.getMinutes())}`}(t.state)),"time"===i&&(a=a.slice(0,5))),W`
+  `}(e,t,s):_t(e,t,s,null!==it(e.hass,e.subject))}function vt(e){return function(e){const t=e.config.modes.visible;return"manual"===t?null===it(e.hass,e.subject):"never"!==t}(e)?W`<div class="section">${bt(e)}</div>`:F}function gt(e){const t=ht(e.hass,"editing");return W`
+    <label class="toolbar">
+      <span class="toolbar-label">${t}</span>
+      <span class="switch">
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label=${t}
+          .checked=${e.editing}
+          @change=${t=>e.setEditing(t.target.checked)}
+        />
+      </span>
+    </label>
+  `}function $t(e){return W`
+    <div class="toolbar">
+      <span class="toolbar-label"></span>
+      <button
+        class="apply"
+        type="button"
+        ?disabled=${0===e.draft.size}
+        @click=${()=>e.apply()}
+      >
+        ${ht(e.hass,"apply")}
+      </button>
+    </div>
+  `}function yt(e,t,s,i,n){if(e.stage)return void e.stage(t.entity_id,{service:s,data:i,display:n});const r=t.entity_id.split(".",1)[0];e.call(e.hass.callService(r,s,i,{entity_id:t.entity_id}))}function wt(e,t){const s=e.draft?.get(t.entity_id)?.display;return void 0!==s?{disabled:!1,empty:!1,staged:s}:{disabled:(i=t.state,void 0===i||i===Re),empty:Le(t.state),staged:void 0};var i}function xt(e,t,s){const i=e.attributes[t];return null==i?s:i}function At(e,t,s,i){const{disabled:n,empty:r,staged:o}=wt(e,t);let a=o??(r?"":t.state);return void 0===o&&("datetime"===i&&(a=r?"":function(e){const t=new Date(e);if(Number.isNaN(t.getTime()))return"";const s=e=>String(e).padStart(2,"0");return`${t.getFullYear()}-${s(t.getMonth()+1)}-${s(t.getDate())}T${s(t.getHours())}:${s(t.getMinutes())}`}(t.state)),"time"===i&&(a=a.slice(0,5))),W`
     <input
       class="date-input"
       type=${"datetime"===i?"datetime-local":i}
       aria-label=${s}
       .value=${a}
       ?disabled=${n}
-      @change=${s=>{const n=s.target.value;n&&gt(e,t,"set_value","date"===i?{date:n}:"time"===i?{time:`${n}:00`}:{datetime:`${n.replace("T"," ")}:00`},n)}}
+      @change=${s=>{const n=s.target.value;n&&yt(e,t,"set_value","date"===i?{date:n}:"time"===i?{time:`${n}:00`}:{datetime:`${n.replace("T"," ")}:00`},n)}}
     />
-  `}function xt(e,t,s,i){if(!s)return W`<span class="row-value muted">
+  `}function kt(e,t,s,i){if(!s)return W`<span class="row-value muted">
       ${ht(e.hass,"unavailable")}
-    </span>`;switch(t){case"number":return function(e,t,s){const{disabled:i,empty:n,staged:r}=$t(e,t),o=yt(t,"min",0),a=yt(t,"max",100),c=yt(t,"step",1),l=t.attributes.unit_of_measurement??"",d=r??t.state,h=n?"":d,u=s=>{const i=s.target.valueAsNumber;Number.isNaN(i)||gt(e,t,"set_value",{value:i},String(i))};return"slider"===yt(t,"mode","box")?W`
+    </span>`;switch(t){case"number":return function(e,t,s){const{disabled:i,empty:n,staged:r}=wt(e,t),o=xt(t,"min",0),a=xt(t,"max",100),c=xt(t,"step",1),l=t.attributes.unit_of_measurement??"",d=r??t.state,h=n?"":d,u=s=>{const i=s.target.valueAsNumber;Number.isNaN(i)||yt(e,t,"set_value",{value:i},String(i))};return"slider"===xt(t,"mode","box")?W`
       <input
         class="slider"
         type="range"
@@ -630,10 +655,10 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
       .value=${h}
       ?disabled=${i}
       @change=${u}
-      @keydown=${s=>{const n="ArrowUp"===s.key?1:"ArrowDown"===s.key?-1:0;if(!n||i)return;s.preventDefault();const r=s.target,l=Number.isNaN(r.valueAsNumber)?o:r.valueAsNumber,d=Math.min(a,Math.max(o,l+n*c));if(d===l)return;const h=(String(c).split(".")[1]??"").length;r.value=d.toFixed(h),gt(e,t,"set_value",{value:Number(r.value)},r.value)}}
+      @keydown=${s=>{const n="ArrowUp"===s.key?1:"ArrowDown"===s.key?-1:0;if(!n||i)return;s.preventDefault();const r=s.target,l=Number.isNaN(r.valueAsNumber)?o:r.valueAsNumber,d=Math.min(a,Math.max(o,l+n*c));if(d===l)return;const h=(String(c).split(".")[1]??"").length;r.value=d.toFixed(h),yt(e,t,"set_value",{value:Number(r.value)},r.value)}}
     />
     ${l?W`<span class="row-value">${l}</span>`:F}
-  `}(e,s,i);case"boolean":return function(e,t,s){const{disabled:i,empty:n,staged:r}=$t(e,t);return W`
+  `}(e,s,i);case"boolean":return function(e,t,s){const{disabled:i,empty:n,staged:r}=wt(e,t);return W`
     <label class="switch">
       <input
         type="checkbox"
@@ -642,15 +667,15 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
         .checked=${"on"===(r??t.state)}
         .indeterminate=${n}
         ?disabled=${i}
-        @change=${s=>{const i=s.target.checked;gt(e,t,i?"turn_on":"turn_off",{},i?"on":"off")}}
+        @change=${s=>{const i=s.target.checked;yt(e,t,i?"turn_on":"turn_off",{},i?"on":"off")}}
       />
     </label>
-  `}(e,s,i);case"select":return function(e,t,s){const{disabled:i,empty:n,staged:r}=$t(e,t),o=yt(t,"options",[]),a=r??t.state;return W`
+  `}(e,s,i);case"select":return function(e,t,s){const{disabled:i,empty:n,staged:r}=wt(e,t),o=xt(t,"options",[]),a=r??t.state;return W`
     <select
       class="select-input"
       aria-label=${s}
       ?disabled=${i}
-      @change=${s=>{const i=s.target.value;gt(e,t,"select_option",{option:i},i)}}
+      @change=${s=>{const i=s.target.value;yt(e,t,"select_option",{option:i},i)}}
     >
       ${n?W`<option value="" selected disabled>${"—"}</option>`:F}
       ${o.map(e=>W`
@@ -659,80 +684,55 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
           </option>
         `)}
     </select>
-  `}(e,s,i);case"text":return function(e,t,s){const{disabled:i,empty:n,staged:r}=$t(e,t),o=t.attributes.pattern;return W`
+  `}(e,s,i);case"text":return function(e,t,s){const{disabled:i,empty:n,staged:r}=wt(e,t),o=t.attributes.pattern;return W`
     <input
       class="text-input"
-      type=${"password"===yt(t,"mode","text")?"password":"text"}
+      type=${"password"===xt(t,"mode","text")?"password":"text"}
       aria-label=${s}
-      minlength=${yt(t,"min",0)}
-      maxlength=${yt(t,"max",255)}
+      minlength=${xt(t,"min",0)}
+      maxlength=${xt(t,"max",255)}
       pattern=${o??F}
       .value=${n?"":r??t.state}
       ?disabled=${i}
-      @change=${s=>{const i=s.target.value;gt(e,t,"set_value",{value:i},i)}}
+      @change=${s=>{const i=s.target.value;yt(e,t,"set_value",{value:i},i)}}
     />
-  `}(e,s,i);case"date":return wt(e,s,i,"date");case"time":return wt(e,s,i,"time");case"datetime":return wt(e,s,i,"datetime");default:return W`<span class="row-value muted">
+  `}(e,s,i);case"date":return At(e,s,i,"date");case"time":return At(e,s,i,"time");case"datetime":return At(e,s,i,"datetime");default:return W`<span class="row-value muted">
         ${ht(e.hass,"not_editable")}
-      </span>`}}function At(e,t){return"number"===e&&void 0!==t&&"slider"===yt(t,"mode","box")}function kt(e,t){const s=e.config.values.parameters,i=new Map((s??[]).map(e=>[e.parameter,e]));return function(e,t){if(!t)return e.parameters;const s=new Map(e.parameters.map(e=>[e.key,e]));return t.map(e=>s.get(e)).filter(e=>void 0!==e)}(t,s?s.map(e=>e.parameter):null).map(e=>{const t=i.get(e.key);return{parameter:e,label:t?.name??e.name,icon:t?.icon}})}function St(e,t,s){if(!s)return F;const i=!1===t.icon?void 0:t.icon??(e.config.values.icons?Be(e.hass,t.parameter.entity)?.attributes.icon:void 0);return W`<span class="row-icon">${mt(i)}</span>`}function Et(e,t,s){const{text:i,muted:n}=function(e,t){const s=Be(e.hass,t.entity);return s?s.state===De?{text:ht(e.hass,"not_set"),muted:!0}:Le(s.state)?{text:ht(e.hass,"unavailable"),muted:!0}:{text:We(e.hass,s),muted:!1}:{text:ht(e.hass,"unavailable"),muted:!0}}(e,t.parameter);return W`
+      </span>`}}function St(e,t){return"number"===e&&void 0!==t&&"slider"===xt(t,"mode","box")}function Et(e,t){const s=e.config.values.parameters,i=new Map((s??[]).map(e=>[e.parameter,e]));return function(e,t){if(!t)return e.parameters;const s=new Map(e.parameters.map(e=>[e.key,e]));return t.map(e=>s.get(e)).filter(e=>void 0!==e)}(t,s?s.map(e=>e.parameter):null).map(e=>{const t=i.get(e.key);return{parameter:e,label:t?.name??e.name,icon:t?.icon}})}function Mt(e,t,s){if(!s)return F;const i=!1===t.icon?void 0:t.icon??(e.config.values.icons?Be(e.hass,t.parameter.entity)?.attributes.icon:void 0);return W`<span class="row-icon">${mt(i)}</span>`}function Tt(e,t,s){const{text:i,muted:n}=function(e,t){const s=Be(e.hass,t.entity);return s?s.state===De?{text:ht(e.hass,"not_set"),muted:!0}:Le(s.state)?{text:ht(e.hass,"unavailable"),muted:!0}:{text:We(e.hass,s),muted:!1}:{text:ht(e.hass,"unavailable"),muted:!0}}(e,t.parameter);return W`
     <div class="row">
       <div class="row-label">
-        ${St(e,t,s)}<span>${t.label}</span>
+        ${Mt(e,t,s)}<span>${t.label}</span>
       </div>
       <div class="row-value ${n?"muted":""}">${i}</div>
     </div>
-  `}function Mt(e,t,s,i,n){const r=s?t.parameter.editors[s]:void 0,o=Be(e.hass,r),a=At(t.parameter.type,o);return W`
+  `}function Pt(e,t,s,i,n){const r=s?t.parameter.editors[s]:void 0,o=Be(e.hass,r),a=St(t.parameter.type,o);return W`
     <div class="row ${a?"wide":""}">
       <div class="row-label">
-        ${St(e,t,n)}<span>${i}</span>
+        ${Mt(e,t,n)}<span>${i}</span>
       </div>
       <div class="row-control">
-        ${xt(e,t.parameter.type,o,i)}
+        ${kt(e,t.parameter.type,o,i)}
       </div>
     </div>
-  `}function Tt(e){const t=ht(e.hass,"editing");return W`
-    <label class="toolbar">
-      <span class="toolbar-label">${t}</span>
-      <span class="switch">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label=${t}
-          .checked=${e.editing}
-          @change=${t=>e.setEditing(t.target.checked)}
-        />
-      </span>
-    </label>
-  `}function Pt(e){return W`
-    <div class="toolbar">
-      <span class="toolbar-label"></span>
-      <button
-        class="apply"
-        type="button"
-        ?disabled=${0===e.draft.size}
-        @click=${()=>e.apply()}
-      >
-        ${ht(e.hass,"apply")}
-      </button>
-    </div>
-  `}function Ct(e){if("preset"!==e.subject.kind)return F;if(!e.config.values.visible)return F;const t=e.subject.preset,s=kt(e,t);if(!s.length)return W`<div class="section note">
+  `}function Ct(e){if("preset"!==e.subject.kind)return F;if(!e.config.values.visible)return F;const t=e.subject.preset,s=Et(e,t);if(!s.length)return W`<div class="section note">
       ${ht(e.hass,"no_parameters")}
     </div>`;const i=null===e.subject.presetMode?W`<div class="note warning">${ht(e.hass,"orphaned")}</div>`:F,n=function(e,t){return e.config.values.icons||t.some(e=>"string"==typeof e.icon)}(e,s),{editor:r}=e.config,o=()=>W`
     <div class="section rows">
-      ${i}${r.confirm?Tt(e):F}
-      ${s.map(t=>Et(e,t,n))}
+      ${i}${r.confirm?gt(e):F}
+      ${s.map(t=>Tt(e,t,n))}
     </div>
   `;if(!r.enabled)return o();if(r.confirm&&!e.editing)return o();if("all"===r.mode){const t=Ze(e.subject);return W`
       <div class="section rows">
-        ${i}${r.confirm?Tt(e):F}
+        ${i}${r.confirm?gt(e):F}
         ${s.map(s=>W`
             <div class="group-label">${s.label}</div>
-            ${t.map(t=>Mt(e,s,t.key,t.name,n))}
+            ${t.map(t=>Pt(e,s,t.key,t.name,n))}
           `)}
-        ${r.confirm?Pt(e):F}
+        ${r.confirm?$t(e):F}
       </div>
     `}const a="active"===r.mode?Xe(e.hass,e.subject):e.editMode;return W`
     <div class="section rows">
-      ${i}${r.confirm?Tt(e):F}
+      ${i}${r.confirm?gt(e):F}
       ${"picker"===r.mode?function(e){const t=Ze(e.subject);if(t.length<2)return F;const s=Xe(e.hass,e.subject),i=t.find(e=>e.key===s),n=ht(e.hass,e.config.editor.confirm?"mode":"editing"),r="dropdown"===e.config.editor.style?W`
           <select
             class="select-input"
@@ -767,24 +767,25 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
           ${ht(e.hass,"active_is",{mode:i.name})}
         </div>`:F}
   `}(e):F}
-      ${s.map(t=>Mt(e,t,a,t.label,n))}
-      ${r.confirm?Pt(e):F}
+      ${s.map(t=>Pt(e,t,a,t.label,n))}
+      ${r.confirm?$t(e):F}
     </div>
-  `}function jt(e,t){const s="editable"===e.config.presets.show;return t.parameters.map(i=>{const n=s&&At(i.type,Be(e.hass,i.editors[Ye(e.hass,t)??""]));return W`
+  `}function jt(e,t){const s="editable"===e.config.presets.show&&e.editing;return t.parameters.map(i=>{const n=s&&St(i.type,Be(e.hass,i.editors[Ye(e.hass,t)??""]));return W`
       <div class="row ${n?"wide":""}">
         <div class="row-label"><span>${i.name}</span></div>
         ${s?function(e,t,s){const i=Ye(e.hass,t),n=Be(e.hass,i?s.editors[i]:void 0);return W`
     <div class="row-control">
-      ${xt(e,s.type,n,s.name)}
+      ${kt(e,s.type,n,s.name)}
     </div>
   `}(e,t,i):function(e,t){const s=Be(e.hass,t.entity);let i,n=!0;return s?s.state===De?i=ht(e.hass,"not_set"):Le(s.state)?i=ht(e.hass,"unavailable"):(i=We(e.hass,s),n=!1):i=ht(e.hass,"unavailable"),W`<div class="row-value ${n?"muted":""}">${i}</div>`}(e,i)}
       </div>
-    `})}function Ot(e,t){const{hass:s,subject:i}=e;switch(t){case"preset_mode":return"preset"===i.kind?i.presetMode?`${ht(s,"preset_mode")}: ${i.presetMode.name}`:ht(s,"orphaned"):ut(s,"presets_one","presets_other",i.presets.length);case"blueprint":return"preset"===i.kind&&i.blueprint?`${ht(s,"blueprint")}: ${i.blueprint.name}`:null;case"source":{const e="preset_mode"===i.kind?i.presetMode.source_entity:null;if(!e)return null;const t=s.states[e];return`${ht(s,"source")}: ${t?.attributes.friendly_name??e}`}case"last_changed":{const e=Be(s,Ge(i));return e?`${ht(s,"changed")}: ${function(e,t){const s=new Date(t).getTime();if(Number.isNaN(s))return"";const i=Math.round((s-Date.now())/1e3),n=[["year",31536e3],["month",2592e3],["day",86400],["hour",3600],["minute",60]],r=new Intl.RelativeTimeFormat(e.language||"en",{numeric:"auto"});for(const[e,t]of n)if(Math.abs(i)>=t)return r.format(Math.round(i/t),e);return r.format(Math.round(i),"second")}(s,e.last_changed)}`:null}default:return null}}const Nt={action:"more-info"};let Ut=class extends ae{constructor(){super(...arguments),this._editModeOverride=null,this._editing=!1,this._draft=new Map,this._watched=[],this._held=!1,this._lastTap=0}setConfig(e){this._config=Me(e),this._editModeOverride=null,this._editing=!1,this._draft=new Map,this._watched=[]}static getConfigElement(){return document.createElement(`${e}-editor`)}static async getStubConfig(t){const s=ze(t)??await Ue(t),i=s.preset_modes.find(e=>e.entities.mode)?.entities.mode??s.presets.find(e=>e.entities.active_mode)?.entities.active_mode;return{type:`custom:${e}`,entity:i??""}}set hass(e){const t=this._hass;if(this._hass=e,!t)return this.requestUpdate(),void this._load();if(t.language===e.language&&t.themes===e.themes){for(const s of this._watched)if(t.states[s]!==e.states[s])return void this.requestUpdate()}else this.requestUpdate()}get hass(){return this._hass}connectedCallback(){super.connectedCallback(),this._load()}disconnectedCallback(){super.disconnectedCallback(),this._unsubscribe?.(),this._unsubscribe=void 0,this._clearTimers()}async _load(){this._hass&&!this._unsubscribe&&(this._unsubscribe=He(this._hass,e=>{this._structure=e}),this._structure=await Ue(this._hass))}getCardSize(){const e=this._config;if(!e)return 2;let t=e.header.visible?1:0;const s=this._subject;return(void 0===e.modes.visible?null===s||"preset_mode"===s.kind:"never"!==e.modes.visible)&&(t+=1),e.values.visible&&(t+=2),"none"!==e.presets.show&&(t+=2),e.footer.visible&&(t+=1),Math.max(1,t)}getGridOptions(){return{columns:12,min_columns:6}}get _tapAction(){return this._config?.tap_action??Nt}_clearTimers(){this._holdTimer&&clearTimeout(this._holdTimer),this._tapTimer&&clearTimeout(this._tapTimer),this._errorTimer&&clearTimeout(this._errorTimer),this._holdTimer=this._tapTimer=this._errorTimer=void 0}_headerDown(e){this._held=!1,Fe(this._config?.hold_action)&&(this._holdTimer=setTimeout(()=>{this._held=!0,this._run(this._config?.hold_action,e)},500))}_headerUp(){this._holdTimer&&clearTimeout(this._holdTimer),this._holdTimer=void 0}_headerClick(e){if(this._held)return void(this._held=!1);const t=this._config?.double_tap_action;if(!Fe(t))return void this._run(this._tapAction,e);const s=Date.now();if(s-this._lastTap<250)return this._tapTimer&&clearTimeout(this._tapTimer),this._tapTimer=void 0,this._lastTap=0,void this._run(t,e);this._lastTap=s,this._tapTimer=setTimeout(()=>{this._tapTimer=void 0,this._run(this._tapAction,e)},250)}_run(e,t){if(!this._hass)return;const s="preset_mode"===t.kind?t.presetMode.entities.mode:t.preset.entities.active_mode;this._call(Ve(this,this._hass,e,s??this._config?.entity))}_apply(){if(!this._hass||!this._draft.size)return;const e=this._hass,t=[...this._draft].map(([t,s])=>e.callService(t.split(".",1)[0],s.service,s.data,{entity_id:t}));this._editing=!1,this._draft=new Map,this._editModeOverride=null,this._call(Promise.all(t))}_call(e){e.then(()=>{void 0!==this._error&&(this._error=void 0)},e=>{this._error=this._messageOf(e),this._errorTimer&&clearTimeout(this._errorTimer),this._errorTimer=setTimeout(()=>{this._errorTimer=void 0,this._error=void 0},6e3)})}_messageOf(e){if("string"==typeof e)return e;if(e&&"object"==typeof e){const t=e,s=t.body;for(const e of[t.message,s?.message,t.error])if("string"==typeof e&&e)return e}return String(e)}willUpdate(e){super.willUpdate(e);const t=this._subject;this._watched=t?function(e){if("preset_mode"===e.kind){const t=at(e.presetMode);for(const s of e.presets)t.push(...ot(s));return t}const t=ot(e.preset);return e.presetMode&&t.push(...at(e.presetMode)),t}(t):[]}get _subject(){return this._config&&this._structure?ct(this._structure,this._config.entity):null}_editMode(e){if(this._editModeOverride)return this._editModeOverride;const t=this._config?.editor.default_mode,s=Ze(e);return t&&s.some(e=>e.key===t)?t:Xe(this._hass,e)??s[0]?.key??null}render(){const e=this._config,t=this._hass;if(!e||!t)return F;if(!this._structure)return this._shell(this._skeleton());const s=this._subject;if(!s){const s=this._structure.preset_modes.length+this._structure.presets.length;return this._shell(this._alert(s?ht(t,"not_found",{entity:e.entity}):ht(t,"not_set_up")))}const i={hass:t,config:e,subject:s,host:this,editMode:this._editMode(s),selectEditMode:e=>{this._editModeOverride=e},call:e=>this._call(e),editing:this._editing,draft:this._draft,setEditing:e=>{this._editing=e,this._draft=new Map,e||(this._editModeOverride=null)},stage:(e,t)=>{this._draft=new Map(this._draft).set(e,t)},apply:()=>this._apply(),tappable:Fe(this._tapAction)||Fe(e.hold_action),onHeaderDown:()=>this._headerDown(s),onHeaderUp:()=>this._headerUp(),onHeaderClick:()=>this._headerClick(s)};return this._shell(W`
+    `})}function Ot(e,t){const{hass:s,subject:i}=e;switch(t){case"preset_mode":return"preset"===i.kind?i.presetMode?`${ht(s,"preset_mode")}: ${i.presetMode.name}`:ht(s,"orphaned"):ut(s,"presets_one","presets_other",i.presets.length);case"blueprint":return"preset"===i.kind&&i.blueprint?`${ht(s,"blueprint")}: ${i.blueprint.name}`:null;case"source":{const e="preset_mode"===i.kind?i.presetMode.source_entity:null;if(!e)return null;const t=s.states[e];return`${ht(s,"source")}: ${t?.attributes.friendly_name??e}`}case"last_changed":{const e=Be(s,Ge(i));return e?`${ht(s,"changed")}: ${function(e,t){const s=new Date(t).getTime();if(Number.isNaN(s))return"";const i=Math.round((s-Date.now())/1e3),n=[["year",31536e3],["month",2592e3],["day",86400],["hour",3600],["minute",60]],r=new Intl.RelativeTimeFormat(e.language||"en",{numeric:"auto"});for(const[e,t]of n)if(Math.abs(i)>=t)return r.format(Math.round(i/t),e);return r.format(Math.round(i),"second")}(s,e.last_changed)}`:null}default:return null}}const Nt={action:"more-info"};let Ut=class extends ae{constructor(){super(...arguments),this._editModeOverride=null,this._editing=!1,this._draft=new Map,this._watched=[],this._held=!1,this._lastTap=0}setConfig(e){this._config=Me(e),this._editModeOverride=null,this._editing=!1,this._draft=new Map,this._watched=[]}static getConfigElement(){return document.createElement(`${e}-editor`)}static async getStubConfig(t){const s=ze(t)??await Ue(t),i=s.preset_modes.find(e=>e.entities.mode)?.entities.mode??s.presets.find(e=>e.entities.active_mode)?.entities.active_mode;return{type:`custom:${e}`,entity:i??""}}set hass(e){const t=this._hass;if(this._hass=e,!t)return this.requestUpdate(),void this._load();if(t.language===e.language&&t.themes===e.themes){for(const s of this._watched)if(t.states[s]!==e.states[s])return void this.requestUpdate()}else this.requestUpdate()}get hass(){return this._hass}connectedCallback(){super.connectedCallback(),this._load()}disconnectedCallback(){super.disconnectedCallback(),this._unsubscribe?.(),this._unsubscribe=void 0,this._clearTimers()}async _load(){this._hass&&!this._unsubscribe&&(this._unsubscribe=He(this._hass,e=>{this._structure=e}),this._structure=await Ue(this._hass))}getCardSize(){const e=this._config;if(!e)return 2;let t=e.header.visible?1:0;const s=this._subject;return(void 0===e.modes.visible?null===s||"preset_mode"===s.kind:"never"!==e.modes.visible)&&(t+=1),e.values.visible&&(t+=2),"none"!==e.presets.show&&(t+=2),e.footer.visible&&(t+=1),Math.max(1,t)}getGridOptions(){return{columns:12,min_columns:6}}get _tapAction(){return this._config?.tap_action??Nt}_clearTimers(){this._holdTimer&&clearTimeout(this._holdTimer),this._tapTimer&&clearTimeout(this._tapTimer),this._errorTimer&&clearTimeout(this._errorTimer),this._holdTimer=this._tapTimer=this._errorTimer=void 0}_headerDown(e){this._held=!1,Fe(this._config?.hold_action)&&(this._holdTimer=setTimeout(()=>{this._held=!0,this._run(this._config?.hold_action,e)},500))}_headerUp(){this._holdTimer&&clearTimeout(this._holdTimer),this._holdTimer=void 0}_headerClick(e){if(this._held)return void(this._held=!1);const t=this._config?.double_tap_action;if(!Fe(t))return void this._run(this._tapAction,e);const s=Date.now();if(s-this._lastTap<250)return this._tapTimer&&clearTimeout(this._tapTimer),this._tapTimer=void 0,this._lastTap=0,void this._run(t,e);this._lastTap=s,this._tapTimer=setTimeout(()=>{this._tapTimer=void 0,this._run(this._tapAction,e)},250)}_run(e,t){if(!this._hass)return;const s="preset_mode"===t.kind?t.presetMode.entities.mode:t.preset.entities.active_mode;this._call(Ve(this,this._hass,e,s??this._config?.entity))}_apply(){if(!this._hass||!this._draft.size)return;const e=this._hass,t=[...this._draft].map(([t,s])=>e.callService(t.split(".",1)[0],s.service,s.data,{entity_id:t}));this._editing=!1,this._draft=new Map,this._editModeOverride=null,this._call(Promise.all(t))}_call(e){e.then(()=>{void 0!==this._error&&(this._error=void 0)},e=>{this._error=this._messageOf(e),this._errorTimer&&clearTimeout(this._errorTimer),this._errorTimer=setTimeout(()=>{this._errorTimer=void 0,this._error=void 0},6e3)})}_messageOf(e){if("string"==typeof e)return e;if(e&&"object"==typeof e){const t=e,s=t.body;for(const e of[t.message,s?.message,t.error])if("string"==typeof e&&e)return e}return String(e)}willUpdate(e){super.willUpdate(e);const t=this._subject;this._watched=t?function(e){if("preset_mode"===e.kind){const t=at(e.presetMode);for(const s of e.presets)t.push(...ot(s));return t}const t=ot(e.preset);return e.presetMode&&t.push(...at(e.presetMode)),t}(t):[]}get _subject(){return this._config&&this._structure?ct(this._structure,this._config.entity):null}_editMode(e){if(this._editModeOverride)return this._editModeOverride;const t=this._config?.editor.default_mode,s=Ze(e);return t&&s.some(e=>e.key===t)?t:Xe(this._hass,e)??s[0]?.key??null}render(){const e=this._config,t=this._hass;if(!e||!t)return F;if(!this._structure)return this._shell(this._skeleton());const s=this._subject;if(!s){const s=this._structure.preset_modes.length+this._structure.presets.length;return this._shell(this._alert(s?ht(t,"not_found",{entity:e.entity}):ht(t,"not_set_up")))}const i={hass:t,config:e,subject:s,host:this,editMode:this._editMode(s),selectEditMode:e=>{this._editModeOverride=e},call:e=>this._call(e),editing:this._editing,draft:this._draft,setEditing:e=>{this._editing=e,this._draft=new Map,e||(this._editModeOverride=null)},stage:e.editor.confirm||"editable"===e.presets.show?(e,t)=>{this._draft=new Map(this._draft).set(e,t)}:void 0,apply:()=>this._apply(),tappable:Fe(this._tapAction)||Fe(e.hold_action),onHeaderDown:()=>this._headerDown(s),onHeaderUp:()=>this._headerUp(),onHeaderClick:()=>this._headerClick(s)};return this._shell(W`
       ${ft(i)} ${vt(i)} ${Ct(i)}
       ${function(e){if("preset_mode"!==e.subject.kind)return F;const t=e.config.presets.show;if("none"===t)return F;const{presets:s}=e.subject;if(!s.length)return W`<div class="section note">
       ${ut(e.hass,"presets_one","presets_other",0)}
-    </div>`;const i="names"!==t;return W`
+    </div>`;const i="names"!==t,n="editable"===t;return W`
     <div class="section rows">
+      ${n?gt(e):F}
       ${s.map(t=>{const s=t.entities.active_mode,n=W`
           <button
             class="row-label link-row"
@@ -805,6 +806,7 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
           <div class="group-label">${t.name}</div>
           ${jt(e,t)}
         `})}
+      ${n?$t(e):F}
     </div>
   `}(i)} ${function(e){if(!e.config.footer.visible)return F;const t=e.config.footer.content.map(t=>Ot(e,t)).filter(e=>null!==e);return t.length?W`
     <div class="section footer">

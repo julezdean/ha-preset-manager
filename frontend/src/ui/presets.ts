@@ -8,8 +8,10 @@
  * preset with the values that are valid right now.
  *
  * With `show: editable` those rows become the editors of the mode each preset
- * is currently on, which is the answer to the question the list provokes:
- * having seen what Night means, this is where it is changed. Not a mode picker per
+ * is currently on - once the switch above them is turned on, and only when
+ * *Apply* is pressed. That is the answer to the question the list provokes:
+ * having seen what Night means, this is where it is changed - for the whole
+ * room at once, which is why it is not changed by accident. Not a mode picker per
  * preset - the card already has one row of chips deciding the mode, and a
  * second way to choose one would be a different question wearing the same
  * clothes. Switching the mode therefore moves these editors with it.
@@ -19,6 +21,7 @@ import { html, nothing, type TemplateResult } from "lit";
 
 import { presetModeKey } from "../data/state";
 import { localize, localizeCount } from "../localize";
+import { applyButton, editSwitch } from "./confirm";
 import { isWideControl, renderControl } from "./controls";
 import { formatState, hasNoValue, showMoreInfo, stateOf, UNKNOWN } from "../util/ha";
 import type { CardContext } from "./context";
@@ -53,7 +56,7 @@ function editorValue(
 }
 
 function valueRows(context: CardContext, preset: PresetInfo): TemplateResult[] {
-  const editable = context.config.presets.show === "editable";
+  const editable = context.config.presets.show === "editable" && context.editing;
   return preset.parameters.map((parameter) => {
     const wide =
       editable &&
@@ -88,8 +91,14 @@ export function renderPresets(context: CardContext): TemplateResult | typeof not
   }
 
   const withValues = show !== "names";
+  // Editing here is always the deliberate kind, whatever `editor.confirm` says
+  // for a preset card: one row of editors on this card reaches into every
+  // device of the dimension, and dragging a slider past the wrong number
+  // should not be what sends that.
+  const confirmed = show === "editable";
   return html`
     <div class="section rows">
+      ${confirmed ? editSwitch(context) : nothing}
       ${presets.map((preset) => {
         const target = preset.entities.active_mode;
         const name = html`
@@ -120,6 +129,7 @@ export function renderPresets(context: CardContext): TemplateResult | typeof not
           ${valueRows(context, preset)}
         `;
       })}
+      ${confirmed ? applyButton(context) : nothing}
     </div>
   `;
 }

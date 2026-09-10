@@ -587,7 +587,7 @@ time.
 | `editor.style` | `chips` | How `picker` is drawn: `chips` or `dropdown`. |
 | `editor.confirm` | `false` | Editing behind a switch, written only when applied. Implies `enabled`. |
 | `editor.default_mode` | the active mode | Mode key the picker starts on. |
-| `presets.show` | `none` | On a preset mode, how much of the presets following it to show: `none`, `names`, `values`, or `editable`. |
+| `presets.show` | `none` | On a preset mode, how much of the presets following it to show: `none`, `names`, `values`, or `editable`. `editable` always edits behind a switch and an *Apply*. |
 | `footer.visible` | `false` | The footer line. |
 | `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
 | `tap_action` | `more-info` | Home Assistant's action config, on the header. |
@@ -681,9 +681,11 @@ a dialog for its own sake.
 `confirm` implies `enabled`, because a card with no editors has nothing to
 switch into.
 
-On a **preset mode** card the same applies to the presets it lists:
-`presets.show: editable` turns their values into editors for the mode each
-preset is on. There is no mode picker per preset there — the card already has one row of
+On a **preset mode** card the presets it lists work the same way, except that
+there the switch is not optional: `presets.show: editable` always puts the
+editors behind it and always ends in *Apply*. One row of editors there reaches
+into every device of the dimension at once, and that is not something to send
+by dragging a slider past the wrong number. There is no mode picker per preset — the card already has one row of
 chips deciding the mode, and a second way to choose one would be a different
 question wearing the same clothes. Switching the mode moves these editors with
 it, which is the point: having seen what Night means for every device in the

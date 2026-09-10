@@ -25,6 +25,7 @@ import { activeModeKey, modesOf } from "../data/state";
 import { orderedParameters } from "../data/subject";
 import { localize } from "../localize";
 import { icon } from "./icon";
+import { applyButton, editSwitch } from "./confirm";
 import { isWideControl, renderControl } from "./controls";
 import type { CardContext } from "./context";
 import type { ParameterInfo, PresetInfo } from "../types/data";
@@ -200,43 +201,6 @@ function editModePicker(context: CardContext): TemplateResult | typeof nothing {
           ${localize(context.hass, "active_is", { mode: activeMode.name })}
         </div>`
       : nothing}
-  `;
-}
-
-/** The switch that opens and closes the editors. */
-function editSwitch(context: CardContext): TemplateResult {
-  const label = localize(context.hass, "editing");
-  return html`
-    <label class="toolbar">
-      <span class="toolbar-label">${label}</span>
-      <span class="switch">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label=${label}
-          .checked=${context.editing}
-          @change=${(event: Event) =>
-            context.setEditing((event.target as HTMLInputElement).checked)}
-        />
-      </span>
-    </label>
-  `;
-}
-
-/** Sends what the editors collected, and closes them again. */
-function applyButton(context: CardContext): TemplateResult {
-  return html`
-    <div class="toolbar">
-      <span class="toolbar-label"></span>
-      <button
-        class="apply"
-        type="button"
-        ?disabled=${context.draft.size === 0}
-        @click=${() => context.apply()}
-      >
-        ${localize(context.hass, "apply")}
-      </button>
-    </div>
   `;
 }
 

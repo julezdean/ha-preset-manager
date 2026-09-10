@@ -361,9 +361,15 @@ export class PresetManagerCard extends LitElement {
         this._draft = new Map();
         if (!open) this._editModeOverride = null;
       },
-      stage: (entityId, write) => {
-        this._draft = new Map(this._draft).set(entityId, write);
-      },
+      // Only where an Apply button exists to write it out again. The two
+      // never overlap: a preset card has no preset list, a preset mode card
+      // has no values of its own.
+      stage:
+        config.editor.confirm || config.presets.show === "editable"
+          ? (entityId, write) => {
+              this._draft = new Map(this._draft).set(entityId, write);
+            }
+          : undefined,
       apply: () => this._apply(),
       tappable: hasAction(this._tapAction) || hasAction(config.hold_action),
       onHeaderDown: () => this._headerDown(subject),

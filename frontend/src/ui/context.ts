@@ -32,7 +32,15 @@ export interface CardContext {
   editing: boolean;
   draft: ReadonlyMap<string, StagedWrite>;
   setEditing(open: boolean): void;
-  stage(entityId: string, write: StagedWrite): void;
+  /**
+   * Present only where something applies the draft afterwards.
+   *
+   * A control stages instead of writing as soon as it is handed this, so
+   * handing it over unconditionally made every edit outside confirmed editing
+   * vanish into a draft nobody flushed - the plain editors wrote nothing at
+   * all, silently, from the first release of the card.
+   */
+  stage?(entityId: string, write: StagedWrite): void;
   apply(): void;
   /** Whether the header carries a tap/hold action worth a cursor and a role. */
   tappable: boolean;

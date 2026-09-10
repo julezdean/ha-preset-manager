@@ -47,6 +47,17 @@ as they are rather than renamed mid-series.
   `.storage/preset_manager.values`. An older version simply does not find them,
   so there is no migration step.
 
+### Fixed
+
+- **The plain editors wrote nothing at all.** With `editor.enabled` and without
+  `editor.confirm`, every change was collected into the draft that confirmed
+  editing flushes - and without an *Apply* button nothing ever flushed it. The
+  control stages as soon as the card hands it something to stage with, and the
+  card handed it over unconditionally. It is handed over now only where an
+  *Apply* exists to write it out again. Present since the card's first release
+  in 0.3.0, and it affected the default way of editing rather than the opt-in
+  one.
+
 ### Removed
 
 - **A preset mode is not operated any more.** `select.<preset_mode>_active_mode`
@@ -68,6 +79,10 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
+- **Editing the presets of a preset mode goes through a switch and an *Apply***,
+  the way `editor.confirm` does on a preset card - but not optionally. One row
+  of editors there reaches into every device of the dimension at once, so it is
+  not a thing to send by dragging a slider past the wrong number.
 - **`presets.visible`, `presets.values` and `presets.editable` are one option**,
   `presets.show`, taking `none`, `names`, `values` or `editable`. They were
   never three decisions but four rungs of one ladder - `editable` replaces the
