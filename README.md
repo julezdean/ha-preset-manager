@@ -576,7 +576,7 @@ time.
 | `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
-| `modes.visible` | `true` | `true`, `false`, or `manual` for “only while the mode can be set from here”. |
+| `modes.visible` | `true` | `true`, `false`, or `manual` for “only while the mode can be set from here”. `manual` says nothing new on a preset mode, which is never set from here; the visual editor offers a plain switch there. |
 | `modes.style` | `chips` | `chips` or `dropdown`. |
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
 | `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |

@@ -68,6 +68,12 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
+- **The visual editor stops offering a preset mode what it cannot use**: the
+  automatic switch is gone from its header group, and the mode row is a plain
+  switch there rather than a choice of three - "while the mode can be set by
+  hand" means the same as "never" on an object that is never set by hand, and a
+  choice between two words for one outcome is one the user has to work out
+  before discarding it.
 - **The second line of a preset card always says where the mode comes from** -
   `Night · Automatic` or `Night · Manual`, not only the deviating one. Three
   states used to collapse into two: a bare `Night` meant either "follows" or
