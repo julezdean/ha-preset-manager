@@ -186,7 +186,7 @@ async def test_says_which_preset_mode_a_preset_follows(
     assert preset["entities"] == {
         "active_mode": "sensor.motion_sensor_living_room_active_mode",
         "mode_selection": "select.motion_sensor_living_room_mode_selection",
-        "automatic": "switch.motion_sensor_living_room_automatic",
+        "automatic": "switch.motion_sensor_living_room_follows_preset_mode",
     }
 
 

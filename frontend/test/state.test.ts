@@ -69,8 +69,8 @@ describe("automaticState", () => {
   it("reads a preset from its own switch, not from the dimension's", () => {
     const states = {
       "switch.house_mode_automatic": entity("switch.house_mode_automatic", "on"),
-      "switch.motion_sensor_living_room_automatic": entity(
-        "switch.motion_sensor_living_room_automatic",
+      "switch.motion_sensor_living_room_follows_preset_mode": entity(
+        "switch.motion_sensor_living_room_follows_preset_mode",
         "off",
       ),
     };
@@ -122,8 +122,8 @@ describe("modeLockReason", () => {
     // whole point of the preset having a switch of its own.
     const states = {
       "switch.house_mode_automatic": entity("switch.house_mode_automatic", "on"),
-      "switch.motion_sensor_living_room_automatic": entity(
-        "switch.motion_sensor_living_room_automatic",
+      "switch.motion_sensor_living_room_follows_preset_mode": entity(
+        "switch.motion_sensor_living_room_follows_preset_mode",
         "off",
       ),
     };
@@ -133,8 +133,8 @@ describe("modeLockReason", () => {
   it("refuses a preset that follows no preset mode", () => {
     const orphan = resolveSubject(CONFIG, "sensor.shutter_living_room_active_mode")!;
     const states = {
-      "switch.shutter_living_room_automatic": entity(
-        "switch.shutter_living_room_automatic",
+      "switch.shutter_living_room_follows_preset_mode": entity(
+        "switch.shutter_living_room_follows_preset_mode",
         "off",
       ),
     };

@@ -16,8 +16,8 @@ as they are rather than renamed mid-series.
 
 ### Added
 
-- **An automatic per preset.** Every preset gets `switch.<preset>_automatic` and
-  `select.<preset>_mode_selection`. With the switch off, that one preset holds a
+- **An automatic per preset.** Every preset gets
+  `switch.<preset>_follows_preset_mode` and `select.<preset>_mode_selection`. With the switch off, that one preset holds a
   mode of its own while its preset mode carries on switching for every other
   preset that follows it. Switching it off changes nothing on the spot — the
   mode being handed over becomes the one the preset holds; switching it back on
@@ -31,6 +31,11 @@ as they are rather than renamed mid-series.
 - `sensor.<preset>_active_mode` carries an `automatic` attribute. `mode_source`
   keeps naming the preset mode, which stays true while the preset holds its own
   mode.
+- The preset's switch is `follows_preset_mode`, not `automatic`: the preset
+  mode's switch already owns that object id, and a preset named like its preset
+  mode would push one of the two into an `_2` suffix. The symmetric-looking
+  `mode_automatic` would have been worse - a preset "House" under a preset mode
+  "House Mode" builds the very same id, and that collision is invisible.
 - Storage minor version 2: two additional keys in
   `.storage/preset_manager.values`. An older version simply does not find them,
   so there is no migration step.

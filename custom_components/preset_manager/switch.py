@@ -87,7 +87,14 @@ class PresetAutomaticSwitch(PresetEntity, SwitchEntity):
     """
 
     _attr_translation_key = "automatic"
-    _object_id_name = "automatic"
+    #: Not "automatic": that is the object id of the preset mode's switch, and
+    #: a preset named like its preset mode would push one of the two into an
+    #: "_2" suffix. Nor "mode_automatic", which would look symmetric and be
+    #: worse - a preset "House" under a preset mode "House Mode" builds the
+    #: same id, and *that* collision nobody can see. Any suffix not ending in
+    #: "automatic" makes the whole class impossible; this one also says what
+    #: the switch decides.
+    _object_id_name = "follows_preset_mode"
 
     def __init__(self, coordinator: PresetCoordinator) -> None:
         """Initialise the automatic switch of a preset."""

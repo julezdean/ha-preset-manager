@@ -30,7 +30,7 @@ from .conftest import (
 PRESET_MODE_SELECT = "select.house_mode_active_mode"
 PRESET_MODE_SENSOR = "sensor.house_mode_mode"
 
-SWITCH = "switch.motion_sensor_living_room_automatic"
+SWITCH = "switch.motion_sensor_living_room_follows_preset_mode"
 SELECT = "select.motion_sensor_living_room_mode_selection"
 SENSOR = "sensor.motion_sensor_living_room_active_mode"
 BRIGHTNESS_SENSOR = "sensor.motion_sensor_living_room_brightness"

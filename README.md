@@ -131,7 +131,7 @@ Assistant 2026.3 onwards.
 | **Preset mode** | An ordered set of modes; the first whose conditions match is active | House Mode, Window State |
 | **Mode** | One option inside a preset mode, optionally with conditions | Home · Away · Night |
 | **Automatic** | Runtime switch: follow the conditions, or set the mode by hand | `switch.house_mode_automatic` |
-| **Automatic (preset)** | Runtime switch: take the mode of the preset mode, or hold one | `switch.motion_sensor_living_room_automatic` |
+| **Automatic (preset)** | Runtime switch: take the mode of the preset mode, or hold one | `switch.motion_sensor_living_room_follows_preset_mode` |
 | **Preset** | One device or scenario with its parameters, attached to a preset mode | Motion Sensor Living Room |
 | **Parameter** | One configurable value inside a preset | Brightness, Off delay |
 | **Blueprint** | A parameter list of its own that any number of presets can follow | Heating, Shutters |
@@ -396,10 +396,10 @@ Every preset has an automatic of its own, and it is the same question one level
 down: does the mode come from somewhere else, or from here?
 
 ```
-switch.motion_sensor_living_room_automatic       off
-select.motion_sensor_living_room_mode_selection  Night
-sensor.house_mode_mode                           Away
-sensor.motion_sensor_living_room_active_mode     Night
+switch.motion_sensor_living_room_follows_preset_mode  off
+select.motion_sensor_living_room_mode_selection       Night
+sensor.house_mode_mode                                Away
+sensor.motion_sensor_living_room_active_mode          Night
 ```
 
 * **On** (the default) — the preset takes the mode of its preset mode.
@@ -458,7 +458,7 @@ this integration should only carry the values.
 
 **Entity ids are always English**, regardless of the language of your Home
 Assistant instance — `sensor.<preset_mode>_mode`, `sensor.<preset>_active_mode`,
-`select.<preset>_mode_selection`, `switch.<preset>_automatic`,
+`select.<preset>_mode_selection`, `switch.<preset>_follows_preset_mode`,
 `select.<preset_mode>_active_mode` and `switch.<preset_mode>_automatic` (the
 last two only where they exist). The **display names** follow the system
 language ("Aktiver Mode" / "Automatik" on a German instance).
@@ -481,7 +481,7 @@ Per preset mode, and per preset with P parameters and N modes:
 | `switch.<preset_mode>_automatic` | 1 per preset mode with conditions | – | Follow the conditions, or set by hand |
 | `sensor.<preset>_active_mode` | 1 per preset | – | Effective mode + attributes |
 | `select.<preset>_mode_selection` | 1 per preset | – | Set this preset's mode (while its automatic is off) |
-| `switch.<preset>_automatic` | 1 per preset | – | Take the mode of the preset mode, or hold one |
+| `switch.<preset>_follows_preset_mode` | 1 per preset | – | Take the mode of the preset mode, or hold one |
 | `sensor.<preset>_<parameter>` | P | – | Currently valid value |
 | `number`/`switch`/`select`/`text`/`datetime`/`date`/`time` `.<preset>_<mode>_<parameter>` | P × N | Configuration | Mode value for editing |
 

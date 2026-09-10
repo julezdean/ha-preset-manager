@@ -9,7 +9,14 @@ from __future__ import annotations
 import pytest
 from homeassistant.core import HomeAssistant
 
-from .conftest import BRIGHTNESS, OFF_DELAY, async_setup_one, make_preset
+from .conftest import (
+    BRIGHTNESS,
+    OFF_DELAY,
+    async_setup_hubs,
+    async_setup_one,
+    make_preset,
+    make_preset_mode,
+)
 
 
 async def _setup(hass: HomeAssistant, language: str) -> None:
@@ -99,3 +106,42 @@ async def test_editor_unique_ids_survive_underscores_in_both_keys(
 
     # Two modes x two parameters, none of them swallowed by a clashing id.
     assert len(hass.states.async_all("number")) == 4
+
+
+async def test_a_preset_named_like_its_preset_mode_keeps_both_switches(
+    hass: HomeAssistant,
+) -> None:
+    """Both automatics exist, and neither is pushed into an "_2" suffix.
+
+    They answer different questions - conditions or hand, preset mode or hand -
+    so they are two entities, and the object id of the preset's one must not be
+    the one the preset mode already owns. Nor anything ending in "automatic":
+    that is the whole class of collision, and the ones it produces are the kind
+    a user can neither see the cause of nor repair.
+    """
+    await async_setup_hubs(
+        hass,
+        preset_modes=[
+            make_preset_mode(
+                title="House Mode",
+                conditions={
+                    "night": [
+                        {
+                            "condition": "state",
+                            "entity_id": "sensor.anything",
+                            "state": "Night",
+                        }
+                    ]
+                },
+            )
+        ],
+        presets=[make_preset("House Mode", [BRIGHTNESS])],
+    )
+
+    assert hass.states.get("switch.house_mode_automatic") is not None
+    assert hass.states.get("switch.house_mode_follows_preset_mode") is not None
+    assert [
+        state.entity_id
+        for state in hass.states.async_all()
+        if state.entity_id.endswith("_2")
+    ] == []

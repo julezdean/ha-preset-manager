@@ -256,7 +256,7 @@
           entities: {
             active_mode: "sensor.motion_active_mode",
             mode_selection: "select.motion_mode_selection",
-            automatic: "switch.motion_automatic",
+            automatic: "switch.motion_follows_preset_mode",
           },
           parameters: [
             {
@@ -292,7 +292,7 @@
           entities: {
             active_mode: "sensor.heating_active_mode",
             mode_selection: "select.heating_mode_selection",
-            automatic: "switch.heating_automatic",
+            automatic: "switch.heating_follows_preset_mode",
           },
           parameters: [
             {
@@ -323,7 +323,7 @@
           entities: {
             active_mode: "sensor.clock_active_mode",
             mode_selection: "select.clock_mode_selection",
-            automatic: "switch.clock_automatic",
+            automatic: "switch.clock_follows_preset_mode",
           },
           parameters: [
             {
@@ -394,7 +394,7 @@
           entities: {
             active_mode: "sensor.shutter_active_mode",
             mode_selection: "select.shutter_mode_selection",
-            automatic: "switch.shutter_automatic",
+            automatic: "switch.shutter_follows_preset_mode",
           },
           parameters: [
             {
@@ -418,7 +418,7 @@
           entities: {
             active_mode: "sensor.fan_active_mode",
             mode_selection: "select.fan_mode_selection",
-            automatic: "switch.fan_automatic",
+            automatic: "switch.fan_follows_preset_mode",
           },
           parameters: [
             {
@@ -468,9 +468,9 @@
     // following its preset mode. "Preset - set by hand" below is the
     // exception, switched off two lines further down.
     for (const preset of ["motion", "heating", "clock", "shutter", "fan"]) {
-      put(`switch.${preset}_automatic`, "on");
+      put(`switch.${preset}_follows_preset_mode`, "on");
     }
-    put("switch.clock_automatic", "off");
+    put("switch.clock_follows_preset_mode", "off");
     // ...and holding a different mode than the dimension, which is the
     // whole state this feature exists for.
     manualModes.p3 = "home";
