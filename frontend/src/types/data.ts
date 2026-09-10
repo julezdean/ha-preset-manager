@@ -63,7 +63,14 @@ export interface PresetInfo {
   blueprint: string | null;
   modes: ModeInfo[];
   parameters: ParameterInfo[];
-  entities: { active_mode?: string };
+  entities: {
+    /** The sensor naming the mode this preset resolves right now. */
+    active_mode?: string;
+    /** Its own mode selector, writable while its automatic is off. */
+    mode_selection?: string;
+    /** Its own automatic: whether it takes the mode of its preset mode. */
+    automatic?: string;
+  };
 }
 
 export interface BlueprintInfo {

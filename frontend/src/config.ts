@@ -51,21 +51,9 @@ function bool(value: unknown, path: string, fallback: boolean): boolean {
   return value;
 }
 
-/** A switch the user may leave alone, so the card can decide for itself. */
-function optionalBool(value: unknown, path: string): boolean | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== "boolean") fail(`"${path}" has to be true or false`);
-  return value;
-}
-
-/**
- * When to show the mode row, with `true`/`false` as the obvious shorthands.
- *
- * Left unset it stays undefined, because what a card shows by default depends
- * on what its entity turned out to be, and that is not known here.
- */
-function modeVisibility(value: unknown, path: string): ModeVisibility | undefined {
-  if (value === undefined) return undefined;
+/** When to show the mode row, with `true`/`false` as the obvious shorthands. */
+function modeVisibility(value: unknown, path: string, fallback: ModeVisibility): ModeVisibility {
+  if (value === undefined) return fallback;
   if (value === true) return "always";
   if (value === false) return "never";
   if (typeof value !== "string" || !MODE_VISIBILITIES.includes(value as ModeVisibility)) {
@@ -166,6 +154,16 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   }
 
   const header = section(config.header, "header");
+  // The one unknown key that is rejected rather than ignored, because it did
+  // not only move: on a preset card the switch now belongs to the preset, so
+  // a configuration left as it is would quietly operate something else.
+  if (header.automatic !== undefined) {
+    fail(
+      '"header.automatic" is now "modes.automatic", and on a preset card it ' +
+        "switches the automatic of that preset rather than the one of its " +
+        "preset mode.",
+    );
+  }
   const modes = section(config.modes, "modes");
   const values = section(config.values, "values");
   const editor = section(config.editor, "editor");
@@ -180,14 +178,14 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     entity,
     header: {
       visible: bool(header.visible, "header.visible", true),
-      automatic: optionalBool(header.automatic, "header.automatic"),
       title: text(header.title, "header.title"),
       subtitle: textOrFalse(header.subtitle, "header.subtitle"),
       icon: textOrFalse(header.icon, "header.icon"),
       icon_color: text(header.icon_color, "header.icon_color"),
     },
     modes: {
-      visible: modeVisibility(modes.visible, "modes.visible"),
+      visible: modeVisibility(modes.visible, "modes.visible", "always"),
+      automatic: bool(modes.automatic, "modes.automatic", true),
       style: oneOf(modes.style, "modes.style", MODE_STYLES, "chips"),
       icons: bool(modes.icons, "modes.icons", true),
       colors: colors(modes.colors, "modes.colors"),

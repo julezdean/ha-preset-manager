@@ -14,6 +14,7 @@ from .const import (
     UID_ACTIVE_MODE,
     UID_AUTOMATIC,
     UID_CONFIG,
+    UID_MODE_SELECTION,
     UID_PRESET_MODE_SENSOR,
     UID_SEPARATOR,
     UID_VALUE,
@@ -214,6 +215,10 @@ def async_expected_preset_ids(runtime: PresetManagerRuntime) -> set[str]:
     expected: set[str] = set()
     for subentry_id, coordinator in runtime.presets.items():
         expected.add(f"{subentry_id}_{UID_ACTIVE_MODE}")
+        # Both exist on every preset, whatever its preset mode can do: the
+        # automatic switched here is the one between preset and dimension.
+        expected.add(f"{subentry_id}_{UID_MODE_SELECTION}")
+        expected.add(f"{subentry_id}_{UID_AUTOMATIC}")
         for parameter in coordinator.config.parameters:
             expected.add(f"{subentry_id}_{UID_VALUE}_{parameter.key}")
             if get_parameter_type(parameter.type).editor_platform is None:

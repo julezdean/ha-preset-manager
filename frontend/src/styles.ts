@@ -55,14 +55,10 @@ export const cardStyles = css`
 
   /* Header ---------------------------------------------------------------- */
 
-  /* The name and whatever sits at the end share a line while both fit, and
-     the end drops onto its own when they do not - so a labelled switch never
-     squeezes the name down to two letters on a narrow card. */
   .header {
     display: flex;
-    flex-wrap: wrap;
     align-items: center;
-    gap: 8px var(--pm-gap);
+    gap: var(--pm-gap);
   }
 
   .header.tappable {
@@ -105,25 +101,6 @@ export const cardStyles = css`
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-  }
-
-  .header-end {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-  }
-
-  /* A switch with the word it belongs to, both clickable. A bare toggle in a
-     corner says that something can be turned on, and nothing about what. */
-  .switch-field {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--pm-muted);
-    font-size: 13px;
-    cursor: pointer;
   }
 
   /* Modes ----------------------------------------------------------------- */
@@ -439,11 +416,15 @@ export const cardStyles = css`
   }
 
   /* The row that opens the editors, and the one that closes them. */
+  /* A label and the switch it belongs to, the whole row clickable. A bare
+     toggle in a corner says that something can be turned on, and nothing
+     about what - this says it, and says it in the width the sentence needs. */
   .toolbar {
     display: flex;
     align-items: center;
     gap: var(--pm-gap);
     min-height: 28px;
+    cursor: pointer;
   }
 
   .toolbar-label {

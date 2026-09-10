@@ -16,9 +16,14 @@ from .const import (
     HUB_PRESET_MODES,
     SERVICE_SET_ACTIVE_MODE,
     UID_ACTIVE_MODE,
+    UID_MODE_SELECTION,
 )
-from .coordinator import PresetManagerConfigEntry, PresetModeCoordinator
-from .entity import ModeValueEditorEntity, PresetModeEntity
+from .coordinator import (
+    PresetCoordinator,
+    PresetManagerConfigEntry,
+    PresetModeCoordinator,
+)
+from .entity import ModeValueEditorEntity, PresetEntity, PresetModeEntity
 from .parameter_types import get_parameter_type
 
 #: Nothing on these platforms does I/O: a value is resolved in memory and
@@ -57,15 +62,23 @@ async def async_setup_entry(
                 )
         return
 
+    # The same service, on the other kind of object: a preset whose automatic
+    # is off is set by its own key, not by the one of its preset mode.
+    entity_platform.async_get_current_platform().async_register_entity_service(
+        SERVICE_SET_ACTIVE_MODE,
+        {vol.Required(ATTR_MODE): cv.string},
+        "async_set_active_mode",
+    )
+
     for subentry_id, coordinator in runtime.presets.items():
-        entities = [
+        entities: list[SelectEntity] = [PresetModeSelect(coordinator)]
+        entities.extend(
             ModeParameterSelect(coordinator, mode, parameter)
             for parameter in coordinator.config.parameters
             if get_parameter_type(parameter.type).editor_platform is Platform.SELECT
             for mode in coordinator.modes
-        ]
-        if entities:
-            async_add_entities(entities, config_subentry_id=subentry_id)
+        )
+        async_add_entities(entities, config_subentry_id=subentry_id)
 
 
 class ActiveModeSelect(PresetModeEntity, SelectEntity):
@@ -100,6 +113,40 @@ class ActiveModeSelect(PresetModeEntity, SelectEntity):
         ``select.select_option`` - that one only knows the display name.
         """
         self.preset_mode.async_set_active_mode(mode)
+
+
+class PresetModeSelect(PresetEntity, SelectEntity):
+    """Sets the mode of one preset while its automatic is off.
+
+    It shows the effective mode either way, the same as the selector of a
+    preset mode does under a running automatic - what changes with the switch
+    is whether it accepts a write, not what it reports.
+
+    Not called "active mode": the preset already has a sensor of that name,
+    and two entities with one name on one device is a riddle rather than a
+    pair.
+    """
+
+    _attr_translation_key = "mode_selection"
+    _object_id_name = "mode_selection"
+
+    def __init__(self, coordinator: PresetCoordinator) -> None:
+        """Initialise the mode selector of a preset."""
+        super().__init__(coordinator, UID_MODE_SELECTION)
+        self._attr_options = [mode.name for mode in coordinator.modes]
+
+    @property
+    def current_option(self) -> str | None:
+        """Return the name of the effective mode."""
+        return self.state_data.mode_name
+
+    async def async_select_option(self, option: str) -> None:
+        """Set the mode of this preset by its display name."""
+        self.coordinator.async_set_active_mode(option)
+
+    async def async_set_active_mode(self, mode: str) -> None:
+        """Set the mode of this preset by its stable key."""
+        self.coordinator.async_set_active_mode(mode)
 
 
 class ModeParameterSelect(ModeValueEditorEntity, SelectEntity):

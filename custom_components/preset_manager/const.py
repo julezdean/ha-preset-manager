@@ -99,8 +99,9 @@ STORAGE_KEY: Final = f"{DOMAIN}.values"
 #: Bumped when the shape of the value store changes; see
 #: ``PresetValueStore`` for the migration path.
 STORAGE_VERSION: Final = 1
-#: Bumped for changes an older version could still read.
-STORAGE_MINOR_VERSION: Final = 1
+#: Bumped for changes an older version could still read. 2 added the two
+#: keys below, which an older version simply does not find.
+STORAGE_MINOR_VERSION: Final = 2
 #: Config entry version. 1 was one entry per preset mode and per blueprint,
 #: 2 is the three hubs. Every bump needs a step in ``async_migrate_entry``;
 #: the step from 1 to 2 is not one - such an entry is refused, see there.
@@ -112,6 +113,12 @@ SAVE_DELAY: Final = 2.0
 
 STORE_ACTIVE_MODES: Final = "active_modes"
 STORE_AUTOMATIC: Final = "automatic"
+#: The mode a preset was set to by hand, per preset. Only read while that
+#: preset's automatic is off; it is rewritten with the mode in effect the
+#: moment the automatic is switched off.
+STORE_MANUAL_MODES: Final = "manual_modes"
+#: Whether a preset follows the mode of its preset mode, per preset.
+STORE_PRESET_AUTOMATIC: Final = "preset_automatic"
 STORE_VALUES: Final = "values"
 
 # Unique id suffixes -----------------------------------------------------------------
@@ -126,6 +133,9 @@ STORE_VALUES: Final = "values"
 #: cannot drift apart the way they did when both spelled them out.
 UID_PRESET_MODE_SENSOR: Final = "mode"
 UID_ACTIVE_MODE: Final = "active_mode"
+#: The mode selector of a *preset*. Not ``active_mode``: that suffix is the
+#: preset's own mode sensor, and the two would collide.
+UID_MODE_SELECTION: Final = "mode_selection"
 UID_AUTOMATIC: Final = "automatic"
 UID_VALUE: Final = "value"
 UID_CONFIG: Final = "cfg"

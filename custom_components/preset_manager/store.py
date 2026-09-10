@@ -25,6 +25,8 @@ from .const import (
     STORAGE_VERSION,
     STORE_ACTIVE_MODES,
     STORE_AUTOMATIC,
+    STORE_MANUAL_MODES,
+    STORE_PRESET_AUTOMATIC,
     STORE_VALUES,
 )
 
@@ -62,7 +64,7 @@ class _ValueFileStore(Store[dict[str, Any]]):
 
 
 class PresetValueStore:
-    """Stores the values of every preset and the state of every preset mode.
+    """Stores the values of every preset, and the mode state of both kinds of object.
 
     Presets are keyed by their subentry id and preset modes by their
     config entry id. Both are stable across renames. The file is shared by every
@@ -82,6 +84,11 @@ class PresetValueStore:
         self._values: ValueMap = {}
         self._active_modes: dict[str, str] = {}
         self._automatic: dict[str, bool] = {}
+        #: Keyed by preset, not by preset mode - the two live in dicts of
+        #: their own rather than sharing one, because they are pruned against
+        #: different sets of ids and would delete each other's entries.
+        self._manual_modes: dict[str, str] = {}
+        self._preset_automatic: dict[str, bool] = {}
 
     async def async_load(self) -> None:
         """Load persisted data."""
@@ -90,6 +97,8 @@ class PresetValueStore:
             return
         self._active_modes = dict(data.get(STORE_ACTIVE_MODES) or {})
         self._automatic = dict(data.get(STORE_AUTOMATIC) or {})
+        self._manual_modes = dict(data.get(STORE_MANUAL_MODES) or {})
+        self._preset_automatic = dict(data.get(STORE_PRESET_AUTOMATIC) or {})
         raw_values = data.get(STORE_VALUES) or {}
         self._values = {
             preset_id: {
@@ -106,6 +115,8 @@ class PresetValueStore:
         return {
             STORE_ACTIVE_MODES: self._active_modes,
             STORE_AUTOMATIC: self._automatic,
+            STORE_MANUAL_MODES: self._manual_modes,
+            STORE_PRESET_AUTOMATIC: self._preset_automatic,
             STORE_VALUES: self._values,
         }
 
@@ -162,6 +173,39 @@ class PresetValueStore:
             self._automatic.pop(stale_id, None)
         if stale:
             self._schedule_save()
+
+    # Mode of a preset --------------------------------------------------------
+
+    def manual_mode(self, preset_id: str) -> str | None:
+        """Return the mode a preset was last set to by hand."""
+        return self._manual_modes.get(preset_id)
+
+    def set_manual_mode(self, preset_id: str, mode_key: str | None) -> bool:
+        """Persist the hand-set mode of a preset. ``True`` when it changed."""
+        if self._manual_modes.get(preset_id) == mode_key:
+            return False
+        if mode_key is None:
+            self._manual_modes.pop(preset_id, None)
+        else:
+            self._manual_modes[preset_id] = mode_key
+        self._schedule_save()
+        return True
+
+    def preset_automatic(self, preset_id: str) -> bool:
+        """Return whether a preset follows the mode of its preset mode.
+
+        Defaults to ``True``: a preset exists to follow one, and stepping out
+        from under it is the deliberate act.
+        """
+        return self._preset_automatic.get(preset_id, True)
+
+    def set_preset_automatic(self, preset_id: str, value: bool) -> bool:
+        """Persist the automatic flag of a preset. ``True`` when it changed."""
+        if self._preset_automatic.get(preset_id, True) == value:
+            return False
+        self._preset_automatic[preset_id] = value
+        self._schedule_save()
+        return True
 
     # Values ------------------------------------------------------------------
 
@@ -231,8 +275,11 @@ class PresetValueStore:
         self._schedule_save()
 
     def remove_preset(self, preset_id: str) -> None:
-        """Drop all values of a preset."""
-        if self._values.pop(preset_id, None) is not None:
+        """Drop all values and the mode state of a preset."""
+        changed = self._values.pop(preset_id, None) is not None
+        changed |= self._manual_modes.pop(preset_id, None) is not None
+        changed |= self._preset_automatic.pop(preset_id, None) is not None
+        if changed:
             self._schedule_save()
 
     def prune(
@@ -249,6 +296,21 @@ class PresetValueStore:
         """
         known = set(known_presets)
         changed = False
+        # The mode state of a preset lives without values - a preset nobody has
+        # filled in can still be set to a mode by hand - so it is cleaned up
+        # over its own keys rather than along with the values below.
+        for preset_id in set(self._manual_modes) | set(self._preset_automatic):
+            if preset_id not in known:
+                changed |= self._manual_modes.pop(preset_id, None) is not None
+                changed |= self._preset_automatic.pop(preset_id, None) is not None
+            elif preset_id in valid:
+                # A hand-set mode that no longer exists is dropped rather than
+                # held for a mode that might come back under the same key: the
+                # preset falls back to its preset mode, which is what it shows
+                # in the meantime anyway.
+                mode_keys, _ = valid[preset_id]
+                if self._manual_modes.get(preset_id, "") not in set(mode_keys):
+                    changed |= self._manual_modes.pop(preset_id, None) is not None
         for preset_id in list(self._values):
             if preset_id not in known:
                 del self._values[preset_id]

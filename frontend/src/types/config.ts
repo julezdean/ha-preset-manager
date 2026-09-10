@@ -12,12 +12,6 @@ import type { ActionConfig } from "./ha";
 
 export interface HeaderConfig {
   visible?: boolean;
-  /**
-   * The automatic switch of the preset mode. Independent of the mode row: one
-   * decides the mode, the other decides who decides the mode. Defaults to on
-   * for a preset mode card and off for a preset card, which does not own it.
-   */
-  automatic?: boolean;
   /** Overrides the name of the preset or preset mode. */
   title?: string;
   /** Overrides the second line; `false` removes it. */
@@ -38,8 +32,16 @@ export interface HeaderConfig {
 export type ModeVisibility = "always" | "never" | "manual";
 
 export interface ModesConfig {
-  /** Defaults to on for a preset mode card and off for a preset card. */
+  /** Defaults to on. */
   visible?: boolean | ModeVisibility;
+  /**
+   * The automatic switch, on its own row above the modes. Two decisions, two
+   * rows: one picks the mode, the other decides who picks it. It is always
+   * the switch of the object the card is about - the conditions of a preset
+   * mode, or whether a preset takes the mode of its preset mode. Defaults to
+   * on wherever there is one.
+   */
+  automatic?: boolean;
   style?: "chips" | "dropdown";
   icons?: boolean;
   /** Mode key -> colour, for the chip of that mode while it is active. */
@@ -131,13 +133,8 @@ export interface ResolvedConfig {
   type: string;
   entity: string;
   header: Required<Pick<HeaderConfig, "visible">> & HeaderConfig;
-  /**
-   * `visible` is left undefined where the user said nothing: what a card shows
-   * by default depends on what it turned out to be about, and that is only
-   * known once the structure has arrived.
-   */
   modes: Required<Omit<ModesConfig, "colors" | "visible">> & {
-    visible: ModeVisibility | undefined;
+    visible: ModeVisibility;
     colors: Record<string, string>;
   };
   values: { visible: boolean; parameters: ResolvedParameterRow[] | null; icons: boolean };

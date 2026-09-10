@@ -5,6 +5,12 @@
  * configured in the flow and were until now stored and unused; here they are
  * the one place the card carries a colour, which is why the design gets away
  * with a single accent everywhere else.
+ *
+ * Nothing here is a control. The automatic switch used to sit in the corner of
+ * this row, which cost the header its keyboard: a row containing a switch must
+ * not also be a button, so `tap_action` was reachable with the mouse and with
+ * nothing else. It has a row of its own above the modes now, where it belongs
+ * anyway - it decides who picks the mode.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
@@ -59,57 +65,16 @@ function defaultSubtitle(context: CardContext): string {
   }
 
   // The preset mode a preset follows is not news on every render - the footer
-  // carries it where it is wanted. What is news is that there is none.
-  return subject.presetMode
-    ? modeName
-    : `${modeName} · ${localize(hass, "no_preset_mode")}`;
-}
-
-function automaticToggle(context: CardContext): TemplateResult | typeof nothing {
-  const { hass, subject } = context;
-  // Both kinds of subject carry one, which is why this needs no branch: a
-  // preset names the preset mode it follows, a preset mode is its own.
-  const presetMode = subject.presetMode;
-  if (!presetMode?.entities.automatic) return nothing;
-  const entityId = presetMode.entities.automatic;
-  const on = automaticState(hass, presetMode);
-  const label = localize(hass, "automatic");
-
-  // Stops here, or the tap action of the header would fire on top of the
-  // toggle - and "open more info" is not what a click on a switch means.
-  const swallow = (event: Event) => event.stopPropagation();
-
-  return html`
-    <label
-      class="switch-field"
-      @click=${swallow}
-      @pointerdown=${swallow}
-      @pointerup=${swallow}
-      @keydown=${swallow}
-    >
-      <span>${label}</span>
-      <span class="switch">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label=${label}
-          .checked=${on === true}
-          .disabled=${on === null}
-          @change=${(event: Event) => {
-            const checked = (event.target as HTMLInputElement).checked;
-            context.call(
-              hass.callService(
-                "switch",
-                checked ? "turn_on" : "turn_off",
-                {},
-                { entity_id: entityId },
-              ),
-            );
-          }}
-        />
-      </span>
-    </label>
-  `;
+  // carries it where it is wanted. What is news is that there is none, and
+  // that this preset has stopped taking the mode from it: a preset showing
+  // something other than its dimension is the one state worth a word here,
+  // and the row that caused it can be switched off in the configuration.
+  if (!subject.presetMode) {
+    return `${modeName} · ${localize(hass, "no_preset_mode")}`;
+  }
+  return automaticState(hass, subject) === false
+    ? `${modeName} · ${localize(hass, "by_hand")}`
+    : modeName;
 }
 
 export function renderHeader(context: CardContext): TemplateResult | typeof nothing {
@@ -124,32 +89,18 @@ export function renderHeader(context: CardContext): TemplateResult | typeof noth
   const colour = config.header.icon_color ?? modeColor(context);
   const { tappable } = context;
 
-  // The automatic and the mode row are two decisions - which mode, and who
-  // gets to decide it - so they are two switches. Left alone, a preset mode
-  // card offers its own automatic and a preset card does not: switching it
-  // there would change what every other preset of that dimension does.
-  const wanted =
-    config.header.automatic ?? context.subject.kind === "preset_mode";
-  const controls = wanted ? automaticToggle(context) : nothing;
-
-  // A row that contains a switch must not also be a button: nesting one
-  // control inside another is neither valid nor announceable. The tap action
-  // still works with the mouse; the keyboard reaches the switch instead, which
-  // is the control that actually changes something.
-  const asButton = tappable && controls === nothing;
-
   return html`
     <div
       class="header section ${tappable ? "tappable" : ""}"
       style=${colour ? `--pm-icon-color: ${colour}` : ""}
-      role=${asButton ? "button" : nothing}
-      tabindex=${asButton ? "0" : nothing}
+      role=${tappable ? "button" : nothing}
+      tabindex=${tappable ? "0" : nothing}
       @pointerdown=${() => context.onHeaderDown()}
       @pointerup=${() => context.onHeaderUp()}
       @pointercancel=${() => context.onHeaderUp()}
       @click=${() => context.onHeaderClick()}
       @keydown=${(event: KeyboardEvent) => {
-        if (!asButton || (event.key !== "Enter" && event.key !== " ")) return;
+        if (!tappable || (event.key !== "Enter" && event.key !== " ")) return;
         event.preventDefault();
         context.onHeaderClick();
       }}
@@ -161,7 +112,6 @@ export function renderHeader(context: CardContext): TemplateResult | typeof noth
         <div class="title">${config.header.title ?? defaultTitle(context)}</div>
         ${subtitle ? html`<div class="subtitle">${subtitle}</div>` : nothing}
       </div>
-      ${controls === nothing ? nothing : html`<div class="header-end">${controls}</div>`}
     </div>
   `;
 }

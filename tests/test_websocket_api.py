@@ -183,9 +183,11 @@ async def test_says_which_preset_mode_a_preset_follows(
     """The subentry id, which is the only place this relation exists."""
     preset = one((await async_config(hass_ws_client, hass))["presets"], "id", PRESET_ID)
     assert preset["preset_mode"] == PRESET_MODE_ID
-    assert preset["entities"]["active_mode"] == (
-        "sensor.motion_sensor_living_room_active_mode"
-    )
+    assert preset["entities"] == {
+        "active_mode": "sensor.motion_sensor_living_room_active_mode",
+        "mode_selection": "select.motion_sensor_living_room_mode_selection",
+        "automatic": "switch.motion_sensor_living_room_automatic",
+    }
 
 
 async def test_keeps_a_preset_that_lost_its_preset_mode(

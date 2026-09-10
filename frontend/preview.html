@@ -253,7 +253,11 @@
           preset_mode: "pm1",
           blueprint: null,
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.motion_active_mode" },
+          entities: {
+            active_mode: "sensor.motion_active_mode",
+            mode_selection: "select.motion_mode_selection",
+            automatic: "switch.motion_automatic",
+          },
           parameters: [
             {
               key: "brightness",
@@ -285,7 +289,11 @@
           preset_mode: "pm1",
           blueprint: "bp1",
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.heating_active_mode" },
+          entities: {
+            active_mode: "sensor.heating_active_mode",
+            mode_selection: "select.heating_mode_selection",
+            automatic: "switch.heating_automatic",
+          },
           parameters: [
             {
               key: "target_temperature",
@@ -312,7 +320,11 @@
           preset_mode: "pm1",
           blueprint: null,
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.clock_active_mode" },
+          entities: {
+            active_mode: "sensor.clock_active_mode",
+            mode_selection: "select.clock_mode_selection",
+            automatic: "switch.clock_automatic",
+          },
           parameters: [
             {
               key: "volume",
@@ -379,7 +391,11 @@
           preset_mode: "pm2",
           blueprint: null,
           modes: WINDOW_MODES,
-          entities: { active_mode: "sensor.shutter_active_mode" },
+          entities: {
+            active_mode: "sensor.shutter_active_mode",
+            mode_selection: "select.shutter_mode_selection",
+            automatic: "switch.shutter_automatic",
+          },
           parameters: [
             {
               key: "position",
@@ -399,7 +415,11 @@
           preset_mode: null,
           blueprint: null,
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.fan_active_mode" },
+          entities: {
+            active_mode: "sensor.fan_active_mode",
+            mode_selection: "select.fan_mode_selection",
+            automatic: "switch.fan_automatic",
+          },
           parameters: [
             {
               key: "speed",
@@ -420,11 +440,14 @@
     // The service calls are emulated rather than swallowed: a mode switch
     // resolves the values of every preset following that preset mode, the way
     // the coordinator does, so the whole path from a click to a redrawn card
-    // is exercised. It is a stand-in and knows nothing about conditions,
-    // defaults or the automatic - the real thing is in Python.
+    // is exercised - including the automatic of a single preset, which is
+    // the one place two objects disagree on purpose. It is a stand-in and
+    // knows nothing about conditions or defaults - that is in Python.
     // ---------------------------------------------------------------------
 
     const states = {};
+    /** The mode each preset was set to by hand, keyed the way the store is. */
+    const manualModes = {};
 
     const put = (entityId, state, attributes = {}) => {
       states[entityId] = {
@@ -441,6 +464,16 @@
       options: HOUSE_MODES.map((mode) => mode.name),
     });
     put("switch.house_mode_automatic", "off");
+    // Every preset has one, and every one of them starts where it should:
+    // following its preset mode. "Preset - set by hand" below is the
+    // exception, switched off two lines further down.
+    for (const preset of ["motion", "heating", "clock", "shutter", "fan"]) {
+      put(`switch.${preset}_automatic`, "on");
+    }
+    put("switch.clock_automatic", "off");
+    // ...and holding a different mode than the dimension, which is the
+    // whole state this feature exists for.
+    manualModes.p3 = "home";
     put("sensor.window_state_mode", "Closed", { mode_key: "closed" });
     put("binary_sensor.window_living_room", "off", {
       friendly_name: "Window living room",
@@ -543,12 +576,21 @@
      */
     function resolvePreset(preset) {
       const presetMode = presetModeOf(preset.preset_mode);
-      const activeKey = presetMode
+      const inherited = presetMode
         ? states[presetMode.entities.mode]?.attributes.mode_key
         : null;
+      const manual = manualModes[preset.id] ?? null;
+      // A preset that stepped out of its dimension holds its own mode - and
+      // one that has no dimension at all resolves nothing either way.
+      const automatic = states[preset.entities.automatic]?.state !== "off";
+      const activeKey = !presetMode ? null : automatic ? inherited : (manual ?? inherited);
       const mode = preset.modes.find((item) => item.key === activeKey) ?? null;
       put(preset.entities.active_mode, mode ? mode.name : "unknown", {
         mode_key: mode ? mode.key : null,
+        automatic,
+      });
+      put(preset.entities.mode_selection, mode ? mode.name : "unknown", {
+        options: preset.modes.map((item) => item.name),
       });
 
       for (const parameter of preset.parameters) {
@@ -589,6 +631,18 @@
       console.info("service", `${domain}.${service}`, data, target);
 
       if (domain === "preset_manager" && service === "set_active_mode") {
+        const preset = STRUCTURE.presets.find(
+          (item) => item.entities.mode_selection === entityId,
+        );
+        if (preset) {
+          if (states[preset.entities.automatic]?.state !== "off") {
+            throw { message: "The mode follows the preset mode. Turn the automatic off first." };
+          }
+          manualModes[preset.id] = data.mode;
+          resolveAll();
+          publish();
+          return;
+        }
         const presetMode = STRUCTURE.preset_modes.find(
           (item) => item.entities.active_mode === entityId,
         );
@@ -607,6 +661,13 @@
 
       if (!current) return;
       if (service === "turn_on" || service === "turn_off") {
+        const held = STRUCTURE.presets.find(
+          (item) => item.entities.automatic === entityId,
+        );
+        if (held && service === "turn_off") {
+          manualModes[held.id] =
+            states[held.entities.active_mode]?.attributes.mode_key ?? null;
+        }
         put(entityId, service === "turn_on" ? "on" : "off", current.attributes);
       } else if (service === "select_option") {
         put(entityId, data.option, current.attributes);
@@ -618,6 +679,11 @@
       publish();
     }
 
+    // `publish` replaces `states` with a snapshot before any card sees this,
+    // and that matters: a card compares the state objects it draws to decide
+    // whether to render, so handing it the live map would make every one of
+    // them compare equal to itself after a write - and the first interaction
+    // on a card would change the state machine and redraw nothing.
     hass = {
       states,
       entities: {},
@@ -684,6 +750,9 @@
         {
           entity: "sensor.motion_active_mode",
           header: { subtitle: false },
+          // One row in a grid of many: everything that decides the mode is
+          // somewhere else on that dashboard.
+          modes: { visible: false, automatic: false },
           values: { parameters: ["brightness"] },
         },
       ],
@@ -823,11 +892,11 @@
             grid.appendChild(column);
             continue;
           }
-          card.hass = hass;
           cards.push(card);
           column.appendChild(card);
           grid.appendChild(column);
         }
+        publish();
       })
       .catch((error) => {
         document.getElementById("grid").textContent =

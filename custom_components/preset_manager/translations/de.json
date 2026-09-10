@@ -479,6 +479,9 @@
     "select": {
       "active_mode": {
         "name": "Aktiver Mode"
+      },
+      "mode_selection": {
+        "name": "Mode-Auswahl"
       }
     },
     "switch": {
@@ -514,6 +517,12 @@
     },
     "external_source": {
       "message": "Der Mode von „{preset_mode}“ folgt {entity_id} und kann nicht von Hand gesetzt werden. Dafür zuerst die Entität in den Einstellungen des Preset Modes entfernen."
+    },
+    "preset_automatic_active": {
+      "message": "Der Mode von \"{preset}\" folgt seinem Preset Mode. Schalte die Automatik des Presets aus, um ihn hier zu setzen."
+    },
+    "preset_orphaned": {
+      "message": "Das Preset \"{preset}\" folgt keinem Preset Mode und hat damit keinen Mode, den man setzen könnte. Dafür zuerst in den Einstellungen des Presets einen Preset Mode zuweisen."
     }
   },
   "services": {

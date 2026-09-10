@@ -112,6 +112,11 @@ def _preset(hass: HomeAssistant, coordinator: PresetCoordinator) -> dict[str, An
         # they are currently attached: "unknown everywhere" is either.
         "preset_mode": config.preset_mode,
         "attached": coordinator.attached,
+        # Whether it is taking the mode of that preset mode at all, and which
+        # mode it holds if not: a preset "showing the wrong values" is this
+        # one line more often than it is anything else.
+        "automatic": coordinator.automatic,
+        "manual_mode": coordinator.store.manual_mode(config.subentry_id),
         "state": {
             "mode_key": state.mode_key,
             "mode_name": state.mode_name,

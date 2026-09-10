@@ -9,15 +9,15 @@ describe("localize", () => {
   });
 
   it("ignores the region of a language tag", () => {
-    expect(localize({ language: "de-CH" }, "automatic")).toBe("Automatik");
+    expect(localize({ language: "de-CH" }, "by_hand")).toBe("von Hand");
   });
 
   it("falls back to English for a language it does not have", () => {
-    expect(localize({ language: "fr" }, "automatic")).toBe("Automatic");
+    expect(localize({ language: "fr" }, "by_hand")).toBe("set by hand");
   });
 
   it("survives having no hass at all", () => {
-    expect(localize(undefined, "automatic")).toBe("Automatic");
+    expect(localize(undefined, "by_hand")).toBe("set by hand");
   });
 
   it("fills placeholders", () => {

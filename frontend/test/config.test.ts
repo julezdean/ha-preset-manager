@@ -10,7 +10,7 @@ describe("resolveConfig", () => {
     expect(config.entity).toBe("sensor.house_mode_mode");
     expect(config.header.visible).toBe(true);
     expect(config.values.visible).toBe(true);
-    expect(config.modes.visible).toBeUndefined();
+    expect(config.modes.visible).toBe("always");
   });
 
   it("keeps the editors closed unless asked", () => {
@@ -39,22 +39,27 @@ describe("resolveConfig", () => {
     );
   });
 
-  it("leaves the two visibility switches alone until they are set", () => {
-    // What a card shows by default depends on what its entity turned out to
-    // be, and that is not known here. Undefined means "the card decides".
+  it("shows the mode row and its switch unless told otherwise", () => {
     const config = resolveConfig(MINIMAL);
-    expect(config.modes.visible).toBeUndefined();
-    expect(config.header.automatic).toBeUndefined();
+    expect(config.modes.visible).toBe("always");
+    expect(config.modes.automatic).toBe(true);
   });
 
-  it("takes them as plain switches once they are", () => {
+  it("takes them as plain switches once they are set", () => {
     const config = resolveConfig({
       ...MINIMAL,
-      modes: { visible: false },
-      header: { automatic: true },
+      modes: { visible: false, automatic: false },
     });
     expect(config.modes.visible).toBe("never");
-    expect(config.header.automatic).toBe(true);
+    expect(config.modes.automatic).toBe(false);
+  });
+
+  it("rejects header.automatic instead of ignoring it", () => {
+    // It did not only move: on a preset card the switch now belongs to the
+    // preset, so a configuration left as it is would operate something else.
+    expect(() =>
+      resolveConfig({ ...MINIMAL, header: { automatic: true } }),
+    ).toThrow(/modes\.automatic/);
   });
 
   it.each([

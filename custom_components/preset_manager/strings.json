@@ -479,6 +479,9 @@
     "select": {
       "active_mode": {
         "name": "Active mode"
+      },
+      "mode_selection": {
+        "name": "Mode selection"
       }
     },
     "switch": {
@@ -514,6 +517,12 @@
     },
     "external_source": {
       "message": "The mode of “{preset_mode}” follows {entity_id} and cannot be set by hand. Clear that entity in the settings of the preset mode first."
+    },
+    "preset_automatic_active": {
+      "message": "The mode of \"{preset}\" follows its preset mode. Turn the automatic switch of the preset off to set it here."
+    },
+    "preset_orphaned": {
+      "message": "\"{preset}\" follows no preset mode, so it has no mode to set. Assign a preset mode in the settings of the preset first."
     }
   },
   "services": {

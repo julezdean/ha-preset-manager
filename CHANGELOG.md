@@ -12,6 +12,48 @@ whatever it hands them — `b10` and `b11` landed between `b4` and `b3`. A final
 release sorts above every beta in either spelling, so the 0.3.0 tags were left
 as they are rather than renamed mid-series.
 
+## [Unreleased]
+
+### Added
+
+- **An automatic per preset.** Every preset gets `switch.<preset>_automatic` and
+  `select.<preset>_mode_selection`. With the switch off, that one preset holds a
+  mode of its own while its preset mode carries on switching for every other
+  preset that follows it. Switching it off changes nothing on the spot — the
+  mode being handed over becomes the one the preset holds; switching it back on
+  rejoins the dimension and drops what was set by hand. It exists on every
+  preset, including those under a preset mode with no conditions or one that
+  follows another entity: this switch is not about conditions, it is about
+  whether a preset listens to its dimension at all. A preset that follows no
+  preset mode has nothing to hold and says so instead of pretending to work.
+- `preset_manager.set_active_mode` now also takes a preset, addressed by its own
+  selector. Same service, same field.
+- `sensor.<preset>_active_mode` carries an `automatic` attribute. `mode_source`
+  keeps naming the preset mode, which stays true while the preset holds its own
+  mode.
+- Storage minor version 2: two additional keys in
+  `.storage/preset_manager.values`. An older version simply does not find them,
+  so there is no migration step.
+
+### Changed
+
+- **The card's automatic switch moved out of the header** onto a row of its own
+  above the modes, where the decision it makes belongs — one row picks the mode,
+  the one above it decides who picks it. The header is a plain header again, and
+  with that a proper button: it had to give up `role="button"` and its keyboard
+  handling for as long as it contained a switch, so `tap_action` and
+  `hold_action` on a preset mode card were reachable with the mouse and with
+  nothing else.
+- **A card now only ever operates the object it is about.** On a preset card the
+  switch is that preset's automatic and the chips set that preset's mode; both
+  used to reach into the preset mode. Because of that the mode row is shown on a
+  preset card by default now — it no longer changes what every other preset of
+  the dimension does.
+- `header.automatic` **is now `modes.automatic`**, and a card still carrying the
+  old key is refused with a message naming the new one rather than ignoring it:
+  the option did not only move, it operates something else on a preset card, and
+  a silent change of what a switch does is the kind nobody notices.
+
 ## [0.3.0] - 2026-09-09
 
 The integration gets a face: a dashboard card it ships and registers itself.

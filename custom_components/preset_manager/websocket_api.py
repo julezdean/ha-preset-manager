@@ -44,6 +44,7 @@ from .const import (
     UID_ACTIVE_MODE,
     UID_AUTOMATIC,
     UID_CONFIG,
+    UID_MODE_SELECTION,
     UID_PRESET_MODE_SENSOR,
     UID_SEPARATOR,
     UID_VALUE,
@@ -176,9 +177,17 @@ def _async_presets(hass: HomeAssistant, lookup: _EntityLookup) -> list[dict]:
                 }
             )
 
+        # Unlike a preset mode, a preset has all three whatever its
+        # configuration says: its automatic decides whether it listens to the
+        # dimension, which is a question every preset has.
         entities = {}
-        if entity_id := lookup("sensor", f"{subentry_id}_{UID_ACTIVE_MODE}"):
-            entities["active_mode"] = entity_id
+        for domain, suffix, name in (
+            ("sensor", UID_ACTIVE_MODE, "active_mode"),
+            ("select", UID_MODE_SELECTION, "mode_selection"),
+            ("switch", UID_AUTOMATIC, "automatic"),
+        ):
+            if entity_id := lookup(domain, f"{subentry_id}_{suffix}"):
+                entities[name] = entity_id
 
         result.append(
             {

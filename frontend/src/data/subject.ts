@@ -61,8 +61,7 @@ function presetModeSubject(
 
 /** Every entity id of a preset, whatever it is for. */
 export function presetEntityIds(preset: PresetInfo): string[] {
-  const ids: string[] = [];
-  if (preset.entities.active_mode) ids.push(preset.entities.active_mode);
+  const ids: string[] = Object.values(preset.entities);
   for (const parameter of preset.parameters) {
     if (parameter.entity) ids.push(parameter.entity);
     ids.push(...Object.values(parameter.editors));

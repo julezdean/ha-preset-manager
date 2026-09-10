@@ -5,7 +5,8 @@
       "active_mode": { "default": "mdi:state-machine" }
     },
     "select": {
-      "active_mode": { "default": "mdi:form-select" }
+      "active_mode": { "default": "mdi:form-select" },
+      "mode_selection": { "default": "mdi:form-select" }
     },
     "switch": {
       "automatic": {
