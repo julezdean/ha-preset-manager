@@ -154,16 +154,6 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   }
 
   const header = section(config.header, "header");
-  // The one unknown key that is rejected rather than ignored, because it did
-  // not only move: on a preset card the switch now belongs to the preset, so
-  // a configuration left as it is would quietly operate something else.
-  if (header.automatic !== undefined) {
-    fail(
-      '"header.automatic" is now "modes.automatic", and on a preset card it ' +
-        "switches the automatic of that preset rather than the one of its " +
-        "preset mode.",
-    );
-  }
   const modes = section(config.modes, "modes");
   const values = section(config.values, "values");
   const editor = section(config.editor, "editor");
@@ -178,6 +168,7 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     entity,
     header: {
       visible: bool(header.visible, "header.visible", true),
+      automatic: bool(header.automatic, "header.automatic", true),
       title: text(header.title, "header.title"),
       subtitle: textOrFalse(header.subtitle, "header.subtitle"),
       icon: textOrFalse(header.icon, "header.icon"),
@@ -185,7 +176,6 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     },
     modes: {
       visible: modeVisibility(modes.visible, "modes.visible", "always"),
-      automatic: bool(modes.automatic, "modes.automatic", true),
       style: oneOf(modes.style, "modes.style", MODE_STYLES, "chips"),
       icons: bool(modes.icons, "modes.icons", true),
       colors: colors(modes.colors, "modes.colors"),

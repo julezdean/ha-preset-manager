@@ -524,8 +524,8 @@ now, and one row per parameter with the value that is valid:
   Off delay                              30 s
 ```
 
-*Automatic mode selection* sits above its modes: switch it off and the chips
-below become clickable, for this preset alone.
+Its *automatic mode selection* sits beside the name it belongs to: switch it
+off and the chips below become clickable, for this preset alone.
 
 Point it at an entity of a **preset mode** instead and it draws that: its modes
 as a list with the active one marked. Nothing on it can be pressed — a preset
@@ -559,11 +559,11 @@ time.
 | --- | --- | --- |
 | `entity` | – | Any entity of Preset Manager. The only required option. |
 | `header.visible` | `true` | The name and the state line. |
+| `header.automatic` | `true` | The automatic switch, beside the name. Presets only — a preset mode is not operated. |
 | `header.title` | the object's name | Overrides the first line. |
 | `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
-| `modes.automatic` | `true` | The *automatic mode selection* switch, on its own row above the modes. Presets only. |
 | `modes.visible` | `true` | `true`, `false`, or `manual` for “only while the mode can be set from here”. |
 | `modes.style` | `chips` | `chips` or `dropdown`. |
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
@@ -686,8 +686,8 @@ Clicking a chip calls `preset_manager.set_active_mode` with the mode's **key**,
 so it keeps working after a rename. The chips are disabled when the integration
 would refuse the write anyway:
 
-* while the preset is **following its preset mode** — turn the switch above the
-  row off first,
+* while the preset is **following its preset mode** — turn the switch in the
+  header off first,
 * when a preset **follows no preset mode**, so there is nothing to choose from.
 
 On a **preset mode** card the modes are not chips at all but a list: they are
@@ -695,8 +695,8 @@ not buttons, and they are not disabled buttons either — a disabled control say
 "later, or elsewhere", and there is no later here. What the list is good for is
 the one thing the mode name alone does not say: which modes exist.
 
-The row carries no explanation: the switch above it says who is deciding, and
-the second line of the header names the active mode, the entity a preset mode
+The row carries no explanation: the switch in the header says who is deciding,
+and the second line names the active mode, the entity a preset mode
 was handed to, and whether a preset is on a mode of its own. What a preset
 *follows* is not in there — that is what `footer.content: [preset_mode]` is for.
 
@@ -725,9 +725,9 @@ type: custom:preset-manager-card
 entity: sensor.motion_sensor_living_room_active_mode
 header:
   subtitle: false
+  automatic: false
 modes:
   visible: false
-  automatic: false
 values:
   parameters: [brightness]
 ```
@@ -1120,7 +1120,7 @@ changes visibly:
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1100,1302 --screenshot=assets/card-dark.png \
+  --window-size=1100,1226 --screenshot=assets/card-dark.png \
   "http://localhost:8765/frontend/preview.html?gallery=1100&columns=3&showcase=1&theme=dark"
 ```
 

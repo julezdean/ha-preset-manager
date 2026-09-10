@@ -68,22 +68,23 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
-- **The card's automatic switch moved out of the header** onto a row of its own
-  above the modes, where the decision it makes belongs — one row picks the mode,
-  the one above it decides who picks it. The header is a plain header again, and
-  with that a proper button: it had to give up `role="button"` and its keyboard
-  handling for as long as it contained a switch, so `tap_action` and
-  `hold_action` on a preset mode card were reachable with the mouse and with
-  nothing else.
+- **The header is a real button again.** It had to give up `role="button"` and
+  its keyboard handling for as long as the whole row was one and contained a
+  switch, so `tap_action` and `hold_action` were reachable with the mouse and
+  with nothing else. The name is the button now and the switch is its sibling,
+  which is valid, announceable, and fires on Enter and Space by itself. The
+  switch also lost its label: it can only belong to the object named beside it,
+  so the word rides on the `aria-label` and costs no width - the title has 186
+  pixels where the labelled version left it 137.
 - **A card now only ever operates the object it is about.** On a preset card the
   switch is that preset's automatic and the chips set that preset's mode; both
   used to reach into the preset mode. Because of that the mode row is shown on a
   preset card by default now — it no longer changes what every other preset of
   the dimension does.
-- `header.automatic` **is now `modes.automatic`**, and a card still carrying the
-  old key is refused with a message naming the new one rather than ignoring it:
-  the option did not only move, it operates something else on a preset card, and
-  a silent change of what a switch does is the kind nobody notices.
+- **`header.automatic` switches the automatic of the preset**, not the one of
+  its preset mode - which no longer has one. Same key, same place on the card,
+  and now it belongs to the object whose name it sits beside. That mismatch was
+  the whole reason it ever looked out of place.
 
 ## [0.3.0] - 2026-09-09
 

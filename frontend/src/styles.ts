@@ -55,13 +55,53 @@ export const cardStyles = css`
 
   /* Header ---------------------------------------------------------------- */
 
+  /* Name and switch share a line while both fit, and the switch drops onto
+     its own when they do not - so a toggle in the corner never squeezes the
+     name down to two letters on a narrow card. */
   .header {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px var(--pm-gap);
+  }
+
+  /* The name is the button, not the row: a row that also holds a switch must
+     not be one, and making it one anyway is what cost this header its
+     keyboard. Everything below only takes the button back out of its default
+     appearance - it has to read as the content it wraps. */
+  .header-main {
+    flex: 1 1 160px;
+    min-width: 0;
     display: flex;
     align-items: center;
     gap: var(--pm-gap);
+    appearance: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
   }
 
-  .header.tappable {
+  .header-main.tappable {
+    cursor: pointer;
+  }
+
+  .header-end {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  /* A switch with nothing written next to it. It can only belong to the object
+     named beside it, so the row says what it switches; the word rides on the
+     aria-label, where it is needed and costs no width. */
+  .switch-field {
+    display: inline-flex;
+    align-items: center;
     cursor: pointer;
   }
 

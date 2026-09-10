@@ -742,10 +742,10 @@
         "Preset — one value",
         {
           entity: "sensor.motion_active_mode",
-          header: { subtitle: false },
           // One row in a grid of many: everything that decides the mode is
           // somewhere else on that dashboard.
-          modes: { visible: false, automatic: false },
+          header: { subtitle: false, automatic: false },
+          modes: { visible: false },
           values: { parameters: ["brightness"] },
         },
       ],

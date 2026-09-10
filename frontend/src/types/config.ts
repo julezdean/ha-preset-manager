@@ -12,6 +12,11 @@ import type { ActionConfig } from "./ha";
 
 export interface HeaderConfig {
   visible?: boolean;
+  /**
+   * The automatic switch, beside the name it belongs to. Only a preset has
+   * one - a preset mode is not operated. Defaults to on.
+   */
+  automatic?: boolean;
   /** Overrides the name of the preset or preset mode. */
   title?: string;
   /** Overrides the second line; `false` removes it. */
@@ -35,13 +40,6 @@ export type ModeVisibility = "always" | "never" | "manual";
 export interface ModesConfig {
   /** Defaults to on. */
   visible?: boolean | ModeVisibility;
-  /**
-   * The switch saying whether a preset follows its preset mode, on its own row
-   * above the modes. Two decisions, two rows: one picks the mode, the one
-   * above it decides who picks it. Only a preset has one - a preset mode is
-   * not operated. Defaults to on.
-   */
-  automatic?: boolean;
   style?: "chips" | "dropdown";
   icons?: boolean;
   /** Mode key -> colour, for the chip of that mode while it is active. */
@@ -132,7 +130,7 @@ export interface ResolvedParameterRow {
 export interface ResolvedConfig {
   type: string;
   entity: string;
-  header: Required<Pick<HeaderConfig, "visible">> & HeaderConfig;
+  header: Required<Pick<HeaderConfig, "visible" | "automatic">> & HeaderConfig;
   modes: Required<Omit<ModesConfig, "colors" | "visible">> & {
     visible: ModeVisibility;
     colors: Record<string, string>;

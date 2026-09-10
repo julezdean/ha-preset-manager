@@ -1,12 +1,12 @@
 /**
- * Which mode is active, and - on a preset - who decides that.
+ * Which mode is active, and - on a preset - setting it.
  *
  * The two kinds of card differ here, because the two objects do. **A preset
  * mode is not operated**: its mode comes from its conditions or from the
  * entity it follows, so its modes are drawn as a list that says which of them
- * is on, and nothing on it can be pressed. **A preset is**: one switch says
- * whether it takes the mode of its preset mode, and with that off the chips
- * below set its own.
+ * is on, and nothing on it can be pressed. **A preset is**: while its
+ * automatic is off - the switch for that sits in the header, beside the name
+ * it belongs to - the chips set its own mode.
  *
  * Nothing here ever reaches into the dimension from a preset. A click on a
  * card named after one preset must not change what every other preset of that
@@ -22,8 +22,6 @@ import { html, nothing, type TemplateResult } from "lit";
 
 import {
   activeModeKey,
-  followsEntityId,
-  followsPresetMode,
   modeLockReason,
   modeSelectEntityId,
   modesOf,
@@ -54,42 +52,6 @@ function selectMode(context: CardContext, key: string) {
       { entity_id: entityId },
     ),
   );
-}
-
-/** The switch handing this preset back to its preset mode, or taking it out. */
-function followsRow(context: CardContext): TemplateResult | typeof nothing {
-  const { hass, subject, config } = context;
-  if (!config.modes.automatic) return nothing;
-  const entityId = followsEntityId(subject);
-  if (!entityId) return nothing;
-  const on = followsPresetMode(hass, subject);
-  const label = localize(hass, "mode_automatic");
-
-  return html`
-    <label class="toolbar">
-      <span class="toolbar-label">${label}</span>
-      <span class="switch">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label=${label}
-          .checked=${on === true}
-          .disabled=${on === null}
-          @change=${(event: Event) => {
-            const checked = (event.target as HTMLInputElement).checked;
-            context.call(
-              hass.callService(
-                "switch",
-                checked ? "turn_on" : "turn_off",
-                {},
-                { entity_id: entityId },
-              ),
-            );
-          }}
-        />
-      </span>
-    </label>
-  `;
 }
 
 function chips(
@@ -207,9 +169,6 @@ function modeControl(context: CardContext): TemplateResult {
 }
 
 export function renderModes(context: CardContext): TemplateResult | typeof nothing {
-  const follows = followsRow(context);
-  const control = modesVisible(context) ? modeControl(context) : nothing;
-  if (follows === nothing && control === nothing) return nothing;
-
-  return html`<div class="section rows">${follows}${control}</div>`;
+  if (!modesVisible(context)) return nothing;
+  return html`<div class="section">${modeControl(context)}</div>`;
 }

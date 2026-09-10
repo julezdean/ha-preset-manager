@@ -6,16 +6,22 @@
  * the one place the card carries a colour, which is why the design gets away
  * with a single accent everywhere else.
  *
- * Nothing here is a control. The automatic switch used to sit in the corner of
- * this row, which cost the header its keyboard: a row containing a switch must
- * not also be a button, so `tap_action` was reachable with the mouse and with
- * nothing else. It has a row of its own above the modes now, where it belongs
- * anyway - it decides who picks the mode.
+ * The automatic switch sits here because it belongs to *this* object. It used
+ * to sit here belonging to another one - a preset card carrying the switch of
+ * its preset mode - and that, not the position, was what made it wrong.
+ *
+ * **The row is not the button; the name is.** A row containing a switch must
+ * not also be a button: nesting one control inside another is neither valid
+ * nor announceable, and the card paid for that with its keyboard - `tap_action`
+ * was reachable with the mouse and with nothing else. Icon and titles are the
+ * button now, the switch is its sibling, and both answer to the keyboard. A
+ * real `<button>` also fires `click` on Enter and Space by itself, so there is
+ * no key handling left here at all.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
 
-import { activeMode, followsPresetMode } from "../data/state";
+import { activeMode, followsEntityId, followsPresetMode } from "../data/state";
 import { localize } from "../localize";
 import { DEFAULT_PRESET_ICON, DEFAULT_PRESET_MODE_ICON, icon } from "./icon";
 import type { CardContext } from "./context";
@@ -46,8 +52,8 @@ function defaultTitle(context: CardContext): string {
 /**
  * The second line, which answers "what is going on" in one glance.
  *
- * A preset says which mode is effective and which preset mode decided it; a
- * preset mode says its own mode, or the entity it handed itself to.
+ * A preset says which mode is effective; a preset mode says its own mode, or
+ * the entity it handed itself to.
  */
 function defaultSubtitle(context: CardContext): string {
   const { hass, subject } = context;
@@ -66,15 +72,58 @@ function defaultSubtitle(context: CardContext): string {
 
   // The preset mode a preset follows is not news on every render - the footer
   // carries it where it is wanted. What is news is that there is none, and
-  // that this preset has stopped taking the mode from it: a preset showing
-  // something other than its dimension is the one state worth a word here,
-  // and the row that caused it can be switched off in the configuration.
+  // that this preset is on a mode of its own. The switch beside it says the
+  // same thing, but that is the control; this is the state, and it stays
+  // readable when the switch is configured away.
   if (!subject.presetMode) {
     return `${modeName} · ${localize(hass, "no_preset_mode")}`;
   }
   return followsPresetMode(hass, subject) === false
     ? `${modeName} · ${localize(hass, "manual")}`
     : modeName;
+}
+
+/**
+ * The automatic of this object, as a bare toggle.
+ *
+ * No visible label: it can only ever belong to the object named beside it, so
+ * the row already says what it switches - which is exactly what it could not
+ * say while it belonged to something else. Screen readers get the word through
+ * `aria-label`, and pointers get it as a tooltip; neither costs any width.
+ */
+function automaticToggle(context: CardContext): TemplateResult | typeof nothing {
+  const { hass, subject, config } = context;
+  if (!config.header.automatic) return nothing;
+  const entityId = followsEntityId(subject);
+  if (!entityId) return nothing;
+  const on = followsPresetMode(hass, subject);
+  const label = localize(hass, "mode_automatic");
+
+  return html`
+    <label class="switch-field">
+      <span class="switch">
+        <input
+          type="checkbox"
+          role="switch"
+          aria-label=${label}
+          title=${label}
+          .checked=${on === true}
+          .disabled=${on === null}
+          @change=${(event: Event) => {
+            const checked = (event.target as HTMLInputElement).checked;
+            context.call(
+              hass.callService(
+                "switch",
+                checked ? "turn_on" : "turn_off",
+                {},
+                { entity_id: entityId },
+              ),
+            );
+          }}
+        />
+      </span>
+    </label>
+  `;
 }
 
 export function renderHeader(context: CardContext): TemplateResult | typeof nothing {
@@ -88,30 +137,33 @@ export function renderHeader(context: CardContext): TemplateResult | typeof noth
       : (config.header.subtitle ?? defaultSubtitle(context));
   const colour = config.header.icon_color ?? modeColor(context);
   const { tappable } = context;
+  const toggle = automaticToggle(context);
+
+  const inside = html`
+    ${name ? html`<div class="icon">${icon(name)}</div>` : nothing}
+    <div class="titles">
+      <div class="title">${config.header.title ?? defaultTitle(context)}</div>
+      ${subtitle ? html`<div class="subtitle">${subtitle}</div>` : nothing}
+    </div>
+  `;
 
   return html`
-    <div
-      class="header section ${tappable ? "tappable" : ""}"
-      style=${colour ? `--pm-icon-color: ${colour}` : ""}
-      role=${tappable ? "button" : nothing}
-      tabindex=${tappable ? "0" : nothing}
-      @pointerdown=${() => context.onHeaderDown()}
-      @pointerup=${() => context.onHeaderUp()}
-      @pointercancel=${() => context.onHeaderUp()}
-      @click=${() => context.onHeaderClick()}
-      @keydown=${(event: KeyboardEvent) => {
-        if (!tappable || (event.key !== "Enter" && event.key !== " ")) return;
-        event.preventDefault();
-        context.onHeaderClick();
-      }}
-    >
-      ${name
-        ? html`<div class="icon">${icon(name)}</div>`
-        : nothing}
-      <div class="titles">
-        <div class="title">${config.header.title ?? defaultTitle(context)}</div>
-        ${subtitle ? html`<div class="subtitle">${subtitle}</div>` : nothing}
-      </div>
+    <div class="header section" style=${colour ? `--pm-icon-color: ${colour}` : ""}>
+      ${tappable
+        ? html`
+            <button
+              class="header-main tappable"
+              type="button"
+              @pointerdown=${() => context.onHeaderDown()}
+              @pointerup=${() => context.onHeaderUp()}
+              @pointercancel=${() => context.onHeaderUp()}
+              @click=${() => context.onHeaderClick()}
+            >
+              ${inside}
+            </button>
+          `
+        : html`<div class="header-main">${inside}</div>`}
+      ${toggle === nothing ? nothing : html`<div class="header-end">${toggle}</div>`}
     </div>
   `;
 }

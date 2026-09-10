@@ -174,6 +174,7 @@ export class PresetManagerCardEditor extends LitElement {
         title: LABELS.header,
         schema: [
           { name: "visible", selector: { boolean: {} } },
+          { name: "automatic", selector: { boolean: {} } },
           { name: "title", selector: { text: {} } },
           { name: "subtitle", selector: { text: {} } },
           { name: "icon", selector: { icon: {} } },
@@ -185,7 +186,6 @@ export class PresetManagerCardEditor extends LitElement {
         name: "modes",
         title: LABELS.modes,
         schema: [
-          { name: "automatic", selector: { boolean: {} } },
           {
             name: "visible",
             ...options([

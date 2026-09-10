@@ -39,27 +39,20 @@ describe("resolveConfig", () => {
     );
   });
 
-  it("shows the mode row and its switch unless told otherwise", () => {
+  it("shows the mode row and the automatic unless told otherwise", () => {
     const config = resolveConfig(MINIMAL);
     expect(config.modes.visible).toBe("always");
-    expect(config.modes.automatic).toBe(true);
+    expect(config.header.automatic).toBe(true);
   });
 
   it("takes them as plain switches once they are set", () => {
     const config = resolveConfig({
       ...MINIMAL,
-      modes: { visible: false, automatic: false },
+      header: { automatic: false },
+      modes: { visible: false },
     });
     expect(config.modes.visible).toBe("never");
-    expect(config.modes.automatic).toBe(false);
-  });
-
-  it("rejects header.automatic instead of ignoring it", () => {
-    // It did not only move: on a preset card the switch now belongs to the
-    // preset, so a configuration left as it is would operate something else.
-    expect(() =>
-      resolveConfig({ ...MINIMAL, header: { automatic: true } }),
-    ).toThrow(/modes\.automatic/);
+    expect(config.header.automatic).toBe(false);
   });
 
   it.each([
