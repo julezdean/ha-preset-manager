@@ -60,8 +60,11 @@ as they are rather than renamed mid-series.
   dashboard, in any automation, with a history. A preset mode with neither
   conditions nor an entity stays on its first mode; the presets following it are
   the ones taken out by hand.
-- With it the words go: there is no "automatic" left anywhere. The one switch in
-  the integration sits on the preset and is called **Follows the preset mode**.
+- The one switch left in the integration sits on the preset. Its entity id says
+  what it does - `switch.<preset>_follows_preset_mode`, so that a preset named
+  like its preset mode has nothing to collide with - and its name says what it
+  is: **Mode-Automatik**, *Automatic mode selection* in English. Nothing else is
+  called automatic any more, so the word is unambiguous again.
 
 ### Changed
 

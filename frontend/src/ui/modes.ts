@@ -63,7 +63,7 @@ function followsRow(context: CardContext): TemplateResult | typeof nothing {
   const entityId = followsEntityId(subject);
   if (!entityId) return nothing;
   const on = followsPresetMode(hass, subject);
-  const label = localize(hass, "follows_preset_mode");
+  const label = localize(hass, "mode_automatic");
 
   return html`
     <label class="toolbar">

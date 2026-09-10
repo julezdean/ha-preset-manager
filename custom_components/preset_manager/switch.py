@@ -36,7 +36,7 @@ async def async_setup_entry(
         return
 
     for subentry_id, coordinator in runtime.presets.items():
-        entities: list[SwitchEntity] = [PresetAutomaticSwitch(coordinator)]
+        entities: list[SwitchEntity] = [ModeAutomaticSwitch(coordinator)]
         entities.extend(
             ModeParameterSwitch(coordinator, mode, parameter)
             for parameter in coordinator.config.parameters
@@ -46,7 +46,7 @@ async def async_setup_entry(
         async_add_entities(entities, config_subentry_id=subentry_id)
 
 
-class PresetAutomaticSwitch(PresetEntity, SwitchEntity):
+class ModeAutomaticSwitch(PresetEntity, SwitchEntity):
     """Switches one preset between following its preset mode and standing alone.
 
     Every preset has one, including those whose preset mode has no automatic
@@ -54,7 +54,7 @@ class PresetAutomaticSwitch(PresetEntity, SwitchEntity):
     conditions but whether this preset listens to the dimension at all.
     """
 
-    _attr_translation_key = "follows_preset_mode"
+    _attr_translation_key = "mode_automatic"
     #: Not "automatic": that is the object id of the preset mode's switch, and
     #: a preset named like its preset mode would push one of the two into an
     #: "_2" suffix. Nor "mode_automatic", which would look symmetric and be

@@ -73,7 +73,7 @@ function defaultSubtitle(context: CardContext): string {
     return `${modeName} · ${localize(hass, "no_preset_mode")}`;
   }
   return followsPresetMode(hass, subject) === false
-    ? `${modeName} · ${localize(hass, "by_hand")}`
+    ? `${modeName} · ${localize(hass, "manual")}`
     : modeName;
 }
 

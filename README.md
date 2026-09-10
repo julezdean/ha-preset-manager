@@ -98,8 +98,8 @@ Assistant 2026.3 onwards.
 * **Conditions per mode**, in one sortable list — the first match wins.
 * **Or hand a preset mode to an entity you already have**, whose state then
   names the active mode.
-* **One switch per preset**: turn off *follows the preset mode* and that single
-  preset holds a mode of its own while the preset mode carries on without it.
+* **One switch per preset**: turn off its *automatic mode selection* and that
+  single preset holds a mode of its own while the preset mode carries on without it.
   A preset mode itself is never set by hand — it computes, or it follows.
 * **Modes with stable keys** — renaming never loses values.
 * **Any number of presets** (devices/scenarios), each following one preset
@@ -129,7 +129,7 @@ Assistant 2026.3 onwards.
 | --- | --- | --- |
 | **Preset mode** | An ordered set of modes; the first whose conditions match is active | House Mode, Window State |
 | **Mode** | One option inside a preset mode, optionally with conditions | Home · Away · Night |
-| **Follows the preset mode** | Runtime switch on a preset: take its preset mode's mode, or hold one | `switch.motion_sensor_living_room_follows_preset_mode` |
+| **Automatic mode selection** | Runtime switch on a preset: take its preset mode's mode, or hold one | `switch.motion_sensor_living_room_follows_preset_mode` |
 | **Preset** | One device or scenario with its parameters, attached to a preset mode | Motion Sensor Living Room |
 | **Parameter** | One configurable value inside a preset | Brightness, Off delay |
 | **Blueprint** | A parameter list of its own that any number of presets can follow | Heating, Shutters |
@@ -413,7 +413,7 @@ no modes to choose between, and both its switch and its selector say so instead
 of pretending otherwise.
 
 **If the mode it holds is deleted from the preset mode, the preset rejoins it**
-— *follows the preset mode* goes back on, and a repair issue says so. Holding
+— its *automatic mode selection* goes back on, and a repair issue says so. Holding
 nothing is not the same as being held: the preset would follow every switch of
 its preset mode from then on, with a switch that reads "off". The repair stays
 until the preset is taken out by hand again, which is the decision it asks for.
@@ -457,8 +457,10 @@ this integration should only carry the values.
 **Entity ids are always English**, regardless of the language of your Home
 Assistant instance — `sensor.<preset_mode>_mode`, `sensor.<preset>_active_mode`,
 `select.<preset>_mode_selection` and `switch.<preset>_follows_preset_mode`. The
-**display names** follow the system language ("Aktiver Mode" / "Folgt dem
-Preset Mode" on a German instance).
+**display names** follow the system language ("Aktiver Mode" /
+"Mode-Automatik" on a German instance). The switch is the one place where the
+two deliberately differ: its id says what it does to leave a preset mode named
+like its preset no room to collide, its name says what it is.
 
 Names you choose yourself (preset mode, preset, parameter and mode names) go
 into the entity id unchanged: the parameter "Brightness" of the preset "Motion
@@ -522,7 +524,7 @@ now, and one row per parameter with the value that is valid:
   Off delay                              30 s
 ```
 
-*Follows the preset mode* sits above its modes: switch it off and the chips
+*Automatic mode selection* sits above its modes: switch it off and the chips
 below become clickable, for this preset alone.
 
 Point it at an entity of a **preset mode** instead and it draws that: its modes
@@ -561,7 +563,7 @@ time.
 | `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
-| `modes.automatic` | `true` | The *follows the preset mode* switch, on its own row above the modes. Presets only. |
+| `modes.automatic` | `true` | The *automatic mode selection* switch, on its own row above the modes. Presets only. |
 | `modes.visible` | `true` | `true`, `false`, or `manual` for “only while the mode can be set from here”. |
 | `modes.style` | `chips` | `chips` or `dropdown`. |
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
@@ -695,7 +697,7 @@ the one thing the mode name alone does not say: which modes exist.
 
 The row carries no explanation: the switch above it says who is deciding, and
 the second line of the header names the active mode, the entity a preset mode
-was handed to, and whether a preset has been set by hand. What a preset
+was handed to, and whether a preset is on a mode of its own. What a preset
 *follows* is not in there — that is what `footer.content: [preset_mode]` is for.
 
 `modes.visible: manual` shows the row only while a click would do something —

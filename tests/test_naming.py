@@ -55,7 +55,7 @@ async def test_display_names_follow_the_language(hass: HomeAssistant) -> None:
         hass.states.get("switch.heating_living_room_follows_preset_mode").attributes[
             "friendly_name"
         ]
-        == "Heating Living Room Folgt dem Preset Mode"
+        == "Heating Living Room Mode-Automatik"
     )
 
 
@@ -73,7 +73,7 @@ async def test_display_names_in_english(hass: HomeAssistant) -> None:
         hass.states.get("switch.heating_living_room_follows_preset_mode").attributes[
             "friendly_name"
         ]
-        == "Heating Living Room Follows the preset mode"
+        == "Heating Living Room Automatic mode selection"
     )
 
 

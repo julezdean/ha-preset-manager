@@ -9,15 +9,15 @@ describe("localize", () => {
   });
 
   it("ignores the region of a language tag", () => {
-    expect(localize({ language: "de-CH" }, "by_hand")).toBe("von Hand");
+    expect(localize({ language: "de-CH" }, "manual")).toBe("Manuell");
   });
 
   it("falls back to English for a language it does not have", () => {
-    expect(localize({ language: "fr" }, "by_hand")).toBe("set by hand");
+    expect(localize({ language: "fr" }, "manual")).toBe("Manual");
   });
 
   it("survives having no hass at all", () => {
-    expect(localize(undefined, "by_hand")).toBe("set by hand");
+    expect(localize(undefined, "manual")).toBe("Manual");
   });
 
   it("fills placeholders", () => {
@@ -33,7 +33,7 @@ describe("localize", () => {
   it("keeps German entries in step with English ones", () => {
     // A missing German string would silently fall back and read as a seam.
     for (const key of [
-      "follows_preset_mode",
+      "mode_automatic",
       "no_mode",
       "not_set",
       "unavailable",

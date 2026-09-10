@@ -482,8 +482,8 @@
       }
     },
     "switch": {
-      "follows_preset_mode": {
-        "name": "Folgt dem Preset Mode"
+      "mode_automatic": {
+        "name": "Mode-Automatik"
       }
     }
   },
@@ -510,7 +510,7 @@
       "message": "Dieser Dienst kann nur für genau ein Preset aufgerufen werden."
     },
     "preset_automatic_active": {
-      "message": "Der Mode von \"{preset}\" kommt von seinem Preset Mode. Schalte „Folgt dem Preset Mode“ aus, um ihn hier zu setzen."
+      "message": "Der Mode von \"{preset}\" kommt von seinem Preset Mode. Schalte „Mode-Automatik“ aus, um ihn hier zu setzen."
     },
     "preset_orphaned": {
       "message": "Das Preset \"{preset}\" folgt keinem Preset Mode und hat damit keinen Mode, den man setzen könnte. Dafür zuerst in den Einstellungen des Presets einen Preset Mode zuweisen."
@@ -563,7 +563,7 @@
     },
     "manual_mode_deleted": {
       "title": "Preset „{preset}“ hat den Mode verloren, auf dem es stand",
-      "description": "Es stand von Hand auf „{mode}“, und dieser Mode wurde aus seinem Preset Mode gelöscht. Ein Preset, das nichts hält, steht auch nicht von Hand – es würde jedem Wechsel seines Preset Mode folgen, mit einem Schalter, der das Gegenteil sagt. Es folgt seinem Preset Mode deshalb wieder.\n\nSoll es weiter eigenständig stehen: „Folgt dem Preset Mode“ ausschalten und einen der verbliebenen Modes wählen."
+      "description": "Es stand von Hand auf „{mode}“, und dieser Mode wurde aus seinem Preset Mode gelöscht. Ein Preset, das nichts hält, steht auch nicht von Hand – es würde jedem Wechsel seines Preset Mode folgen, mit einem Schalter, der das Gegenteil sagt. Es folgt seinem Preset Mode deshalb wieder.\n\nSoll es weiter eigenständig stehen: „Mode-Automatik“ ausschalten und einen der verbliebenen Modes wählen."
     }
   }
 }

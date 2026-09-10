@@ -62,9 +62,9 @@ async def test_home_assistant_loads_the_icons(
     assert icons[DOMAIN] == _load("icons.json")[category]
 
 
-async def test_the_follows_switch_has_an_icon_per_state(
+async def test_the_mode_automatic_switch_has_an_icon_per_state(
     hass: HomeAssistant,
 ) -> None:
     """Off has to be distinguishable from on without reading the state."""
-    follows_preset_mode = _load("icons.json")["entity"]["switch"]["follows_preset_mode"]
-    assert follows_preset_mode["default"] != follows_preset_mode["state"]["off"]
+    mode_automatic = _load("icons.json")["entity"]["switch"]["mode_automatic"]
+    assert mode_automatic["default"] != mode_automatic["state"]["off"]

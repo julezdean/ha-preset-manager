@@ -8,7 +8,7 @@
       "mode_selection": { "default": "mdi:form-select" }
     },
     "switch": {
-      "follows_preset_mode": {
+      "mode_automatic": {
         "default": "mdi:robot",
         "state": { "off": "mdi:robot-off" }
       }
