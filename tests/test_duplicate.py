@@ -147,7 +147,7 @@ async def test_duplicating_a_preset_mode_drops_its_source_entity(
     ]
     assert CONF_SOURCE_ENTITY not in data
     # The copy decides for itself, so it has a selector of its own.
-    assert hass.states.get("select.window_state_active_mode") is not None
+    assert hass.states.get("sensor.window_state_mode") is not None
     # The original still follows its entity, and has none.
     assert hass.states.get("select.house_mode_active_mode") is None
 

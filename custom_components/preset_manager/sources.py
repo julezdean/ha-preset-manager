@@ -61,8 +61,14 @@ class ModeSource:
             self._unsubscribes.pop()()
 
 
-class ManualSource(ModeSource):
-    """The mode is set by the user through the select entity."""
+class StaticSource(ModeSource):
+    """Nothing decides the mode of this preset mode.
+
+    A preset mode without conditions and without an entity is a list of modes
+    and nothing else - which is a legitimate configuration: the presets
+    following it are the ones taken out by hand, one by one. It starts on its
+    first mode and stays there.
+    """
 
 
 class EntitySource(ModeSource):
@@ -70,9 +76,7 @@ class EntitySource(ModeSource):
 
     Anything the entity says is resolved against the modes by key, display
     name or slug; a state that matches nothing - and `unknown`/`unavailable`
-    alike - leaves the preset mode without an active mode. This source is not
-    switchable: a preset mode that follows an entity has no automatic switch and no
-    selector, so there is nothing to be off.
+    alike - leaves the preset mode without an active mode.
     """
 
     @property
@@ -101,7 +105,7 @@ class EntitySource(ModeSource):
         """Map the state of the entity onto a mode."""
         state = self.preset_mode.hass.states.get(self._entity_id)
         if state is None or state.state in (STATE_UNKNOWN, STATE_UNAVAILABLE):
-            self.preset_mode.async_apply_from_source(None)
+            self.preset_mode.async_apply_mode(None)
             return
         mode = self.preset_mode.resolve_mode(state.state)
         if mode is None:
@@ -112,9 +116,9 @@ class EntitySource(ModeSource):
                 self.preset_mode.config.name,
                 ", ".join(item.name for item in self.preset_mode.modes),
             )
-            self.preset_mode.async_apply_from_source(None)
+            self.preset_mode.async_apply_mode(None)
             return
-        self.preset_mode.async_apply_from_source(mode.key)
+        self.preset_mode.async_apply_mode(mode.key)
 
 
 class ConditionSource(ModeSource):
@@ -199,7 +203,7 @@ class ConditionSource(ModeSource):
         for mode_key, checker in self._checkers:
             if checker is None:
                 # A mode without conditions catches everything below it.
-                self.preset_mode.async_apply_from_source(mode_key)
+                self.preset_mode.async_apply_mode(mode_key)
                 return
             try:
                 matched = result_as_boolean(checker(hass, {}))
@@ -212,10 +216,10 @@ class ConditionSource(ModeSource):
                 )
                 continue
             if matched:
-                self.preset_mode.async_apply_from_source(mode_key)
+                self.preset_mode.async_apply_mode(mode_key)
                 return
         # Nothing matched and nothing caught it: no mode is active.
-        self.preset_mode.async_apply_from_source(None)
+        self.preset_mode.async_apply_mode(None)
 
 
 def create_source(preset_mode: PresetModeCoordinator) -> ModeSource:
@@ -224,4 +228,4 @@ def create_source(preset_mode: PresetModeCoordinator) -> ModeSource:
         return EntitySource(preset_mode)
     if preset_mode.config.has_conditions:
         return ConditionSource(preset_mode)
-    return ManualSource(preset_mode)
+    return StaticSource(preset_mode)

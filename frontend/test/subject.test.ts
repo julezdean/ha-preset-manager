@@ -19,11 +19,11 @@ describe("resolveSubject", () => {
     );
   });
 
-  it.each([
-    ["select.house_mode_active_mode"],
-    ["switch.house_mode_automatic"],
-  ])("finds it behind %s as well", (entityId) => {
-    expect(resolveSubject(CONFIG, entityId)?.kind).toBe("preset_mode");
+  it("has nothing else to be found behind", () => {
+    // A preset mode reports its mode and is not operated, so its sensor is
+    // the only entity that can name it.
+    expect(resolveSubject(CONFIG, "select.house_mode_active_mode")).toBeNull();
+    expect(resolveSubject(CONFIG, "switch.house_mode_automatic")).toBeNull();
   });
 
   it("finds the preset behind its active mode sensor", () => {
@@ -81,9 +81,10 @@ describe("watchedEntityIds", () => {
     const watched = watchedEntityIds(subject);
     expect(watched).toContain("sensor.motion_sensor_living_room_brightness");
     expect(watched).toContain("number.motion_sensor_living_room_night_brightness");
-    // The automatic decides whether the mode chips are usable, so a change of
-    // it has to redraw a preset card too.
-    expect(watched).toContain("switch.house_mode_automatic");
+    // Its own switch decides whether the chips are usable, and the mode of
+    // its preset mode decides what it resolves to - both redraw the card.
+    expect(watched).toContain("switch.motion_sensor_living_room_follows_preset_mode");
+    expect(watched).toContain("sensor.house_mode_mode");
   });
 
   it("covers the followed entity of an external preset mode", () => {

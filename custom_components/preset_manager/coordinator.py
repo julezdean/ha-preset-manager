@@ -372,14 +372,14 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
     def _initial_mode_key(self) -> str | None:
         """Return the mode to start with; the source corrects it right after.
 
-        A manual preset mode has no source to correct it, so it starts on its first
-        mode - the same mode the condition source would pick, where every
-        mode is a match because none of them has conditions.
+        A preset mode nothing drives has no source to correct it, so it starts
+        on its first mode - the same mode the condition source would pick,
+        where every mode is a match because none of them has conditions.
         """
         stored = self.store.active_mode(self.config.subentry_id)
         if stored and self.config.mode(stored) is not None:
             return stored
-        if self.has_source or self.external or not self.config.modes:
+        if self.config.has_conditions or self.external or not self.config.modes:
             return None
         return self.config.modes[0].key
 
@@ -397,25 +397,6 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
     def external(self) -> bool:
         """Return whether another entity decides the mode."""
         return self.config.is_external
-
-    @property
-    def has_source(self) -> bool:
-        """Return whether the automatic can be switched off.
-
-        Only the conditions can: an external preset mode is not something the user
-        takes over by hand, it belongs to the entity it follows.
-        """
-        return self.config.has_conditions
-
-    @property
-    def automatic(self) -> bool:
-        """Return whether the mode currently follows its conditions."""
-        return self.has_source and self.store.automatic(self.config.subentry_id)
-
-    @property
-    def writable(self) -> bool:
-        """Return whether the active mode may be set by hand."""
-        return not self.automatic and not self.external
 
     @property
     def source_kind(self) -> str:
@@ -461,52 +442,6 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
         self.async_update_listeners()
         for preset in self.presets:
             preset.async_update_state()
-
-    async def async_set_automatic(self, value: bool) -> None:
-        """Switch between following the source and setting the mode by hand."""
-        if not self.store.set_automatic(self.config.subentry_id, value):
-            return
-        if value and self._source is not None:
-            # Do not wait for the next event to catch up with the source.
-            await self._source.async_refresh()
-        self.async_update_listeners()
-
-    @callback
-    def async_apply_from_source(self, mode_key: str | None) -> None:
-        """Apply a mode proposed by the source, unless it is switched off."""
-        if not self.external and not self.automatic:
-            return
-        self.async_apply_mode(mode_key)
-
-    @callback
-    def async_set_active_mode(self, value: str) -> None:
-        """Set the active mode from a key or display name."""
-        if self.external:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="external_source",
-                translation_placeholders={
-                    "preset_mode": self.config.name,
-                    "entity_id": self.config.source_entity or "",
-                },
-            )
-        if not self.writable:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="automatic_active",
-                translation_placeholders={"preset_mode": self.config.name},
-            )
-        mode = self.resolve_mode(value)
-        if mode is None:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="unknown_mode",
-                translation_placeholders={
-                    "mode": value,
-                    "modes": ", ".join(item.name for item in self.modes),
-                },
-            )
-        self.async_apply_mode(mode.key)
 
     @callback
     def async_apply_mode(self, mode_key: str | None) -> None:

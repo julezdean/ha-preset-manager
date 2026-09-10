@@ -47,6 +47,22 @@ as they are rather than renamed mid-series.
   `.storage/preset_manager.values`. An older version simply does not find them,
   so there is no migration step.
 
+### Removed
+
+- **A preset mode is not operated any more.** `select.<preset_mode>_active_mode`
+  and `switch.<preset_mode>_automatic` are gone, and
+  `preset_manager.set_active_mode` no longer has anything on a preset mode to be
+  aimed at. Its mode comes from its conditions or from the entity it follows,
+  and from nothing else - it is the definition of the modes plus, optionally,
+  the logic that picks one. Two places to switch an automatic on and off was one
+  too many, and the built-in selector was an `input_select` with fewer
+  abilities: point a preset mode at a real one and you get the same thing on any
+  dashboard, in any automation, with a history. A preset mode with neither
+  conditions nor an entity stays on its first mode; the presets following it are
+  the ones taken out by hand.
+- With it the words go: there is no "automatic" left anywhere. The one switch in
+  the integration sits on the preset and is called **Follows the preset mode**.
+
 ### Changed
 
 - **The card's automatic switch moved out of the header** onto a row of its own

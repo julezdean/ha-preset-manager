@@ -199,14 +199,12 @@ def async_expected_preset_mode_ids(runtime: PresetManagerRuntime) -> set[str]:
     mode sensor of a preset, which was then removed and restored on every
     single setup.
     """
-    expected: set[str] = set()
-    for subentry_id, coordinator in runtime.preset_modes.items():
-        expected.add(f"{subentry_id}_{UID_PRESET_MODE_SENSOR}")
-        if not coordinator.external:
-            expected.add(f"{subentry_id}_{UID_ACTIVE_MODE}")
-        if coordinator.has_source:
-            expected.add(f"{subentry_id}_{UID_AUTOMATIC}")
-    return expected
+    # One entity, and only one: a preset mode says which mode is active and
+    # is not operated. Everything a hand reaches sits on the presets.
+    return {
+        f"{subentry_id}_{UID_PRESET_MODE_SENSOR}"
+        for subentry_id in runtime.preset_modes
+    }
 
 
 @callback

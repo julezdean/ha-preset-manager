@@ -477,16 +477,13 @@
       }
     },
     "select": {
-      "active_mode": {
-        "name": "Aktiver Mode"
-      },
       "mode_selection": {
         "name": "Mode-Auswahl"
       }
     },
     "switch": {
-      "automatic": {
-        "name": "Automatik"
+      "follows_preset_mode": {
+        "name": "Folgt dem Preset Mode"
       }
     }
   },
@@ -512,14 +509,8 @@
     "single_preset_required": {
       "message": "Dieser Dienst kann nur für genau ein Preset aufgerufen werden."
     },
-    "automatic_active": {
-      "message": "Der Mode von \"{preset_mode}\" folgt seiner Quelle. Schalte die Automatik aus, um den Mode von Hand zu setzen."
-    },
-    "external_source": {
-      "message": "Der Mode von „{preset_mode}“ folgt {entity_id} und kann nicht von Hand gesetzt werden. Dafür zuerst die Entität in den Einstellungen des Preset Modes entfernen."
-    },
     "preset_automatic_active": {
-      "message": "Der Mode von \"{preset}\" folgt seinem Preset Mode. Schalte die Automatik des Presets aus, um ihn hier zu setzen."
+      "message": "Der Mode von \"{preset}\" kommt von seinem Preset Mode. Schalte „Folgt dem Preset Mode“ aus, um ihn hier zu setzen."
     },
     "preset_orphaned": {
       "message": "Das Preset \"{preset}\" folgt keinem Preset Mode und hat damit keinen Mode, den man setzen könnte. Dafür zuerst in den Einstellungen des Presets einen Preset Mode zuweisen."
@@ -572,7 +563,7 @@
     },
     "manual_mode_deleted": {
       "title": "Preset „{preset}“ hat den Mode verloren, auf dem es stand",
-      "description": "Es stand von Hand auf „{mode}“, und dieser Mode wurde aus seinem Preset Mode gelöscht. Ein Preset, das nichts hält, steht auch nicht von Hand – es würde jedem Wechsel seines Preset Mode folgen, mit einem Schalter, der das Gegenteil sagt. Seine Automatik ist deshalb wieder an und es folgt wieder seinem Preset Mode.\n\nSoll es weiter eigenständig stehen: die Automatik des Presets ausschalten und einen der verbliebenen Modes wählen."
+      "description": "Es stand von Hand auf „{mode}“, und dieser Mode wurde aus seinem Preset Mode gelöscht. Ein Preset, das nichts hält, steht auch nicht von Hand – es würde jedem Wechsel seines Preset Mode folgen, mit einem Schalter, der das Gegenteil sagt. Es folgt seinem Preset Mode deshalb wieder.\n\nSoll es weiter eigenständig stehen: „Folgt dem Preset Mode“ ausschalten und einen der verbliebenen Modes wählen."
     }
   }
 }

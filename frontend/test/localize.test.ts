@@ -32,7 +32,13 @@ describe("localize", () => {
 
   it("keeps German entries in step with English ones", () => {
     // A missing German string would silently fall back and read as a seam.
-    for (const key of ["automatic", "no_mode", "not_set", "unavailable", "orphaned"]) {
+    for (const key of [
+      "follows_preset_mode",
+      "no_mode",
+      "not_set",
+      "unavailable",
+      "orphaned",
+    ]) {
       expect(localize({ language: "de" }, key)).not.toBe(localize({ language: "en" }, key));
     }
   });

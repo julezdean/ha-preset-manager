@@ -229,11 +229,7 @@
           modes: HOUSE_MODES,
           source_entity: null,
           has_conditions: true,
-          entities: {
-            mode: "sensor.house_mode_mode",
-            active_mode: "select.house_mode_active_mode",
-            automatic: "switch.house_mode_automatic",
-          },
+          entities: { mode: "sensor.house_mode_mode" },
         },
         {
           id: "pm2",
@@ -460,10 +456,6 @@
     };
 
     put("sensor.house_mode_mode", "Night", { mode_key: "night" });
-    put("select.house_mode_active_mode", "Night", {
-      options: HOUSE_MODES.map((mode) => mode.name),
-    });
-    put("switch.house_mode_automatic", "off");
     // Every preset has one, and every one of them starts where it should:
     // following its preset mode. The shutter below is the exception.
     for (const preset of ["motion", "heating", "clock", "shutter", "fan"]) {
@@ -619,6 +611,20 @@
     const cards = [];
     let hass;
 
+    /** Move a preset mode, the way its conditions or its entity would.
+
+        There is no service and no entity for this - that is the point - so the
+        page reaches into the fake state machine directly, which is what the
+        condition source does inside Home Assistant. */
+    function activateMode(presetMode, key) {
+      const mode = presetMode.modes.find((item) => item.key === key);
+      if (!mode) return;
+      put(presetMode.entities.mode, mode.name, { mode_key: mode.key });
+      resolveAll();
+      publish();
+    }
+    window.activateMode = activateMode;
+
     /** Hand every card a fresh `hass`, the way Home Assistant does. */
     function publish() {
       hass = { ...hass, states: { ...states } };
@@ -634,26 +640,13 @@
         const preset = STRUCTURE.presets.find(
           (item) => item.entities.mode_selection === entityId,
         );
-        if (preset) {
-          if (states[preset.entities.automatic]?.state !== "off") {
-            throw { message: "The mode follows the preset mode. Turn the automatic off first." };
-          }
-          manualModes[preset.id] = data.mode;
-          resolveAll();
-          publish();
-          return;
+        if (!preset) return;
+        if (states[preset.entities.automatic]?.state !== "off") {
+          throw {
+            message: "The mode comes from the preset mode. Turn following off first.",
+          };
         }
-        const presetMode = STRUCTURE.preset_modes.find(
-          (item) => item.entities.active_mode === entityId,
-        );
-        if (!presetMode) return;
-        if (states[presetMode.entities.automatic]?.state === "on") {
-          throw { message: "The mode follows its source. Turn the automatic off first." };
-        }
-        const mode = presetMode.modes.find((item) => item.key === data.mode);
-        if (!mode) return;
-        put(presetMode.entities.mode, mode.name, { mode_key: mode.key });
-        put(entityId, mode.name, states[entityId].attributes);
+        manualModes[preset.id] = data.mode;
         resolveAll();
         publish();
         return;

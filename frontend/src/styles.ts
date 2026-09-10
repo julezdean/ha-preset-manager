@@ -130,7 +130,12 @@ export const cardStyles = css`
     --mdc-icon-size: 16px;
   }
 
-  .chip:hover:not(:disabled) {
+  /* A list item is not a control: no pointer, no hover, no press. */
+  span.chip {
+    cursor: default;
+  }
+
+  button.chip:hover:not(:disabled) {
     background: color-mix(in srgb, var(--pm-text) 14%, transparent);
   }
 

@@ -34,7 +34,6 @@ async def test_entity_ids_are_language_independent(
     """The entity ids of translated entities are always English."""
     await _setup(hass, language)
 
-    assert hass.states.get("select.house_mode_active_mode") is not None
     assert hass.states.get("sensor.house_mode_mode") is not None
     assert hass.states.get("sensor.heating_living_room_active_mode") is not None
     # Parameter entities are named after the user's own text in every language.
@@ -53,8 +52,10 @@ async def test_display_names_follow_the_language(hass: HomeAssistant) -> None:
         == "Heating Living Room Aktiver Mode"
     )
     assert (
-        hass.states.get("select.house_mode_active_mode").attributes["friendly_name"]
-        == "House Mode Aktiver Mode"
+        hass.states.get("switch.heating_living_room_follows_preset_mode").attributes[
+            "friendly_name"
+        ]
+        == "Heating Living Room Folgt dem Preset Mode"
     )
 
 
@@ -69,8 +70,10 @@ async def test_display_names_in_english(hass: HomeAssistant) -> None:
         == "Heating Living Room Active mode"
     )
     assert (
-        hass.states.get("select.house_mode_active_mode").attributes["friendly_name"]
-        == "House Mode Active mode"
+        hass.states.get("switch.heating_living_room_follows_preset_mode").attributes[
+            "friendly_name"
+        ]
+        == "Heating Living Room Follows the preset mode"
     )
 
 
@@ -108,16 +111,15 @@ async def test_editor_unique_ids_survive_underscores_in_both_keys(
     assert len(hass.states.async_all("number")) == 4
 
 
-async def test_a_preset_named_like_its_preset_mode_keeps_both_switches(
+async def test_a_preset_named_like_its_preset_mode_collides_with_nothing(
     hass: HomeAssistant,
 ) -> None:
-    """Both automatics exist, and neither is pushed into an "_2" suffix.
+    """The two objects share a name and still no entity is renamed.
 
-    They answer different questions - conditions or hand, preset mode or hand -
-    so they are two entities, and the object id of the preset's one must not be
-    the one the preset mode already owns. Nor anything ending in "automatic":
-    that is the whole class of collision, and the ones it produces are the kind
-    a user can neither see the cause of nor repair.
+    A preset mode has nothing but its mode sensor now, so the old collision
+    between the two automatic switches cannot happen - but the preset's own
+    entities still have to stay clear of it, and an "_2" suffix is the kind of
+    breakage a user can neither see the cause of nor repair.
     """
     await async_setup_hubs(
         hass,
@@ -138,8 +140,9 @@ async def test_a_preset_named_like_its_preset_mode_keeps_both_switches(
         presets=[make_preset("House Mode", [BRIGHTNESS])],
     )
 
-    assert hass.states.get("switch.house_mode_automatic") is not None
+    assert hass.states.get("sensor.house_mode_mode") is not None
     assert hass.states.get("switch.house_mode_follows_preset_mode") is not None
+    assert hass.states.get("select.house_mode_mode_selection") is not None
     assert [
         state.entity_id
         for state in hass.states.async_all()

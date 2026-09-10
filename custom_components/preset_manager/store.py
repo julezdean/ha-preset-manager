@@ -24,7 +24,6 @@ from .const import (
     STORAGE_MINOR_VERSION,
     STORAGE_VERSION,
     STORE_ACTIVE_MODES,
-    STORE_AUTOMATIC,
     STORE_MANUAL_MODES,
     STORE_PRESET_AUTOMATIC,
     STORE_VALUES,
@@ -83,7 +82,6 @@ class PresetValueStore:
         )
         self._values: ValueMap = {}
         self._active_modes: dict[str, str] = {}
-        self._automatic: dict[str, bool] = {}
         #: Keyed by preset, not by preset mode - the two live in dicts of
         #: their own rather than sharing one, because they are pruned against
         #: different sets of ids and would delete each other's entries.
@@ -96,7 +94,6 @@ class PresetValueStore:
         if not data:
             return
         self._active_modes = dict(data.get(STORE_ACTIVE_MODES) or {})
-        self._automatic = dict(data.get(STORE_AUTOMATIC) or {})
         self._manual_modes = dict(data.get(STORE_MANUAL_MODES) or {})
         self._preset_automatic = dict(data.get(STORE_PRESET_AUTOMATIC) or {})
         raw_values = data.get(STORE_VALUES) or {}
@@ -114,7 +111,6 @@ class PresetValueStore:
     def _as_dict(self) -> dict[str, Any]:
         return {
             STORE_ACTIVE_MODES: self._active_modes,
-            STORE_AUTOMATIC: self._automatic,
             STORE_MANUAL_MODES: self._manual_modes,
             STORE_PRESET_AUTOMATIC: self._preset_automatic,
             STORE_VALUES: self._values,
@@ -140,37 +136,17 @@ class PresetValueStore:
         self._schedule_save()
         return True
 
-    def automatic(self, preset_mode_id: str) -> bool:
-        """Return whether a preset mode follows its source.
-
-        Defaults to ``True``: a preset mode with a source configured is meant to
-        run on its own until the user switches it off.
-        """
-        return self._automatic.get(preset_mode_id, True)
-
-    def set_automatic(self, preset_mode_id: str, value: bool) -> bool:
-        """Persist the automatic flag. Returns ``True`` when it changed."""
-        if self._automatic.get(preset_mode_id, True) == value:
-            return False
-        self._automatic[preset_mode_id] = value
-        self._schedule_save()
-        return True
-
     def remove_preset_mode(self, preset_mode_id: str) -> None:
         """Drop the persisted state of a preset mode."""
-        changed = self._active_modes.pop(preset_mode_id, None) is not None
-        changed |= self._automatic.pop(preset_mode_id, None) is not None
-        if changed:
+        if self._active_modes.pop(preset_mode_id, None) is not None:
             self._schedule_save()
 
     def prune_preset_modes(self, preset_mode_ids: Iterable[str]) -> None:
         """Remove state of preset modes that no longer exist."""
         known = set(preset_mode_ids)
         stale = [item for item in self._active_modes if item not in known]
-        stale += [item for item in self._automatic if item not in known]
         for stale_id in stale:
             self._active_modes.pop(stale_id, None)
-            self._automatic.pop(stale_id, None)
         if stale:
             self._schedule_save()
 

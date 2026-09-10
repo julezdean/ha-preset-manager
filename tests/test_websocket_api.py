@@ -96,11 +96,7 @@ async def test_wires_every_entity_of_a_preset_mode(
     preset_mode = one(
         (await async_config(hass_ws_client, hass))["preset_modes"], "id", PRESET_MODE_ID
     )
-    assert preset_mode["entities"] == {
-        "mode": "sensor.house_mode_mode",
-        "active_mode": "select.house_mode_active_mode",
-        "automatic": "switch.house_mode_automatic",
-    }
+    assert preset_mode["entities"] == {"mode": "sensor.house_mode_mode"}
     assert preset_mode["has_conditions"] is True
     for entity_id in preset_mode["entities"].values():
         assert hass.states.get(entity_id) is not None

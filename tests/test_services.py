@@ -29,8 +29,8 @@ from .conftest import (
     PRESET_ID,
     PRESET_MODE_ID,
     Hubs,
+    async_activate_mode,
     async_add_object,
-    async_set_active_mode,
     async_setup_hubs,
     async_setup_one,
     make_preset,
@@ -260,7 +260,7 @@ async def test_get_values(hass: HomeAssistant, motion: Hubs) -> None:
         target={"entity_id": PRESET_SENSOR},
         blocking=True,
     )
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
 
     response = await hass.services.async_call(
         DOMAIN,
@@ -333,16 +333,22 @@ async def test_value_services_without_setup(hass: HomeAssistant) -> None:
         )
 
 
-async def test_set_active_mode_is_an_entity_service(
+async def test_set_active_mode_is_an_entity_service_of_a_preset(
     hass: HomeAssistant, motion: Hubs
 ) -> None:
-    """The mode is set on the selector, not on a preset mode looked up by name."""
+    """It is aimed at the selector of a preset, and a preset mode has none.
+
+    Setting a mode by hand is something a single preset does; a preset mode
+    gets its mode from its conditions or from the entity it follows, so there
+    is nothing there for this service to be aimed at.
+    """
     assert hass.services.has_service(DOMAIN, SERVICE_SET_ACTIVE_MODE)
     registry = er.async_get(hass)
-    assert registry.async_get("select.house_mode_active_mode") is not None
-
-    await async_set_active_mode(hass, "night")
-    assert hass.states.get("select.house_mode_active_mode").state == "Night"
+    assert registry.async_get("select.house_mode_active_mode") is None
+    assert (
+        registry.async_get("select.motion_sensor_living_room_mode_selection")
+        is not None
+    )
 
 
 def _schema_keys(schema: vol.Schema) -> set[str]:

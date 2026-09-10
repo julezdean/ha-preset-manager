@@ -11,12 +11,8 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 
 from . import hubs
 from .const import HUB_PRESET_MODES, UID_AUTOMATIC
-from .coordinator import (
-    PresetCoordinator,
-    PresetManagerConfigEntry,
-    PresetModeCoordinator,
-)
-from .entity import ModeValueEditorEntity, PresetEntity, PresetModeEntity
+from .coordinator import PresetCoordinator, PresetManagerConfigEntry
+from .entity import ModeValueEditorEntity, PresetEntity
 from .parameter_types import get_parameter_type
 
 #: Nothing on these platforms does I/O: a value is resolved in memory and
@@ -35,12 +31,8 @@ async def async_setup_entry(
     runtime = entry.runtime_data
 
     if hubs.hub_kind(entry) == HUB_PRESET_MODES:
-        for subentry_id, preset_mode in runtime.preset_modes.items():
-            # Without a source there is nothing to switch between.
-            if preset_mode.has_source:
-                async_add_entities(
-                    [AutomaticSwitch(preset_mode)], config_subentry_id=subentry_id
-                )
+        # Nothing to switch here any more: a preset mode runs on its
+        # conditions or on the entity it follows, with no way to take it over.
         return
 
     for subentry_id, coordinator in runtime.presets.items():
@@ -54,30 +46,6 @@ async def async_setup_entry(
         async_add_entities(entities, config_subentry_id=subentry_id)
 
 
-class AutomaticSwitch(PresetModeEntity, SwitchEntity):
-    """Switches a preset mode between automatic and manual."""
-
-    _attr_translation_key = "automatic"
-    _object_id_name = "automatic"
-
-    def __init__(self, preset_mode: PresetModeCoordinator) -> None:
-        """Initialise the automatic switch."""
-        super().__init__(preset_mode, UID_AUTOMATIC)
-
-    @property
-    def is_on(self) -> bool:
-        """Return whether the mode follows the source."""
-        return self.preset_mode.automatic
-
-    async def async_turn_on(self, **kwargs: Any) -> None:
-        """Follow the source again and evaluate it right away."""
-        await self.preset_mode.async_set_automatic(True)
-
-    async def async_turn_off(self, **kwargs: Any) -> None:
-        """Keep the current mode and allow setting it by hand."""
-        await self.preset_mode.async_set_automatic(False)
-
-
 class PresetAutomaticSwitch(PresetEntity, SwitchEntity):
     """Switches one preset between following its preset mode and standing alone.
 
@@ -86,7 +54,7 @@ class PresetAutomaticSwitch(PresetEntity, SwitchEntity):
     conditions but whether this preset listens to the dimension at all.
     """
 
-    _attr_translation_key = "automatic"
+    _attr_translation_key = "follows_preset_mode"
     #: Not "automatic": that is the object id of the preset mode's switch, and
     #: a preset named like its preset mode would push one of the two into an
     #: "_2" suffix. Nor "mode_automatic", which would look symmetric and be

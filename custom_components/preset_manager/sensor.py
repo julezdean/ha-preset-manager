@@ -108,10 +108,9 @@ class ActiveModeSensor(PresetModeEntity, SensorEntity):
             ATTR_MODES: [item.name for item in config.modes],
         }
         if config.source_entity is not None:
-            # There is no automatic to report: the entity is the automatic.
+            # The only thing left to say about where the mode comes from: a
+            # preset mode is never set by hand, so there is nothing else.
             attributes[ATTR_SOURCE_ENTITY] = config.source_entity
-        else:
-            attributes[ATTR_AUTOMATIC] = self.preset_mode.automatic
         return attributes
 
 

@@ -73,7 +73,7 @@ async def test_the_download_works_end_to_end(
         "night",
         "window_open",
     ]
-    assert preset_mode["source_kind"] == "ManualSource"
+    assert preset_mode["source_kind"] == "StaticSource"
     assert preset_mode["active_mode"] == "home"
     assert preset_mode["presets"] == ["Motion Sensor Living Room"]
 

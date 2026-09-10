@@ -477,16 +477,13 @@
       }
     },
     "select": {
-      "active_mode": {
-        "name": "Active mode"
-      },
       "mode_selection": {
         "name": "Mode selection"
       }
     },
     "switch": {
-      "automatic": {
-        "name": "Automatic"
+      "follows_preset_mode": {
+        "name": "Follows the preset mode"
       }
     }
   },
@@ -512,14 +509,8 @@
     "single_preset_required": {
       "message": "This service can only be called for exactly one preset."
     },
-    "automatic_active": {
-      "message": "The mode of \"{preset_mode}\" follows its source. Turn the automatic switch off to set the mode by hand."
-    },
-    "external_source": {
-      "message": "The mode of “{preset_mode}” follows {entity_id} and cannot be set by hand. Clear that entity in the settings of the preset mode first."
-    },
     "preset_automatic_active": {
-      "message": "The mode of \"{preset}\" follows its preset mode. Turn the automatic switch of the preset off to set it here."
+      "message": "The mode of \"{preset}\" comes from its preset mode. Turn off \"Follows the preset mode\" to set it here."
     },
     "preset_orphaned": {
       "message": "\"{preset}\" follows no preset mode, so it has no mode to set. Assign a preset mode in the settings of the preset first."
@@ -572,7 +563,7 @@
     },
     "manual_mode_deleted": {
       "title": "Preset \"{preset}\" lost the mode it was set to",
-      "description": "It was set by hand to \"{mode}\", and that mode has been deleted from its preset mode. A preset that holds nothing is not held at all - it would follow every switch of its preset mode with a switch that says it does not - so its automatic is back on and it follows its preset mode again.\n\nIf it should stand on its own, switch the automatic of the preset off and pick one of the remaining modes."
+      "description": "It was set by hand to \"{mode}\", and that mode has been deleted from its preset mode. A preset that holds nothing is not held at all - it would follow every switch of its preset mode with a switch that says it does not - so it follows its preset mode again.\n\nIf it should stand on its own, turn \"Follows the preset mode\" off and pick one of the remaining modes."
     }
   }
 }

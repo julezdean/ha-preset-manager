@@ -24,10 +24,11 @@ export interface HeaderConfig {
 /**
  * When the mode row is shown.
  *
- * `manual` means "while the mode can actually be set from here" - the automatic
- * is off, or there is none to be on. A row of chips nobody may click is a row
- * that only takes space, and this is the option that says so. `true` and
- * `false` are accepted for `always` and `never`.
+ * `manual` means "while the mode can actually be set from here" - so on a
+ * preset that is not following its preset mode, and never on a preset mode,
+ * which is not operated at all. A row of chips nobody may click is a row that
+ * only takes space, and this is the option that says so. `true` and `false`
+ * are accepted for `always` and `never`.
  */
 export type ModeVisibility = "always" | "never" | "manual";
 
@@ -35,11 +36,10 @@ export interface ModesConfig {
   /** Defaults to on. */
   visible?: boolean | ModeVisibility;
   /**
-   * The automatic switch, on its own row above the modes. Two decisions, two
-   * rows: one picks the mode, the other decides who picks it. It is always
-   * the switch of the object the card is about - the conditions of a preset
-   * mode, or whether a preset takes the mode of its preset mode. Defaults to
-   * on wherever there is one.
+   * The switch saying whether a preset follows its preset mode, on its own row
+   * above the modes. Two decisions, two rows: one picks the mode, the one
+   * above it decides who picks it. Only a preset has one - a preset mode is
+   * not operated. Defaults to on.
    */
   automatic?: boolean;
   style?: "chips" | "dropdown";

@@ -100,7 +100,8 @@ STORAGE_KEY: Final = f"{DOMAIN}.values"
 #: ``PresetValueStore`` for the migration path.
 STORAGE_VERSION: Final = 1
 #: Bumped for changes an older version could still read. 2 added the two
-#: keys below, which an older version simply does not find.
+#: preset keys below and dropped "automatic", which held the switch of
+#: every preset mode - an entity that no longer exists.
 STORAGE_MINOR_VERSION: Final = 2
 #: Config entry version. 1 was one entry per preset mode and per blueprint,
 #: 2 is the three hubs. Every bump needs a step in ``async_migrate_entry``;
@@ -112,7 +113,6 @@ ENTRY_MINOR_VERSION: Final = 1
 SAVE_DELAY: Final = 2.0
 
 STORE_ACTIVE_MODES: Final = "active_modes"
-STORE_AUTOMATIC: Final = "automatic"
 #: The mode a preset was set to by hand, per preset. Only read while that
 #: preset's automatic is off; it is rewritten with the mode in effect the
 #: moment the automatic is switched off.

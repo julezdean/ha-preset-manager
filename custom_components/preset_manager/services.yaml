@@ -1,6 +1,7 @@
-# set_active_mode is an entity service on the mode selector: the preset mode
-# is picked the way every other entity is, instead of being looked up by its
-# display name, which the user is free to change at any time.
+# set_active_mode is an entity service on the mode selector of a *preset*, and
+# only works while that preset is not following its preset mode. A preset mode
+# itself is never set by hand - its mode comes from its conditions or from the
+# entity it follows.
 set_active_mode:
   target:
     entity:

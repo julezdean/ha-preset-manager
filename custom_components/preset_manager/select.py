@@ -15,15 +15,10 @@ from .const import (
     ATTR_MODE,
     HUB_PRESET_MODES,
     SERVICE_SET_ACTIVE_MODE,
-    UID_ACTIVE_MODE,
     UID_MODE_SELECTION,
 )
-from .coordinator import (
-    PresetCoordinator,
-    PresetManagerConfigEntry,
-    PresetModeCoordinator,
-)
-from .entity import ModeValueEditorEntity, PresetEntity, PresetModeEntity
+from .coordinator import PresetCoordinator, PresetManagerConfigEntry
+from .entity import ModeValueEditorEntity, PresetEntity
 from .parameter_types import get_parameter_type
 
 #: Nothing on these platforms does I/O: a value is resolved in memory and
@@ -42,28 +37,13 @@ async def async_setup_entry(
     runtime = entry.runtime_data
 
     if hubs.hub_kind(entry) == HUB_PRESET_MODES:
-        # The mode selector is what a preset mode is set on, so setting it by
-        # its stable key is a service on that entity rather than a service of
-        # the domain looking the preset mode up by its (renameable) name.
-        entity_platform.async_get_current_platform().async_register_entity_service(
-            SERVICE_SET_ACTIVE_MODE,
-            {vol.Required(ATTR_MODE): cv.string},
-            "async_set_active_mode",
-        )
-
-        # The selector exists for every preset mode that can be set by hand at
-        # all: it would otherwise appear and disappear with the automatic
-        # switch, taking its entity id and history with it. A preset mode
-        # following another entity is the exception - nothing to select there.
-        for subentry_id, preset_mode in runtime.preset_modes.items():
-            if not preset_mode.external:
-                async_add_entities(
-                    [ActiveModeSelect(preset_mode)], config_subentry_id=subentry_id
-                )
+        # A preset mode has no selector: its mode comes from its conditions or
+        # from the entity it follows, and from nothing else. Taking one device
+        # out of that is what the automatic of a *preset* is for.
         return
 
-    # The same service, on the other kind of object: a preset whose automatic
-    # is off is set by its own key, not by the one of its preset mode.
+    # The one place the mode is set by hand: a preset that is not following
+    # its preset mode, addressed by its own selector.
     entity_platform.async_get_current_platform().async_register_entity_service(
         SERVICE_SET_ACTIVE_MODE,
         {vol.Required(ATTR_MODE): cv.string},
@@ -79,40 +59,6 @@ async def async_setup_entry(
             for mode in coordinator.modes
         )
         async_add_entities(entities, config_subentry_id=subentry_id)
-
-
-class ActiveModeSelect(PresetModeEntity, SelectEntity):
-    """Selects the active mode of a preset mode."""
-
-    _attr_translation_key = "active_mode"
-    _object_id_name = "active_mode"
-
-    def __init__(self, preset_mode: PresetModeCoordinator) -> None:
-        """Initialise the mode selector."""
-        super().__init__(preset_mode, UID_ACTIVE_MODE)
-        self._attr_options = [mode.name for mode in preset_mode.modes]
-
-    @property
-    def current_option(self) -> str | None:
-        """Return the name of the active mode."""
-        mode = self.preset_mode.active_mode
-        return mode.name if mode else None
-
-    async def async_select_option(self, option: str) -> None:
-        """Activate another mode by its display name.
-
-        Refused while the automatic is on - switching the mode by hand has
-        to be a deliberate act, not a side effect of a click.
-        """
-        self.preset_mode.async_set_active_mode(option)
-
-    async def async_set_active_mode(self, mode: str) -> None:
-        """Activate another mode by its stable key.
-
-        The key is what survives a rename, which is why this exists beside
-        ``select.select_option`` - that one only knows the display name.
-        """
-        self.preset_mode.async_set_active_mode(mode)
 
 
 class PresetModeSelect(PresetEntity, SelectEntity):

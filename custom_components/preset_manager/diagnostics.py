@@ -83,8 +83,6 @@ def _preset_mode(
         "modes": [mode.to_dict() for mode in config.modes],
         "source_kind": preset_mode.source_kind,
         "has_conditions": config.has_conditions,
-        "automatic": preset_mode.automatic,
-        "writable": preset_mode.writable,
         "active_mode": preset_mode.active_mode_key,
         "stored_active_mode": preset_mode.store.active_mode(config.subentry_id),
         "presets": [item.config.name for item in preset_mode.presets],

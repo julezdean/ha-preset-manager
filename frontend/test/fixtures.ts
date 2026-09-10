@@ -29,11 +29,7 @@ export function structure(
         modes: MODES,
         source_entity: null,
         has_conditions: true,
-        entities: {
-          mode: "sensor.house_mode_mode",
-          active_mode: "select.house_mode_active_mode",
-          automatic: "switch.house_mode_automatic",
-        },
+        entities: { mode: "sensor.house_mode_mode" },
       },
     ],
     presets: [

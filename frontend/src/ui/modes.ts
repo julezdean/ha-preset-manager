@@ -1,31 +1,29 @@
 /**
- * Who decides the mode, and which mode it is.
+ * Which mode is active, and - on a preset - who decides that.
  *
- * Two rows, two decisions, and both belong to the object the card is about -
- * never to another one. A preset mode card switches its own automatic between
- * the conditions and the hand; a preset card switches its own between the
- * preset mode and the hand. The chips underneath set whichever of the two the
- * switch has released. Nothing here ever reaches into the dimension from a
- * preset: a click on a card named after one preset must not change what every
- * other preset of that dimension does.
+ * The two kinds of card differ here, because the two objects do. **A preset
+ * mode is not operated**: its mode comes from its conditions or from the
+ * entity it follows, so its modes are drawn as a list that says which of them
+ * is on, and nothing on it can be pressed. **A preset is**: one switch says
+ * whether it takes the mode of its preset mode, and with that off the chips
+ * below set its own.
  *
- * Switching goes through `preset_manager.set_active_mode` with the mode *key*,
+ * Nothing here ever reaches into the dimension from a preset. A click on a
+ * card named after one preset must not change what every other preset of that
+ * dimension does, and now it structurally cannot - there is nothing to write
+ * to on the other side.
+ *
+ * Setting goes through `preset_manager.set_active_mode` with the mode *key*,
  * not through `select.select_option` with its display name - the key is what
  * survives a rename, and the service exists for exactly that reason.
- *
- * A mode that cannot be set is shown disabled rather than clickable with an
- * error afterwards: the integration refuses the write while the automatic is
- * on, on purpose, so that one click cannot silently switch somebody's
- * automation off. Disabled and nothing else - the reason used to be spelled
- * out underneath, and every version of that sentence repeated the header.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
 
 import {
   activeModeKey,
-  automaticEntityId,
-  automaticState,
+  followsEntityId,
+  followsPresetMode,
   modeLockReason,
   modeSelectEntityId,
   modesOf,
@@ -38,13 +36,10 @@ import type { ModeInfo } from "../types/data";
 export function modesVisible(context: CardContext): boolean {
   const setting = context.config.modes.visible;
   if (setting === "manual") {
-    // Exactly while a click would do something: the automatic is off, or
-    // there never was one. An external preset mode is never settable and
-    // never shows.
+    // Exactly while a click would do something - so on a preset that is not
+    // following its preset mode, and never on a preset mode.
     return modeLockReason(context.hass, context.subject) === null;
   }
-  // Where the user said nothing, the row is shown: it sets the mode of the
-  // object the card is about, which is what the card is for.
   return setting !== "never";
 }
 
@@ -61,14 +56,14 @@ function selectMode(context: CardContext, key: string) {
   );
 }
 
-/** The switch handing the mode over to the conditions, or to the preset mode. */
-function automaticRow(context: CardContext): TemplateResult | typeof nothing {
+/** The switch handing this preset back to its preset mode, or taking it out. */
+function followsRow(context: CardContext): TemplateResult | typeof nothing {
   const { hass, subject, config } = context;
   if (!config.modes.automatic) return nothing;
-  const entityId = automaticEntityId(subject);
+  const entityId = followsEntityId(subject);
   if (!entityId) return nothing;
-  const on = automaticState(hass, subject);
-  const label = localize(hass, "automatic");
+  const on = followsPresetMode(hass, subject);
+  const label = localize(hass, "follows_preset_mode");
 
   return html`
     <label class="toolbar">
@@ -155,6 +150,40 @@ function dropdown(
   `;
 }
 
+/**
+ * The modes of a preset mode, as a list rather than as controls.
+ *
+ * They are not buttons and not disabled buttons: a disabled control says
+ * "later, or elsewhere", and there is no later here. What the list is good for
+ * is the thing the mode name alone does not say - which modes exist at all.
+ */
+function modeList(
+  context: CardContext,
+  modes: ModeInfo[],
+  active: string | null,
+): TemplateResult {
+  const { config } = context;
+  return html`
+    <div class="chips" role="list">
+      ${modes.map((mode) => {
+        const colour = config.modes.colors[mode.key];
+        return html`
+          <span
+            class="chip"
+            role="listitem"
+            aria-current=${mode.key === active ? "true" : nothing}
+            aria-pressed=${mode.key === active ? "true" : "false"}
+            style=${colour ? `--pm-chip-color: ${colour}` : ""}
+          >
+            ${config.modes.icons ? icon(mode.icon) : nothing}
+            <span>${mode.name}</span>
+          </span>
+        `;
+      })}
+    </div>
+  `;
+}
+
 /** The mode row proper: the chips or the dropdown, or why there are neither. */
 function modeControl(context: CardContext): TemplateResult {
   const modes = modesOf(context.subject);
@@ -163,22 +192,24 @@ function modeControl(context: CardContext): TemplateResult {
   }
 
   const active = activeModeKey(context.hass, context.subject);
-  const locked = modeLockReason(context.hass, context.subject) !== null;
+  if (context.subject.kind === "preset_mode") {
+    return modeList(context, modes, active);
+  }
 
+  const locked = modeLockReason(context.hass, context.subject) !== null;
   // No line explaining why a locked row is locked. Every version of that
-  // sentence said again what the switch above and the header say - who is
-  // deciding, that it follows an entity, that there is no preset mode - and
-  // repeated it on every card and every render. The chips being visibly
-  // disabled is the part that was not already written down.
+  // sentence said again what the switch above and the header say, and repeated
+  // it on every card and every render. The chips being visibly disabled is the
+  // part that was not already written down.
   return context.config.modes.style === "dropdown"
     ? dropdown(context, modes, active, locked)
     : chips(context, modes, active, locked);
 }
 
 export function renderModes(context: CardContext): TemplateResult | typeof nothing {
-  const automatic = automaticRow(context);
+  const follows = followsRow(context);
   const control = modesVisible(context) ? modeControl(context) : nothing;
-  if (automatic === nothing && control === nothing) return nothing;
+  if (follows === nothing && control === nothing) return nothing;
 
-  return html`<div class="section rows">${automatic}${control}</div>`;
+  return html`<div class="section rows">${follows}${control}</div>`;
 }

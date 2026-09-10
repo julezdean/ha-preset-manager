@@ -15,7 +15,7 @@
 
 import { html, nothing, type TemplateResult } from "lit";
 
-import { activeMode, automaticState } from "../data/state";
+import { activeMode, followsPresetMode } from "../data/state";
 import { localize } from "../localize";
 import { DEFAULT_PRESET_ICON, DEFAULT_PRESET_MODE_ICON, icon } from "./icon";
 import type { CardContext } from "./context";
@@ -72,7 +72,7 @@ function defaultSubtitle(context: CardContext): string {
   if (!subject.presetMode) {
     return `${modeName} · ${localize(hass, "no_preset_mode")}`;
   }
-  return automaticState(hass, subject) === false
+  return followsPresetMode(hass, subject) === false
     ? `${modeName} · ${localize(hass, "by_hand")}`
     : modeName;
 }

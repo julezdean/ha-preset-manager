@@ -23,13 +23,13 @@ from .conftest import (
     PRESET_ID,
     PRESET_MODE_ID,
     Hubs,
-    async_set_active_mode,
+    async_activate_mode,
+    async_set_preset_mode,
     async_setup_hubs,
     make_preset,
     make_preset_mode,
 )
 
-PRESET_MODE_SELECT = "select.house_mode_active_mode"
 PRESET_MODE_SENSOR = "sensor.house_mode_mode"
 
 SWITCH = "switch.motion_sensor_living_room_follows_preset_mode"
@@ -85,7 +85,7 @@ async def test_follows_the_preset_mode_by_default(
 ) -> None:
     """Nothing changes for a preset nobody switched."""
     await _set_values(hass, motion)
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
 
     assert hass.states.get(SENSOR).state == "Night"
     assert hass.states.get(SELECT).state == "Night"
@@ -97,7 +97,7 @@ async def test_switching_off_keeps_the_mode_in_effect(
 ) -> None:
     """Nothing on screen moves the moment the switch flips."""
     await _set_values(hass, motion)
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
 
     await _turn(hass, "turn_off")
 
@@ -111,10 +111,10 @@ async def test_the_dimension_moves_on_without_the_preset(
 ) -> None:
     """The whole point: one preset stays behind, the rest do not."""
     await _set_values(hass, motion)
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await _turn(hass, "turn_off")
 
-    await async_set_active_mode(hass, "home")
+    await async_activate_mode(hass, "home")
 
     assert hass.states.get(PRESET_MODE_SENSOR).state == "Home"
     assert hass.states.get(SENSOR).state == "Night"
@@ -134,9 +134,9 @@ async def test_second_preset_keeps_following(hass: HomeAssistant) -> None:
             make_preset("Heating", [BRIGHTNESS], subentry_id=None),
         ],
     )
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await _turn(hass, "turn_off")
-    await async_set_active_mode(hass, "home")
+    await async_activate_mode(hass, "home")
     await hass.async_block_till_done()
 
     assert hass.states.get(SENSOR).state == "Night"
@@ -147,7 +147,7 @@ async def test_second_preset_keeps_following(hass: HomeAssistant) -> None:
 async def test_mode_can_be_set_on_the_preset(hass: HomeAssistant, motion: Hubs) -> None:
     """With the automatic off, the preset picks its own mode."""
     await _set_values(hass, motion)
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await _turn(hass, "turn_off")
 
     await _select(hass, "Home")
@@ -163,10 +163,14 @@ async def test_service_sets_the_mode_by_key(hass: HomeAssistant, motion: Hubs) -
     await _set_values(hass, motion)
     await _turn(hass, "turn_off")
 
-    await async_set_active_mode(hass, "window_open", entity_id=SELECT)
-
+    await async_set_preset_mode(hass, SELECT, "window_open")
     assert hass.states.get(SENSOR).state == "Window open"
-    assert hass.states.get(BRIGHTNESS_SENSOR).state == "5.0"
+
+    # Display names work as well as keys.
+    await async_set_preset_mode(hass, SELECT, "Home")
+
+    assert hass.states.get(SENSOR).state == "Home"
+    assert hass.states.get(BRIGHTNESS_SENSOR).state == "80.0"
 
 
 async def test_switching_back_on_rejoins_the_dimension(
@@ -176,7 +180,7 @@ async def test_switching_back_on_rejoins_the_dimension(
     await _set_values(hass, motion)
     await _turn(hass, "turn_off")
     await _select(hass, "Window open")
-    await async_set_active_mode(hass, "away")
+    await async_activate_mode(hass, "away")
 
     await _turn(hass, "turn_on")
 
@@ -188,7 +192,7 @@ async def test_selecting_while_automatic_is_on_is_refused(
     hass: HomeAssistant, motion: Hubs
 ) -> None:
     """Setting the mode by hand has to be a deliberate act, as it is above."""
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
 
     with pytest.raises(ServiceValidationError):
         await _select(hass, "Home")
@@ -226,7 +230,7 @@ async def test_attribute_reports_the_automatic(
 async def test_state_survives_a_reload(hass: HomeAssistant, motion: Hubs) -> None:
     """The stored mode and the switch come back after a restart."""
     await _set_values(hass, motion)
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await _turn(hass, "turn_off")
     await _select(hass, "Home")
 
@@ -271,7 +275,7 @@ async def test_a_deleted_mode_hands_the_preset_back_to_its_dimension(
     otherwise - and a repair says so, because nothing else would.
     """
     await _set_values(hass, motion)
-    await async_set_active_mode(hass, "home")
+    await async_activate_mode(hass, "home")
     await _turn(hass, "turn_off")
     await _select(hass, "Night")
     assert hass.states.get(SENSOR).state == "Night"
@@ -319,7 +323,7 @@ async def test_it_keeps_following_after_a_deleted_mode(
     )
     await hass.async_block_till_done()
 
-    await async_set_active_mode(hass, "away")
+    await async_activate_mode(hass, "away")
     assert hass.states.get(SENSOR).state == "Away"
     assert hass.states.get(SWITCH).state == "on"
 

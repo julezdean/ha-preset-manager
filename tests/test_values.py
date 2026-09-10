@@ -17,12 +17,12 @@ from .conftest import (
     MODES,
     OFF_DELAY,
     Hubs,
-    async_set_active_mode,
+    async_activate_mode,
     async_setup_one,
     make_preset,
 )
 
-SELECT = "select.house_mode_active_mode"
+PRESET_MODE_SENSOR = "sensor.house_mode_mode"
 NIGHT_BRIGHTNESS = "number.motion_sensor_living_room_night_brightness"
 BRIGHTNESS_SENSOR = "sensor.motion_sensor_living_room_brightness"
 
@@ -66,7 +66,7 @@ async def test_number_editor_updates_value_sensor(
     hass: HomeAssistant, motion: Hubs
 ) -> None:
     """Editing a value of the active mode updates the value sensor."""
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await hass.services.async_call(
         "number",
         "set_value",
@@ -82,7 +82,7 @@ async def test_editing_inactive_mode_does_not_change_sensor(
     hass: HomeAssistant, motion: Hubs
 ) -> None:
     """Editing an inactive mode leaves the value sensor untouched."""
-    await async_set_active_mode(hass, "home")
+    await async_activate_mode(hass, "home")
     await hass.services.async_call(
         "number",
         "set_value",
@@ -105,7 +105,7 @@ async def test_editing_inactive_mode_does_not_change_sensor(
 
 async def test_values_survive_a_restart(hass: HomeAssistant, motion: Hubs) -> None:
     """Values and the active mode are restored after a reload."""
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await hass.services.async_call(
         "number",
         "set_value",
@@ -117,7 +117,7 @@ async def test_values_survive_a_restart(hass: HomeAssistant, motion: Hubs) -> No
     await hass.config_entries.async_reload(motion.entry("preset_modes").entry_id)
     await hass.async_block_till_done()
 
-    assert hass.states.get(SELECT).state == "Night"
+    assert hass.states.get(PRESET_MODE_SENSOR).state == "Night"
     assert hass.states.get(NIGHT_BRIGHTNESS).state == "15.0"
     assert hass.states.get(BRIGHTNESS_SENSOR).state == "15.0"
 
@@ -155,7 +155,7 @@ async def test_boolean_text_and_select_parameters(hass: HomeAssistant) -> None:
         hass, presets=[make_preset("Kitchen Light", [ACTIVE, MODE, LABEL])]
     )
 
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await hass.services.async_call(
         "switch",
         "turn_on",
@@ -191,7 +191,7 @@ async def test_entity_ids_are_stable_across_value_changes(
         {"entity_id": NIGHT_BRIGHTNESS, "value": 42},
         blocking=True,
     )
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     assert set(hass.states.async_entity_ids()) == before
 
 
@@ -222,7 +222,7 @@ async def test_date_and_time_values_are_timestamps(hass: HomeAssistant) -> None:
         hass, presets=[make_preset("Kitchen Light", [WAKE_UP, HOLIDAY, NEXT_SERVICE])]
     )
 
-    await async_set_active_mode(hass, "night")
+    await async_activate_mode(hass, "night")
     await hass.services.async_call(
         "time",
         "set_value",
