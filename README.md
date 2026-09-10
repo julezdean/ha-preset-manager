@@ -577,7 +577,6 @@ time.
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
 | `modes.visible` | `true` | `true`, `false`, or `manual` for “only while the mode can be set from here”. `manual` says nothing new on a preset mode, which is never set from here; the visual editor offers a plain switch there. |
-| `modes.style` | `chips` | `chips` or `dropdown`. |
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
 | `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |
 | `values.visible` | `true` | The parameter rows of a preset. |
@@ -588,9 +587,7 @@ time.
 | `editor.style` | `chips` | How `picker` is drawn: `chips` or `dropdown`. |
 | `editor.confirm` | `false` | Editing behind a switch, written only when applied. Implies `enabled`. |
 | `editor.default_mode` | the active mode | Mode key the picker starts on. |
-| `presets.visible` | `false` | On a preset mode: list the presets following it. |
-| `presets.values` | `false` | And their values. |
-| `presets.editable` | `false` | And make those values editable. Implies the two above. |
+| `presets.show` | `none` | On a preset mode, how much of the presets following it to show: `none`, `names`, `values`, or `editable`. |
 | `footer.visible` | `false` | The footer line. |
 | `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
 | `tap_action` | `more-info` | Home Assistant's action config, on the header. |
@@ -685,8 +682,8 @@ a dialog for its own sake.
 switch into.
 
 On a **preset mode** card the same applies to the presets it lists:
-`presets.editable` turns their values into editors for the mode each preset is
-on. There is no mode picker per preset there — the card already has one row of
+`presets.show: editable` turns their values into editors for the mode each
+preset is on. There is no mode picker per preset there — the card already has one row of
 chips deciding the mode, and a second way to choose one would be a different
 question wearing the same clothes. Switching the mode moves these editors with
 it, which is the point: having seen what Night means for every device in the
@@ -762,7 +759,7 @@ of the mode it is on, editable.
 type: custom:preset-manager-card
 entity: sensor.house_mode_mode
 presets:
-  editable: true
+  show: editable
 footer:
   content: [last_changed]
 ```

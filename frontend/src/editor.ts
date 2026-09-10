@@ -44,6 +44,7 @@ const LABELS: Record<string, string> = {
   footer: "Footer",
   actions: "Actions",
   visible: "Show",
+  show: "Show",
   automatic: "Automatic switch",
   title: "Title",
   subtitle: "Subtitle",
@@ -55,7 +56,6 @@ const LABELS: Record<string, string> = {
   parameters_note: "Parameters",
   enabled: "Editable",
   confirm: "Confirm with a button",
-  editable: "Editable",
   mode: "Which mode",
   default_mode: "Start on",
   content: "Content",
@@ -201,13 +201,6 @@ export class PresetManagerCardEditor extends LitElement {
                   ["manual", "While the mode can be set by hand"],
                 ]),
               },
-          {
-            name: "style",
-            ...options([
-              ["chips", "Chips"],
-              ["dropdown", "Dropdown"],
-            ]),
-          },
           // Only where there is an icon to show. Mode icons are set per mode
           // in the config flow, and most setups have none - a switch that
           // visibly does nothing is worse than no switch, because the user
@@ -283,9 +276,17 @@ export class PresetManagerCardEditor extends LitElement {
         name: "presets",
         title: LABELS.presets,
         schema: [
-          { name: "visible", selector: { boolean: {} } },
-          { name: "values", selector: { boolean: {} } },
-          { name: "editable", selector: { boolean: {} } },
+          // One ladder, one control. Three switches for four exclusive
+          // states let half their combinations contradict themselves.
+          {
+            name: "show",
+            ...options([
+              ["none", "Nothing"],
+              ["names", "Their names and modes"],
+              ["values", "Their values as well"],
+              ["editable", "Their values, editable"],
+            ]),
+          },
         ],
       });
     }

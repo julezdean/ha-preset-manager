@@ -84,34 +84,6 @@ function chips(
   `;
 }
 
-function dropdown(
-  context: CardContext,
-  modes: ModeInfo[],
-  active: string | null,
-  locked: boolean,
-): TemplateResult {
-  return html`
-    <select
-      class="select-input"
-      aria-label=${localize(context.hass, "mode")}
-      ?disabled=${locked}
-      @change=${(event: Event) =>
-        selectMode(context, (event.target as HTMLSelectElement).value)}
-    >
-      ${active === null
-        ? html`<option value="" selected>${localize(context.hass, "no_mode")}</option>`
-        : nothing}
-      ${modes.map(
-        (mode) => html`
-          <option value=${mode.key} ?selected=${mode.key === active}>
-            ${mode.name}
-          </option>
-        `,
-      )}
-    </select>
-  `;
-}
-
 /**
  * The modes of a preset mode, as a list rather than as controls.
  *
@@ -158,14 +130,16 @@ function modeControl(context: CardContext): TemplateResult {
     return modeList(context, modes, active);
   }
 
-  const locked = modeLockReason(context.hass, context.subject) !== null;
   // No line explaining why a locked row is locked. Every version of that
   // sentence said again what the switch above and the header say, and repeated
   // it on every card and every render. The chips being visibly disabled is the
   // part that was not already written down.
-  return context.config.modes.style === "dropdown"
-    ? dropdown(context, modes, active, locked)
-    : chips(context, modes, active, locked);
+  return chips(
+    context,
+    modes,
+    active,
+    modeLockReason(context.hass, context.subject) !== null,
+  );
 }
 
 export function renderModes(context: CardContext): TemplateResult | typeof nothing {

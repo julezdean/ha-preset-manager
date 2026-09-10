@@ -168,7 +168,7 @@ export class PresetManagerCard extends LitElement {
         : config.modes.visible !== "never";
     if (modes) size += 1;
     if (config.values.visible) size += 2;
-    if (config.presets.visible) size += 2;
+    if (config.presets.show !== "none") size += 2;
     if (config.footer.visible) size += 1;
     return Math.max(1, size);
   }

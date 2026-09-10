@@ -124,8 +124,8 @@ describe("pruneConfig", () => {
       ...resolved,
       type: MINIMAL.type,
       entity: MINIMAL.entity,
-      editor: { enabled: true, mode: "picker" },
-      modes: { visible: true, style: "chips" },
+      editor: { enabled: true, mode: "picker", style: "chips" },
+      modes: { visible: true },
     });
     // `mode: picker` and `style: chips` are the defaults and go; the other two
     // stay.
@@ -146,32 +146,34 @@ describe("pruneConfig", () => {
   });
 });
 
-describe("editable presets", () => {
+describe("the presets of a preset mode", () => {
   const MODE_CARD = { ...MINIMAL, entity: "sensor.house_mode_mode" };
 
-  it("is off, like every other editor on this card", () => {
-    expect(resolveConfig(MODE_CARD).presets.editable).toBe(false);
+  it("shows nothing until asked", () => {
+    expect(resolveConfig(MODE_CARD).presets.show).toBe("none");
   });
 
-  it("brings the list and the values with it", () => {
-    // Asking for editable presets is asking to see them; a third switch to
-    // turn on first would only be a way to get it wrong.
-    const config = resolveConfig({ ...MODE_CARD, presets: { editable: true } });
-    expect(config.presets.visible).toBe(true);
-    expect(config.presets.values).toBe(true);
+  it.each(["names", "values", "editable"])("takes %s", (show) => {
+    expect(resolveConfig({ ...MODE_CARD, presets: { show } }).presets.show).toBe(show);
   });
 
-  it("still lets the list be shown without editing it", () => {
-    const config = resolveConfig({ ...MODE_CARD, presets: { visible: true } });
-    expect(config.presets.values).toBe(false);
-    expect(config.presets.editable).toBe(false);
+  it("names the four rungs when handed something else", () => {
+    expect(() =>
+      resolveConfig({ ...MODE_CARD, presets: { show: "everything" } }),
+    ).toThrow(/none, names, values, editable/);
   });
 
-  it("takes an explicit no over the implication", () => {
-    const config = resolveConfig({
-      ...MODE_CARD,
-      presets: { editable: true, values: false },
-    });
-    expect(config.presets.values).toBe(false);
+  it.each([
+    [{ editable: true }, "editable"],
+    [{ values: true }, "values"],
+    [{ visible: true }, "names"],
+    [{ visible: false }, "none"],
+  ])("refuses the old spelling %j and says what to write", (presets, expected) => {
+    // Three switches for four exclusive states let half their combinations
+    // contradict themselves - "editable but no values" rendered a read-only
+    // list under a switch that read "editable". Refused rather than guessed.
+    expect(() => resolveConfig({ ...MODE_CARD, presets })).toThrow(
+      new RegExp(`presets: \\{show: ${expected}\\}`),
+    );
   });
 });

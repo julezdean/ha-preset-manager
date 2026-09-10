@@ -15,6 +15,7 @@ import { CARD_TYPE } from "./const";
 import type {
   FooterItem,
   ModeVisibility,
+  PresetsContent,
   ParameterRowConfig,
   PresetManagerCardConfig,
   ResolvedConfig,
@@ -23,9 +24,11 @@ import type {
 
 export class CardConfigError extends Error {}
 
-const MODE_STYLES = ["chips", "dropdown"] as const;
+/** Only the editor's mode picker still has two shapes. */
+const PICKER_STYLES = ["chips", "dropdown"] as const;
 const MODE_VISIBILITIES: ModeVisibility[] = ["always", "never", "manual"];
 const EDITOR_MODES = ["picker", "active", "all"] as const;
+const PRESETS_CONTENT: PresetsContent[] = ["none", "names", "values", "editable"];
 const FOOTER_ITEMS: FooterItem[] = [
   "preset_mode",
   "blueprint",
@@ -160,7 +163,23 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   const presets = section(config.presets, "presets");
   const footer = section(config.footer, "footer");
 
-  const presetsEditable = bool(presets.editable, "presets.editable", false);
+  // One ladder, not three switches. The old spelling could say things like
+  // "editable but no values", which rendered a read-only list under a switch
+  // that read "editable" - so it is refused rather than guessed at.
+  for (const [key, replacement] of [
+    ["editable", "editable"],
+    ["values", "values"],
+    ["visible", "names"],
+  ] as const) {
+    if (presets[key] !== undefined) {
+      fail(
+        `"presets.${key}" is now "presets.show", which takes one of ` +
+          `${PRESETS_CONTENT.join(", ")} - here "presets: {show: ${
+            presets[key] ? replacement : "none"
+          }}".`,
+      );
+    }
+  }
   const editorConfirm = bool(editor.confirm, "editor.confirm", false);
 
   const resolved: ResolvedConfig = {
@@ -176,7 +195,6 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     },
     modes: {
       visible: modeVisibility(modes.visible, "modes.visible", "always"),
-      style: oneOf(modes.style, "modes.style", MODE_STYLES, "chips"),
       icons: bool(modes.icons, "modes.icons", true),
       colors: colors(modes.colors, "modes.colors"),
     },
@@ -190,15 +208,11 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
       enabled: bool(editor.enabled, "editor.enabled", editorConfirm),
       confirm: editorConfirm,
       mode: oneOf(editor.mode, "editor.mode", EDITOR_MODES, "picker"),
-      style: oneOf(editor.style, "editor.style", MODE_STYLES, "chips"),
+      style: oneOf(editor.style, "editor.style", PICKER_STYLES, "chips"),
       default_mode: text(editor.default_mode, "editor.default_mode"),
     },
     presets: {
-      // Asking for editable presets is asking to see them; a third switch to
-      // turn on before anything appears would only be a way to get it wrong.
-      visible: bool(presets.visible, "presets.visible", presetsEditable),
-      values: bool(presets.values, "presets.values", presetsEditable),
-      editable: presetsEditable,
+      show: oneOf(presets.show, "presets.show", PRESETS_CONTENT, "none"),
     },
     footer: {
       // A footer that lists something is a footer that is wanted; asking for

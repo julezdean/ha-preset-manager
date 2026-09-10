@@ -68,6 +68,23 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
+- **`presets.visible`, `presets.values` and `presets.editable` are one option**,
+  `presets.show`, taking `none`, `names`, `values` or `editable`. They were
+  never three decisions but four rungs of one ladder - `editable` replaces the
+  values rather than adding to them - and three booleans made eight
+  combinations of which half contradicted themselves: `values: true` alone
+  rendered nothing, `editable: true` with `values: false` rendered a read-only
+  list under a switch that read "editable". Silently, in both cases. The old
+  keys are refused with the line to write instead, because translating them
+  quietly would leave two spellings in the wild and no way to tell which won.
+- **`modes.style` is gone.** It had two settings and one of them stopped
+  existing: a preset mode draws its modes as a list, so the option did nothing
+  there at all, and an option that is silently inert on one kind of card is
+  worse than no option. On a preset card the row is only usable while that
+  preset is not following, so a compact rendering of a rarely-touched control
+  bought little - and `modes.visible: manual` takes the row away entirely,
+  which is what a dense dashboard actually wants. `editor.style` keeps both
+  shapes; that picker is used while editing, not in the exception.
 - **The visual editor stops offering a preset mode what it cannot use**: the
   automatic switch is gone from its header group, and the mode row is a plain
   switch there rather than a choice of three - "while the mode can be set by

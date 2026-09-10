@@ -753,14 +753,14 @@
         "Preset mode — editing its presets",
         {
           entity: "sensor.house_mode_mode",
-          presets: { editable: true },
+          presets: { show: "editable" },
         },
       ],
       [
         "Preset mode — with its presets",
         {
           entity: "sensor.house_mode_mode",
-          presets: { visible: true, values: true },
+          presets: { show: "values" },
           modes: { colors: { night: "#5c6bc0", window_open: "#ef6c00" } },
           footer: { content: ["last_changed"] },
         },
@@ -800,14 +800,6 @@
         {
           entity: "sensor.house_mode_mode",
           modes: { visible: "manual" },
-          footer: { content: ["preset_mode"] },
-        },
-      ],
-      [
-        "Preset mode — dropdown",
-        {
-          entity: "sensor.house_mode_mode",
-          modes: { style: "dropdown" },
           footer: { content: ["preset_mode"] },
         },
       ],

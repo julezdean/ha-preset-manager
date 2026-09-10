@@ -40,7 +40,6 @@ export type ModeVisibility = "always" | "never" | "manual";
 export interface ModesConfig {
   /** Defaults to on. */
   visible?: boolean | ModeVisibility;
-  style?: "chips" | "dropdown";
   icons?: boolean;
   /** Mode key -> colour, for the chip of that mode while it is active. */
   colors?: Record<string, string>;
@@ -82,16 +81,23 @@ export interface EditorConfig {
   confirm?: boolean;
 }
 
+/**
+ * How much of the presets of a preset mode a card shows.
+ *
+ * A ladder, not three switches: the four are exclusive renderings of the same
+ * list, and `editable` replaces the values rather than adding to them. Three
+ * booleans made eight combinations of which half contradicted themselves - a
+ * switch standing at "on" and doing nothing, silently.
+ */
+export type PresetsContent = "none" | "names" | "values" | "editable";
+
 export interface PresetsConfig {
-  /** On a preset mode card: list the presets that follow it. */
-  visible?: boolean;
-  /** Also show each preset's resolved values. */
-  values?: boolean;
   /**
-   * Turn those values into editors for the mode each preset is on. Implies
-   * the two above - there is nothing to edit in a list of names.
+   * `names` lists the presets of a preset mode with the mode each is on,
+   * `values` adds what that resolves to, `editable` turns those into the
+   * editors of that mode.
    */
-  editable?: boolean;
+  show?: PresetsContent;
 }
 
 export type FooterItem =

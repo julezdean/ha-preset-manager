@@ -7,9 +7,9 @@
  * cannot - "what does 'Night' actually mean here" - because it can show each
  * preset with the values that are valid right now.
  *
- * With `editable` those rows become the editors of the mode each preset is
- * currently on, which is the answer to the question the list provokes: having
- * seen what Night means, this is where it is changed. Not a mode picker per
+ * With `show: editable` those rows become the editors of the mode each preset
+ * is currently on, which is the answer to the question the list provokes:
+ * having seen what Night means, this is where it is changed. Not a mode picker per
  * preset - the card already has one row of chips deciding the mode, and a
  * second way to choose one would be a different question wearing the same
  * clothes. Switching the mode therefore moves these editors with it.
@@ -53,7 +53,7 @@ function editorValue(
 }
 
 function valueRows(context: CardContext, preset: PresetInfo): TemplateResult[] {
-  const editable = context.config.presets.editable;
+  const editable = context.config.presets.show === "editable";
   return preset.parameters.map((parameter) => {
     const wide =
       editable &&
@@ -77,7 +77,8 @@ function valueRows(context: CardContext, preset: PresetInfo): TemplateResult[] {
 
 export function renderPresets(context: CardContext): TemplateResult | typeof nothing {
   if (context.subject.kind !== "preset_mode") return nothing;
-  if (!context.config.presets.visible) return nothing;
+  const show = context.config.presets.show;
+  if (show === "none") return nothing;
 
   const { presets } = context.subject;
   if (!presets.length) {
@@ -86,7 +87,7 @@ export function renderPresets(context: CardContext): TemplateResult | typeof not
     </div>`;
   }
 
-  const withValues = context.config.presets.values;
+  const withValues = show !== "names";
   return html`
     <div class="section rows">
       ${presets.map((preset) => {
