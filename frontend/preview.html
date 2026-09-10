@@ -465,15 +465,15 @@
     });
     put("switch.house_mode_automatic", "off");
     // Every preset has one, and every one of them starts where it should:
-    // following its preset mode. "Preset - set by hand" below is the
-    // exception, switched off two lines further down.
+    // following its preset mode. The shutter below is the exception.
     for (const preset of ["motion", "heating", "clock", "shutter", "fan"]) {
       put(`switch.${preset}_follows_preset_mode`, "on");
     }
-    put("switch.clock_follows_preset_mode", "off");
-    // ...and holding a different mode than the dimension, which is the
-    // whole state this feature exists for.
-    manualModes.p3 = "home";
+    // The shutter has stepped out from under "Window State": that preset mode
+    // follows an entity and has no automatic of its own, which is exactly the
+    // case a preset could not escape before it had one.
+    put("switch.shutter_follows_preset_mode", "off");
+    manualModes.p4 = "open";
     put("sensor.window_state_mode", "Closed", { mode_key: "closed" });
     put("binary_sensor.window_living_room", "off", {
       friendly_name: "Window living room",
@@ -815,6 +815,13 @@
         {
           entity: "sensor.house_mode_mode",
           modes: { style: "dropdown" },
+          footer: { content: ["preset_mode"] },
+        },
+      ],
+      [
+        "Preset — set by hand",
+        {
+          entity: "sensor.shutter_active_mode",
           footer: { content: ["preset_mode"] },
         },
       ],

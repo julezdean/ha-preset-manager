@@ -1119,12 +1119,14 @@ prose and the narrow-column tests and lays the rest out at that width,
 `?showcase=1` keeps only the cards tagged for the picture below, and
 `?columns=3` says how many columns they are poured into. Which cards those are
 is decided in `preview.html`, not here, so a card that changes shape changes
-the picture with it. That is how the picture at the top of this file is made:
+the picture with it - and the height below with it, which is the document
+height of that page at that width. Regenerate the picture whenever the card
+changes visibly:
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1100,1028 --screenshot=assets/card-dark.png \
+  --window-size=1100,1302 --screenshot=assets/card-dark.png \
   "http://localhost:8765/frontend/preview.html?gallery=1100&columns=3&showcase=1&theme=dark"
 ```
 
