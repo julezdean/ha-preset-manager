@@ -1,6 +1,7 @@
 {
   "name": "Preset Manager",
-  "content_in_root": false,
+  "homeassistant": "2025.12.0",
   "render_readme": true,
-  "homeassistant": "2025.12.0"
+  "zip_release": true,
+  "filename": "preset_manager.zip"
 }

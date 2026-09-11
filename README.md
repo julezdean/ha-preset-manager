@@ -4,7 +4,7 @@
 [![Release](https://img.shields.io/github/v/release/julezdean/ha-preset-manager)](https://github.com/julezdean/ha-preset-manager/releases)
 [![Tests](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/test.yml)
 [![Validate](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml/badge.svg)](https://github.com/julezdean/ha-preset-manager/actions/workflows/validate.yml)
-[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](https://github.com/julezdean/ha-preset-manager/blob/main/LICENSE)
 
 Creates the helpers for mode-dependent values in one go — and keeps the
 mode logic out of your automations.
