@@ -30,9 +30,7 @@ if (!window.customCards.some((card) => card.type === CARD_TYPE)) {
   window.customCards.push({
     type: CARD_TYPE,
     name: "Preset Manager",
-    description:
-      "The values of a preset, or the modes of a preset mode, with the mode " +
-      "it is on right now.",
+    description: "The values of a preset, with the mode it is on right now.",
     // No preview: the card has nothing to draw without an entity, and a
     // picker tile that says "not found" sells it badly.
     preview: false,

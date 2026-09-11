@@ -57,6 +57,9 @@ as they are rather than renamed mid-series.
 
 ### Fixed
 
+- The card picker in Home Assistant still offered "the values of a preset, or
+  the modes of a preset mode" - the second half of that sentence has had no
+  card behind it since the preset mode card went.
 - **The plain editors wrote nothing at all.** A control collects instead of
   writing as soon as the card gives it somewhere to collect into, and the card
   did that unconditionally - so unless editing sat behind a switch with an
