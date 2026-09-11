@@ -77,8 +77,11 @@ Assistant. By hand instead:
 2. Add the repository URL, category *Integration*.
 3. Install "Preset Manager" and restart Home Assistant.
 
-Without HACS: copy the `custom_components/preset_manager` folder into
-`<config>/custom_components/` and restart Home Assistant.
+Without HACS: download `preset_manager.zip` from the [latest
+release](https://github.com/julezdean/ha-preset-manager/releases/latest) and
+unpack it into `<config>/custom_components/preset_manager/`, or copy the
+`custom_components/preset_manager` folder out of the repository. Restart Home
+Assistant either way.
 
 Then **Settings → Devices & Services → Add Integration → Preset Manager**, and
 carry on at [Setup step by step](#setup-step-by-step).

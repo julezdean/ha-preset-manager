@@ -12,6 +12,29 @@ whatever it hands them — `b10` and `b11` landed between `b4` and `b3`. A final
 release sorts above every beta in either spelling, so the 0.3.0 tags were left
 as they are rather than renamed mid-series.
 
+## [0.4.1] - 2026-09-11
+
+Nothing changes inside the integration. HACS shows a download count for a
+repository only where GitHub has one to give, and GitHub counts downloads of
+release assets - installed straight from the tree, there was nothing to count.
+
+### Changed
+
+- **A release carries `preset_manager.zip`.** A workflow builds it from
+  `custom_components/preset_manager/` when a release is published, refusing to
+  run if the tag and the manifest version disagree, and `hacs.json` sends HACS
+  to that asset with `zip_release`. Installing and updating through HACS works
+  as before; from this release on, the download count in the HACS repository
+  view has a number behind it.
+- The manual install can take that archive instead of a copy of the folder.
+
+### Fixed
+
+- The license badge in the README pointed at `LICENSE` relative to the
+  repository - the only one of the five badges that did, and the only one the
+  HACS repository view draws broken. A relative path has no base to resolve
+  against there, so it points at the file on GitHub now.
+
 ## [0.4.0] - 2026-09-11
 
 A preset is what you operate; a preset mode is what defines the modes. This
