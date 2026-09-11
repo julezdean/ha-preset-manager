@@ -1055,7 +1055,7 @@ changes visibly:
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1100,810 --screenshot=assets/card-dark.png \
+  --window-size=1100,806 --screenshot=assets/card-dark.png \
   "http://localhost:8765/frontend/preview.html?gallery=1100&columns=3&showcase=1&theme=dark"
 ```
 

@@ -112,6 +112,10 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
+- **No more rules between the sections of a card.** Header, modes and values
+  were separated by a hairline each; the padding around them already groups
+  them, and three lines on a card that carries at most four blocks drew more
+  attention to the seams than to what is in them.
 - **`modes.style` is gone.** It had two settings and one of them stopped
   existing: a preset mode draws its modes as a list, so the option did nothing
   there at all, and an option that is silently inert on one kind of card is

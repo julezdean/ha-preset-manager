@@ -47,12 +47,6 @@ export const cardStyles = css`
     padding: var(--pm-padding-y) var(--pm-padding-x);
   }
 
-  /* A rule only ever appears between two sections that are both there, so an
-     empty card never shows a line with nothing on either side of it. */
-  .section + .section {
-    border-top: 1px solid var(--pm-divider);
-  }
-
   /* Header ---------------------------------------------------------------- */
 
   /* Name and switch share a line while both fit, and the switch drops onto
