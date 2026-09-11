@@ -479,6 +479,25 @@ export const cardStyles = css`
     font-size: 14px;
   }
 
+  /* Quiet beside the accent: discarding is the way back, not the point of
+     the row, and two filled buttons would ask which one is the safe one. */
+  .discard {
+    appearance: none;
+    min-height: 32px;
+    padding: 0 12px;
+    border: none;
+    border-radius: var(--pm-chip-radius);
+    background: none;
+    color: var(--pm-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .discard:hover {
+    color: var(--pm-text);
+  }
+
   .apply {
     appearance: none;
     min-height: 32px;

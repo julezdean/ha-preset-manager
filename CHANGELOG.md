@@ -16,13 +16,14 @@ as they are rather than renamed mid-series.
 
 ### Added
 
-- **The value list has a mode picker.** With `editor.enabled` a row of chips
-  above it says which mode it shows: *Active* first - the resolved values, and
-  where the card rests - then one chip per mode, each opening that mode's
-  values as editors. Nothing is written until *Apply*, the draft is keyed by
-  entity so one round can touch several modes, and the button appears exactly
-  while something is waiting. Reading a mode can therefore never change the
-  house, which is what made it worth showing at all.
+- **The value list has a mode picker.** With `values.mode: picker` a row of
+  chips above it says which mode it shows: *Active* first - the resolved
+  values, and where the card rests - then one chip per mode, each opening that
+  mode's values as editors. Nothing is written until *Apply*, the draft is keyed by
+  entity so one round can touch several modes, and two buttons appear exactly
+  while something is waiting: *Apply* sends it, *Discard* drops it and the
+  editors go back to what the entities say. Reading a mode can therefore never
+  change the house, which is what made it worth showing at all.
 - **An automatic per preset.** Every preset gets
   `switch.<preset>_follows_preset_mode` and `select.<preset>_mode_selection`.
   With the switch off, that one preset holds a mode of its own while its preset
@@ -66,6 +67,17 @@ as they are rather than renamed mid-series.
 
 ### Removed
 
+- **The footer is gone**, and `footer.visible` and `footer.content` with it. It
+  carried what a preset follows, which blueprint defines its parameters, the
+  entity its dimension follows and when the mode last changed - facts that
+  matter exactly when something looks wrong, which is not often enough to spend
+  a line of every card on. They are on the device page and in the attributes of
+  `sensor.<preset>_active_mode`.
+- **`editor.*` is one option under `values`.** `values.mode` takes `active` -
+  the resolved values, read-only, and the default - `picker`, `edit` or `all`.
+  "Can this card edit" and "which mode" were never two questions, and
+  `editor.style` and `editor.default_mode` went with the answer: the picker is
+  chips, and it starts on *Active*.
 - **A preset mode has no card.** It is a definition plus the logic that picks a
   mode, it is not operated, and what it computes is one sensor that every core
   card already draws - so the card is about a preset, and the entity picker

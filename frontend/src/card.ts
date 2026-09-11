@@ -21,7 +21,6 @@ import { customElement, state } from "lit/decorators.js";
 import { CARD_TYPE } from "./const";
 import { resolveConfig } from "./config";
 import { cachedPresetManagerConfig, loadPresetManagerConfig, subscribePresetManagerConfig } from "./data/store";
-import { modesOf } from "./data/state";
 import {
   belongsToPresetMode,
   resolveSubject,
@@ -37,7 +36,6 @@ import { hasAction, isDefined, performAction } from "./util/ha";
 import { renderHeader } from "./ui/header";
 import { renderModes } from "./ui/modes";
 import { renderValues } from "./ui/values";
-import { renderFooter } from "./ui/footer";
 import type { CardContext } from "./ui/context";
 import type { StagedWrite } from "./ui/controls";
 
@@ -163,7 +161,6 @@ export class PresetManagerCard extends LitElement {
     let size = config.header.visible ? 1 : 0;
     if (config.modes.visible !== "never") size += 1;
     if (config.values.visible) size += 2;
-    if (config.footer.visible) size += 1;
     return Math.max(1, size);
   }
 
@@ -305,13 +302,8 @@ export class PresetManagerCard extends LitElement {
   }
 
   /** The mode the list shows: the user's pick, else the resolved values. */
-  private _viewedMode(subject: Subject): string | null {
-    if (this._viewMode !== undefined) return this._viewMode;
-    const configured = this._config?.editor.default_mode;
-    const modes = modesOf(subject);
-    return configured && modes.some((mode) => mode.key === configured)
-      ? configured
-      : null;
+  private _viewedMode(): string | null {
+    return this._viewMode ?? null;
   }
 
   protected override render(): TemplateResult | typeof nothing {
@@ -341,7 +333,7 @@ export class PresetManagerCard extends LitElement {
       config,
       subject,
       host: this,
-      editMode: this._viewedMode(subject),
+      editMode: this._viewedMode(),
       selectEditMode: (key) => {
         this._viewMode = key;
       },
@@ -351,6 +343,9 @@ export class PresetManagerCard extends LitElement {
         this._draft = new Map(this._draft).set(entityId, write);
       },
       apply: () => this._apply(),
+      discard: () => {
+        this._draft = new Map();
+      },
       tappable: hasAction(this._tapAction) || hasAction(config.hold_action),
       onHeaderDown: () => this._headerDown(subject),
       onHeaderUp: () => this._headerUp(),
@@ -359,7 +354,7 @@ export class PresetManagerCard extends LitElement {
 
     return this._shell(html`
       ${renderHeader(context)} ${renderModes(context)} ${renderValues(context)}
-      ${renderFooter(context)}
+     
       ${this._error
         ? html`<div class="section inline-error" role="alert">${this._error}</div>`
         : nothing}

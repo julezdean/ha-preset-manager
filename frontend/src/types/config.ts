@@ -50,42 +50,28 @@ export type ParameterRowConfig =
   | string
   | { parameter: string; name?: string; icon?: string | false };
 
+/**
+ * What the value list shows, and whether it can be changed.
+ *
+ * One ladder, not a switch plus a choice: `active` is a card to read, the
+ * other three are the ways of editing. Folding "can this card edit" into
+ * "which mode" leaves no combination that contradicts itself.
+ */
+export type ValuesMode = "active" | "picker" | "edit" | "all";
+
 export interface ValuesConfig {
   visible?: boolean;
+  /**
+   * `active` shows the values that are valid right now, read-only - which is
+   * what a dashboard is for, and the default. `picker` puts a row of chips
+   * above the list: *Active* first, and every other chip opens that mode's
+   * values as editors. `edit` skips the picker and edits the active mode,
+   * `all` shows every mode of every parameter at once.
+   */
+  mode?: ValuesMode;
   /** Which parameters to show, in which order. Omit for all of them. */
   parameters?: ParameterRowConfig[];
   icons?: boolean;
-}
-
-export interface EditorConfig {
-  /**
-   * Off by default. The editors are `EntityCategory.CONFIG` entities - they
-   * are how a preset is set up, not how it is operated.
-   */
-  enabled?: boolean;
-  /**
-   * `picker` lets the card choose which mode is edited, `active` edits the
-   * mode that is active right now, `all` shows every mode of every parameter.
-   */
-  mode?: "picker" | "active" | "all";
-  /** How `picker` is drawn. */
-  style?: "chips" | "dropdown";
-  /**
-   * Mode the picker starts on. Left out it starts on *Active*, which is the
-   * resolved values and edits nothing.
-   */
-  default_mode?: string;
-}
-
-export type FooterItem =
-  | "preset_mode"
-  | "blueprint"
-  | "source"
-  | "last_changed";
-
-export interface FooterConfig {
-  visible?: boolean;
-  content?: FooterItem[];
 }
 
 export interface PresetManagerCardConfig {
@@ -95,8 +81,6 @@ export interface PresetManagerCardConfig {
   header?: HeaderConfig;
   modes?: ModesConfig;
   values?: ValuesConfig;
-  editor?: EditorConfig;
-  footer?: FooterConfig;
   /** Home Assistant's own action keys, at the top level as everywhere else. */
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
@@ -117,9 +101,12 @@ export interface ResolvedConfig {
     visible: ModeVisibility;
     colors: Record<string, string>;
   };
-  values: { visible: boolean; parameters: ResolvedParameterRow[] | null; icons: boolean };
-  editor: Required<Pick<EditorConfig, "enabled" | "mode" | "style">> & EditorConfig;
-  footer: { visible: boolean; content: FooterItem[] };
+  values: {
+    visible: boolean;
+    mode: ValuesMode;
+    parameters: ResolvedParameterRow[] | null;
+    icons: boolean;
+  };
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;

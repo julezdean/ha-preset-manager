@@ -15,13 +15,17 @@ describe("resolveConfig", () => {
 
   it("keeps the editors closed unless asked", () => {
     // They are configuration entities: setting a preset up, not running it.
-    expect(resolveConfig(MINIMAL).editor.enabled).toBe(false);
+    expect(resolveConfig(MINIMAL).values.mode).toBe("active");
   });
 
-  it("has no editor.confirm any more", () => {
-    // Every editor stages and nothing writes without Apply, so there is no
-    // second way of editing to switch into.
-    expect(resolveConfig(MINIMAL).editor).not.toHaveProperty("confirm");
+  it("has no editor group any more", () => {
+    // "Can this card edit" and "which mode" were one ladder, and folding them
+    // together leaves no combination that contradicts itself.
+    expect(resolveConfig(MINIMAL)).not.toHaveProperty("editor");
+  });
+
+  it.each(["active", "picker", "edit", "all"])("takes %s", (mode) => {
+    expect(resolveConfig({ ...MINIMAL, values: { mode } }).values.mode).toBe(mode);
   });
 
   it("says what to write when the entity is missing", () => {
@@ -40,8 +44,8 @@ describe("resolveConfig", () => {
   });
 
   it("names the option when a value is out of range", () => {
-    expect(() => resolveConfig({ ...MINIMAL, editor: { mode: "sometimes" } })).toThrow(
-      /picker, active, all/,
+    expect(() => resolveConfig({ ...MINIMAL, values: { mode: "sometimes" } })).toThrow(
+      /active, picker, edit, all/,
     );
   });
 
@@ -92,16 +96,7 @@ describe("resolveConfig", () => {
     ]);
   });
 
-  it("shows a footer that was given content, without a second switch", () => {
-    const config = resolveConfig({ ...MINIMAL, footer: { content: ["blueprint"] } });
-    expect(config.footer.visible).toBe(true);
-    expect(config.footer.content).toEqual(["blueprint"]);
-  });
 
-  it("gives an asked-for footer something to say", () => {
-    const config = resolveConfig({ ...MINIMAL, footer: { visible: true } });
-    expect(config.footer.content).toEqual(["preset_mode"]);
-  });
 
   it("leaves keys Lovelace adds alone", () => {
     expect(() =>
@@ -130,14 +125,13 @@ describe("pruneConfig", () => {
       ...resolved,
       type: MINIMAL.type,
       entity: MINIMAL.entity,
-      editor: { enabled: true, mode: "picker", style: "chips" },
+      values: { mode: "picker", icons: false },
       modes: { visible: true },
     });
-    // `mode: picker` and `style: chips` are the defaults and go; the other two
-    // stay.
+    // `icons: false` is the default and goes; the other two stay.
     expect(pruned).toEqual({
       ...MINIMAL,
-      editor: { enabled: true },
+      values: { mode: "picker" },
       modes: { visible: true },
     });
   });

@@ -715,18 +715,10 @@
     const CARDS = [
       ["Preset — default", { entity: "sensor.motion_active_mode" }, "showcase"],
       [
-        "Preset — editors, dropdown picker",
-        {
-          entity: "sensor.motion_active_mode",
-          editor: { enabled: true, mode: "picker", style: "dropdown" },
-        },
-      ],
-      [
         "Preset — editors, mode picker",
         {
           entity: "sensor.motion_active_mode",
-          editor: { enabled: true, mode: "picker" },
-          footer: { content: ["preset_mode", "last_changed"] },
+          values: { mode: "picker" },
         },
         "showcase",
       ],
@@ -746,8 +738,7 @@
         "Preset — every mode at once",
         {
           entity: "sensor.heating_active_mode",
-          editor: { enabled: true, mode: "all" },
-          footer: { content: ["preset_mode", "blueprint"] },
+          values: { mode: "all" },
         },
         "showcase",
       ],
@@ -759,7 +750,7 @@
         "Every parameter type — editors",
         {
           entity: "sensor.clock_active_mode",
-          editor: { enabled: true, mode: "active" },
+          values: { mode: "edit" },
         },
         "showcase",
       ],
@@ -771,7 +762,6 @@
         "Preset — set by hand",
         {
           entity: "sensor.shutter_active_mode",
-          footer: { content: ["preset_mode"] },
         },
         "showcase",
       ],
@@ -797,7 +787,7 @@
         "Narrow — editors",
         {
           entity: "sensor.clock_active_mode",
-          editor: { enabled: true, mode: "active" },
+          values: { mode: "edit" },
         },
         "narrow",
       ],

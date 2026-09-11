@@ -568,14 +568,9 @@ time.
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
 | `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |
 | `values.visible` | `true` | The parameter rows of a preset. |
+| `values.mode` | `active` | What the rows show: `active`, `picker`, `edit` or `all`; see below. |
 | `values.parameters` | all of them | Which parameters to show, in which order. |
 | `values.icons` | `false` | Show each parameter's icon. |
-| `editor.enabled` | `false` | Turn the rows into the per-mode editors. |
-| `editor.mode` | `picker` | `picker`, `active` or `all`; see below. |
-| `editor.style` | `chips` | How `picker` is drawn: `chips` or `dropdown`. |
-| `editor.default_mode` | the active mode | Mode key the picker starts on. |
-| `footer.visible` | `false` | The footer line. |
-| `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
 | `tap_action` | `more-info` | Home Assistant's action config, on the header. |
 | `hold_action` | – | Same. |
 | `double_tap_action` | – | Same. |
@@ -593,14 +588,11 @@ Everything else is grouped, so a long configuration stays readable:
 
 ```yaml
 values:
-  parameters: [brightness, off_delay]
-
-editor:
-  enabled: true
   mode: picker
+  parameters: [brightness, off_delay]
 ```
 
-instead of `show_values`, `value_parameters`, `show_editor`, `editor_mode`.
+instead of `show_values`, `value_parameters`, `value_mode`.
 
 ### Picking parameters
 
@@ -622,13 +614,13 @@ deleting a parameter does not break every dashboard that named it.
 ### Editing values
 
 The editors are `Configuration` entities: they are how a preset is **set up**,
-not how it is used. So `editor.enabled` is off by default and a card shows the
-resolved values — which is what a dashboard is for.
+not how it is used. So `values.mode` is `active` by default and a card shows
+the resolved values, read-only — which is what a dashboard is for.
 
-Turn it on and a row of chips appears above the list saying which mode it
+`values.mode: picker` puts a row of chips above the list saying which mode it
 shows. The first chip is **Active**, and that is where the card rests: the
-values as they are, read-only, exactly what a card without editors shows. Any
-other chip shows that mode's values as editors.
+values as they are, read-only, exactly what `active` shows. Any other chip
+shows that mode's values as editors.
 
 ```
   [ Active ] ( Home ) ( Away ) ( Night ) ( Window open )
@@ -637,27 +629,27 @@ other chip shows that mode's values as editors.
 
 Picking a mode is therefore the deliberate act — one gesture, not a switch and
 then a choice. And **nothing is written until *Apply***: what you change is
-collected in the card's draft, and the button appears exactly while something
-is waiting. Reading is always safe; no gesture in this list changes the house
-by itself.
+collected in the card's draft, and two buttons appear exactly while something
+is waiting — *Apply* sends it, *Discard* drops it and the editors go back to
+what the entities say. Reading is always safe; no gesture in this list changes
+the house by itself.
 
 The draft is keyed by entity, so one round can touch several modes: pick Night,
 change a value, pick Away, change another, apply once. Switching back to
-*Active* keeps the button — a draft left behind must not become invisible.
+*Active* keeps the buttons — a draft left behind must not become invisible.
 After *Apply* the card returns to *Active*, because what was just written is
 now what those values say.
 
-`editor.style: dropdown` draws the picker as a menu instead of chips. The chips
-are deliberately quieter than the mode row above them: smaller, without icons,
+The picker chips are deliberately quieter than the mode row above them: smaller, without icons,
 and coloured from the text rather than the accent. One row changes the house,
 the other changes what this card shows, and they should not look like the same
 act.
 
 Two shapes skip the picker:
 
-* `mode: active` — the editors of the mode that is active, always open.
-* `mode: all` — every mode of every parameter, one row each. The full picture,
-  and the widest.
+* `values.mode: edit` — the editors of the mode that is active, always open.
+* `values.mode: all` — every mode of every parameter, one row each. The full
+  picture, and the widest.
 
 Both still collect and still end in *Apply*; there is only one way to write on
 this card.
@@ -674,8 +666,9 @@ would refuse the write anyway:
 
 The row carries no explanation: the switch in the header says who is deciding,
 and the second line names the active mode and whether the preset is on one of
-its own. What a preset *follows* is not in there — that is what
-`footer.content: [preset_mode]` is for.
+its own. Which preset mode it follows is not on the card at all — that is what
+`sensor.<preset>_active_mode` carries in its `mode_source` attribute, and what
+the device page shows.
 
 `modes.visible: manual` shows the row only while a click would do something, so
 only while the preset is not following. A row of chips nobody may press is a
@@ -713,11 +706,8 @@ values:
 ```yaml
 type: custom:preset-manager-card
 entity: sensor.heating_bath_active_mode
-editor:
-  enabled: true
+values:
   mode: picker
-footer:
-  content: [preset_mode, blueprint]
 ```
 
 **Everything at once** — every group, for reading rather than for using.
@@ -750,14 +740,6 @@ values:
     - parameter: off_delay
       name: Run-on
       icon: mdi:timer-outline
-
-editor:
-  enabled: true
-  mode: picker
-  default_mode: night
-
-footer:
-  content: [preset_mode, blueprint, last_changed]
 
 tap_action:
   action: more-info
@@ -1073,7 +1055,7 @@ changes visibly:
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1100,871 --screenshot=assets/card-dark.png \
+  --window-size=1100,810 --screenshot=assets/card-dark.png \
   "http://localhost:8765/frontend/preview.html?gallery=1100&columns=3&showcase=1&theme=dark"
 ```
 

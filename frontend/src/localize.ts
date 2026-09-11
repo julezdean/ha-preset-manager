@@ -19,10 +19,8 @@ const EN: Strings = {
   active: "Active",
   apply: "Apply",
   automatic: "Automatic",
-  blueprint: "Blueprint",
-  changed: "Changed",
+  discard: "Discard",
   editing: "Edit",
-  follows: "Follows {entity}",
   mode_automatic: "Automatic mode selection",
   loading: "Loading…",
   manual: "Manual",
@@ -38,8 +36,6 @@ const EN: Strings = {
   not_set: "Not set",
   not_set_up: "Preset Manager is not set up.",
   orphaned: "Waiting for a preset mode; values do not resolve.",
-  preset_mode: "Preset mode",
-  source: "Source",
   unavailable: "Unavailable",
 };
 
@@ -47,10 +43,8 @@ const DE: Strings = {
   active: "Aktiv",
   apply: "Übernehmen",
   automatic: "Automatik",
-  blueprint: "Blueprint",
-  changed: "Geändert",
+  discard: "Verwerfen",
   editing: "Bearbeiten",
-  follows: "Folgt {entity}",
   mode_automatic: "Mode-Automatik",
   loading: "Wird geladen…",
   manual: "Manuell",
@@ -66,8 +60,6 @@ const DE: Strings = {
   not_set: "Nicht gesetzt",
   not_set_up: "Preset Manager ist nicht eingerichtet.",
   orphaned: "Wartet auf einen Preset Mode; die Werte lösen nicht auf.",
-  preset_mode: "Preset Mode",
-  source: "Quelle",
   unavailable: "Nicht verfügbar",
 };
 

@@ -145,11 +145,21 @@ function editorRow(
   `;
 }
 
-/** Sends what the editors collected, and returns to the resolved values. */
-function applyButton(context: CardContext): TemplateResult {
+/**
+ * What to do with what the editors collected.
+ *
+ * Both or neither: a button that sends changes without one that drops them
+ * makes backing out mean retyping every value from memory, while the values
+ * are still there to be read off the entities - discarding costs nothing but
+ * the button.
+ */
+function draftButtons(context: CardContext): TemplateResult {
   return html`
     <div class="toolbar">
       <span class="toolbar-label"></span>
+      <button class="discard" type="button" @click=${() => context.discard()}>
+        ${localize(context.hass, "discard")}
+      </button>
       <button class="apply" type="button" @click=${() => context.apply()}>
         ${localize(context.hass, "apply")}
       </button>
@@ -169,35 +179,6 @@ function modePicker(context: CardContext): TemplateResult | typeof nothing {
   if (!modes.length) return nothing;
   const label = localize(context.hass, "mode");
   const picked = context.editMode;
-
-  if (context.config.editor.style === "dropdown") {
-    return html`
-      <div class="row">
-        <div class="row-label"><span>${label}:</span></div>
-        <div class="row-control">
-          <select
-            class="select-input"
-            aria-label=${label}
-            @change=${(event: Event) => {
-              const value = (event.target as HTMLSelectElement).value;
-              context.selectEditMode(value === "" ? null : value);
-            }}
-          >
-            <option value="" ?selected=${picked === null}>
-              ${localize(context.hass, "active")}
-            </option>
-            ${modes.map(
-              (mode) => html`
-                <option value=${mode.key} ?selected=${mode.key === picked}>
-                  ${mode.name}
-                </option>
-              `,
-            )}
-          </select>
-        </div>
-      </div>
-    `;
-  }
 
   return html`
     <div class="row">
@@ -249,12 +230,12 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
       : nothing;
 
   const reserved = iconColumn(context, list);
-  const { editor } = context.config;
-  // The button is here whenever something is waiting, whichever mode is on
-  // screen - a draft left behind by switching chips must not be invisible.
-  const apply = context.draft.size ? applyButton(context) : nothing;
+  // Here whenever something is waiting, whichever mode is on screen - a draft
+  // left behind by switching chips must not be invisible.
+  const buttons = context.draft.size ? draftButtons(context) : nothing;
+  const mode = context.config.values.mode;
 
-  if (!editor.enabled) {
+  if (mode === "active") {
     return html`
       <div class="section rows">
         ${note}${list.map((row) => readOnlyRow(context, row, reserved))}
@@ -262,7 +243,7 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
     `;
   }
 
-  if (editor.mode === "all") {
+  if (mode === "all") {
     const modes = modesOf(context.subject);
     return html`
       <div class="section rows">
@@ -270,29 +251,29 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
         ${list.map(
           (row) => html`
             <div class="group-label">${row.label}</div>
-            ${modes.map((mode) =>
-              editorRow(context, row, mode.key, mode.name, reserved),
+            ${modes.map((each) =>
+              editorRow(context, row, each.key, each.name, reserved),
             )}
           `,
         )}
-        ${apply}
+        ${buttons}
       </div>
     `;
   }
 
-  if (editor.mode === "active") {
+  if (mode === "edit") {
     const modeKey = activeModeKey(context.hass, context.subject);
     return html`
       <div class="section rows">
         ${note}
         ${list.map((row) => editorRow(context, row, modeKey, row.label, reserved))}
-        ${apply}
+        ${buttons}
       </div>
     `;
   }
 
-  // The picker, resting on "Active": the same rows a card without editors
-  // shows, until a mode is asked for.
+  // The picker, resting on "Active": the same rows a read-only card shows,
+  // until a mode is asked for.
   const picked = context.editMode;
   return html`
     <div class="section rows">
@@ -300,7 +281,7 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
       ${picked === null
         ? list.map((row) => readOnlyRow(context, row, reserved))
         : list.map((row) => editorRow(context, row, picked, row.label, reserved))}
-      ${apply}
+      ${buttons}
     </div>
   `;
 }

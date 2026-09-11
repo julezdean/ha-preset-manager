@@ -21,8 +21,8 @@ describe("localize", () => {
   });
 
   it("fills placeholders", () => {
-    expect(localize({ language: "en" }, "follows", { entity: "input_select.x" })).toBe(
-      "Follows input_select.x",
+    expect(localize({ language: "en" }, "not_found", { entity: "light.x" })).toBe(
+      "“light.x” does not belong to Preset Manager.",
     );
   });
 

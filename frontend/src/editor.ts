@@ -39,8 +39,6 @@ const LABELS: Record<string, string> = {
   header: "Header",
   modes: "Modes",
   values: "Values",
-  editor: "Editing",
-  footer: "Footer",
   actions: "Actions",
   visible: "Show",
   automatic: "Automatic switch",
@@ -48,13 +46,10 @@ const LABELS: Record<string, string> = {
   subtitle: "Subtitle",
   icon: "Icon",
   icon_color: "Icon colour",
-  style: "Style",
   icons: "Show icons",
   parameters: "Parameters",
   parameters_note: "Parameters",
-  enabled: "Editable",
   mode: "Which mode",
-  default_mode: "Start on",
   content: "Content",
   tap_action: "Tap",
   hold_action: "Hold",
@@ -209,6 +204,15 @@ export class PresetManagerCardEditor extends LitElement {
           title: LABELS.values,
           schema: [
             { name: "visible", selector: { boolean: {} } },
+            {
+              name: "mode",
+              ...options([
+                ["active", "Show the active values"],
+                ["picker", "Pick a mode in the card"],
+                ["edit", "Edit the active mode"],
+                ["all", "Every mode at once"],
+              ]),
+            },
             // A list of plain keys round-trips through a multi select; rows
             // that also rename a parameter or give it an icon do not, and a
             // select fed those would show nothing selected and then throw the
@@ -224,60 +228,10 @@ export class PresetManagerCardEditor extends LitElement {
             { name: "icons", selector: { boolean: {} } },
           ],
         },
-        {
-          type: "expandable",
-          name: "editor",
-          title: LABELS.editor,
-          schema: [
-            { name: "enabled", selector: { boolean: {} } },
-            {
-              name: "mode",
-              ...options([
-                ["picker", "Pick a mode in the card"],
-                ["active", "The active mode"],
-                ["all", "Every mode"],
-              ]),
-            },
-            {
-              name: "style",
-              ...options([
-                ["chips", "Chips"],
-                ["dropdown", "Dropdown"],
-              ]),
-            },
-            {
-              name: "default_mode",
-              ...options(modes.map((mode) => [mode.key, mode.name] as [string, string])),
-            },
-          ],
-        },
       );
     }
 
     schema.push(
-      {
-        type: "expandable",
-        name: "footer",
-        title: LABELS.footer,
-        schema: [
-          { name: "visible", selector: { boolean: {} } },
-          {
-            name: "content",
-            selector: {
-              select: {
-                multiple: true,
-                mode: "list",
-                options: [
-                  { value: "preset_mode", label: "Preset mode" },
-                  { value: "blueprint", label: "Blueprint" },
-                  { value: "source", label: "Source entity" },
-                  { value: "last_changed", label: "Last change" },
-                ],
-              },
-            },
-          },
-        ],
-      },
       {
         // No `name`: the action keys stay at the top level of the
         // configuration, where every other Home Assistant card has them.

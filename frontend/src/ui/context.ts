@@ -41,6 +41,8 @@ export interface CardContext {
    */
   stage(entityId: string, write: StagedWrite): void;
   apply(): void;
+  /** Drop the draft; the editors go back to what the entities say. */
+  discard(): void;
   /** Whether the header carries a tap/hold action worth a cursor and a role. */
   tappable: boolean;
   /** Pointer plumbing of the header action; see `card.ts`. */

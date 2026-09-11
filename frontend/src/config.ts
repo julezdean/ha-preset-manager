@@ -13,7 +13,6 @@
 
 import { CARD_TYPE } from "./const";
 import type {
-  FooterItem,
   ModeVisibility,
   ParameterRowConfig,
   PresetManagerCardConfig,
@@ -23,16 +22,8 @@ import type {
 
 export class CardConfigError extends Error {}
 
-/** Only the editor's mode picker still has two shapes. */
-const PICKER_STYLES = ["chips", "dropdown"] as const;
 const MODE_VISIBILITIES: ModeVisibility[] = ["always", "never", "manual"];
-const EDITOR_MODES = ["picker", "active", "all"] as const;
-const FOOTER_ITEMS: FooterItem[] = [
-  "preset_mode",
-  "blueprint",
-  "source",
-  "last_changed",
-];
+const VALUES_MODES = ["active", "picker", "edit", "all"] as const;
 
 function fail(message: string): never {
   throw new CardConfigError(message);
@@ -122,14 +113,6 @@ function parameterRows(value: unknown): ResolvedParameterRow[] | null {
   });
 }
 
-function footerContent(value: unknown): FooterItem[] {
-  if (value === undefined || value === null) return [];
-  if (!Array.isArray(value)) fail('"footer.content" has to be a list');
-  return value.map((item, index) =>
-    oneOf(item, `footer.content[${index}]`, FOOTER_ITEMS, "preset_mode"),
-  );
-}
-
 /**
  * Turn user configuration into the shape the card renders from.
  *
@@ -157,8 +140,6 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   const header = section(config.header, "header");
   const modes = section(config.modes, "modes");
   const values = section(config.values, "values");
-  const editor = section(config.editor, "editor");
-  const footer = section(config.footer, "footer");
 
 
   const resolved: ResolvedConfig = {
@@ -179,30 +160,15 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
     },
     values: {
       visible: bool(values.visible, "values.visible", true),
+      mode: oneOf(values.mode, "values.mode", VALUES_MODES, "active"),
       parameters: parameterRows(values.parameters),
       icons: bool(values.icons, "values.icons", false),
-    },
-    editor: {
-      enabled: bool(editor.enabled, "editor.enabled", false),
-      mode: oneOf(editor.mode, "editor.mode", EDITOR_MODES, "picker"),
-      style: oneOf(editor.style, "editor.style", PICKER_STYLES, "chips"),
-      default_mode: text(editor.default_mode, "editor.default_mode"),
-    },
-    footer: {
-      // A footer that lists something is a footer that is wanted; asking for
-      // `visible: true` on top of `content:` would only be a second switch for
-      // the same decision.
-      visible: bool(footer.visible, "footer.visible", footer.content !== undefined),
-      content: footerContent(footer.content),
     },
     tap_action: config.tap_action,
     hold_action: config.hold_action,
     double_tap_action: config.double_tap_action,
   };
 
-  if (resolved.footer.visible && !resolved.footer.content.length) {
-    resolved.footer.content = ["preset_mode"];
-  }
   return resolved;
 }
 
