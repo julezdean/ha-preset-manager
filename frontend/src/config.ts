@@ -13,7 +13,6 @@
 
 import { CARD_TYPE } from "./const";
 import type {
-  FooterItem,
   ModeVisibility,
   ParameterRowConfig,
   PresetManagerCardConfig,
@@ -23,15 +22,8 @@ import type {
 
 export class CardConfigError extends Error {}
 
-const MODE_STYLES = ["chips", "dropdown"] as const;
 const MODE_VISIBILITIES: ModeVisibility[] = ["always", "never", "manual"];
-const EDITOR_MODES = ["picker", "active", "all"] as const;
-const FOOTER_ITEMS: FooterItem[] = [
-  "preset_mode",
-  "blueprint",
-  "source",
-  "last_changed",
-];
+const VALUES_MODES = ["active", "picker", "edit", "all"] as const;
 
 function fail(message: string): never {
   throw new CardConfigError(message);
@@ -51,21 +43,9 @@ function bool(value: unknown, path: string, fallback: boolean): boolean {
   return value;
 }
 
-/** A switch the user may leave alone, so the card can decide for itself. */
-function optionalBool(value: unknown, path: string): boolean | undefined {
-  if (value === undefined) return undefined;
-  if (typeof value !== "boolean") fail(`"${path}" has to be true or false`);
-  return value;
-}
-
-/**
- * When to show the mode row, with `true`/`false` as the obvious shorthands.
- *
- * Left unset it stays undefined, because what a card shows by default depends
- * on what its entity turned out to be, and that is not known here.
- */
-function modeVisibility(value: unknown, path: string): ModeVisibility | undefined {
-  if (value === undefined) return undefined;
+/** When to show the mode row, with `true`/`false` as the obvious shorthands. */
+function modeVisibility(value: unknown, path: string, fallback: ModeVisibility): ModeVisibility {
+  if (value === undefined) return fallback;
   if (value === true) return "always";
   if (value === false) return "never";
   if (typeof value !== "string" || !MODE_VISIBILITIES.includes(value as ModeVisibility)) {
@@ -133,14 +113,6 @@ function parameterRows(value: unknown): ResolvedParameterRow[] | null {
   });
 }
 
-function footerContent(value: unknown): FooterItem[] {
-  if (value === undefined || value === null) return [];
-  if (!Array.isArray(value)) fail('"footer.content" has to be a list');
-  return value.map((item, index) =>
-    oneOf(item, `footer.content[${index}]`, FOOTER_ITEMS, "preset_mode"),
-  );
-}
-
 /**
  * Turn user configuration into the shape the card renders from.
  *
@@ -168,65 +140,35 @@ export function resolveConfig(raw: unknown): ResolvedConfig {
   const header = section(config.header, "header");
   const modes = section(config.modes, "modes");
   const values = section(config.values, "values");
-  const editor = section(config.editor, "editor");
-  const presets = section(config.presets, "presets");
-  const footer = section(config.footer, "footer");
 
-  const presetsEditable = bool(presets.editable, "presets.editable", false);
-  const editorConfirm = bool(editor.confirm, "editor.confirm", false);
 
   const resolved: ResolvedConfig = {
     type: String(config.type ?? ""),
     entity,
     header: {
       visible: bool(header.visible, "header.visible", true),
-      automatic: optionalBool(header.automatic, "header.automatic"),
+      automatic: bool(header.automatic, "header.automatic", true),
       title: text(header.title, "header.title"),
       subtitle: textOrFalse(header.subtitle, "header.subtitle"),
       icon: textOrFalse(header.icon, "header.icon"),
       icon_color: text(header.icon_color, "header.icon_color"),
     },
     modes: {
-      visible: modeVisibility(modes.visible, "modes.visible"),
-      style: oneOf(modes.style, "modes.style", MODE_STYLES, "chips"),
+      visible: modeVisibility(modes.visible, "modes.visible", "always"),
       icons: bool(modes.icons, "modes.icons", true),
       colors: colors(modes.colors, "modes.colors"),
     },
     values: {
       visible: bool(values.visible, "values.visible", true),
+      mode: oneOf(values.mode, "values.mode", VALUES_MODES, "active"),
       parameters: parameterRows(values.parameters),
       icons: bool(values.icons, "values.icons", false),
-    },
-    editor: {
-      // A card that asks for confirmed editing is a card that has editors.
-      enabled: bool(editor.enabled, "editor.enabled", editorConfirm),
-      confirm: editorConfirm,
-      mode: oneOf(editor.mode, "editor.mode", EDITOR_MODES, "picker"),
-      style: oneOf(editor.style, "editor.style", MODE_STYLES, "chips"),
-      default_mode: text(editor.default_mode, "editor.default_mode"),
-    },
-    presets: {
-      // Asking for editable presets is asking to see them; a third switch to
-      // turn on before anything appears would only be a way to get it wrong.
-      visible: bool(presets.visible, "presets.visible", presetsEditable),
-      values: bool(presets.values, "presets.values", presetsEditable),
-      editable: presetsEditable,
-    },
-    footer: {
-      // A footer that lists something is a footer that is wanted; asking for
-      // `visible: true` on top of `content:` would only be a second switch for
-      // the same decision.
-      visible: bool(footer.visible, "footer.visible", footer.content !== undefined),
-      content: footerContent(footer.content),
     },
     tap_action: config.tap_action,
     hold_action: config.hold_action,
     double_tap_action: config.double_tap_action,
   };
 
-  if (resolved.footer.visible && !resolved.footer.content.length) {
-    resolved.footer.content = ["preset_mode"];
-  }
   return resolved;
 }
 

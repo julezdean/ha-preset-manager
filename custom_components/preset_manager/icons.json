@@ -5,10 +5,10 @@
       "active_mode": { "default": "mdi:state-machine" }
     },
     "select": {
-      "active_mode": { "default": "mdi:form-select" }
+      "mode_selection": { "default": "mdi:form-select" }
     },
     "switch": {
-      "automatic": {
+      "mode_automatic": {
         "default": "mdi:robot",
         "state": { "off": "mdi:robot-off" }
       }

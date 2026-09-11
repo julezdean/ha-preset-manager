@@ -13,9 +13,8 @@ import type { ActionConfig } from "./ha";
 export interface HeaderConfig {
   visible?: boolean;
   /**
-   * The automatic switch of the preset mode. Independent of the mode row: one
-   * decides the mode, the other decides who decides the mode. Defaults to on
-   * for a preset mode card and off for a preset card, which does not own it.
+   * The automatic switch, beside the name it belongs to. Only a preset has
+   * one - a preset mode is not operated. Defaults to on.
    */
   automatic?: boolean;
   /** Overrides the name of the preset or preset mode. */
@@ -30,17 +29,17 @@ export interface HeaderConfig {
 /**
  * When the mode row is shown.
  *
- * `manual` means "while the mode can actually be set from here" - the automatic
- * is off, or there is none to be on. A row of chips nobody may click is a row
- * that only takes space, and this is the option that says so. `true` and
- * `false` are accepted for `always` and `never`.
+ * `manual` means "while the mode can actually be set from here" - so on a
+ * preset that is not following its preset mode, and never on a preset mode,
+ * which is not operated at all. A row of chips nobody may click is a row that
+ * only takes space, and this is the option that says so. `true` and `false`
+ * are accepted for `always` and `never`.
  */
 export type ModeVisibility = "always" | "never" | "manual";
 
 export interface ModesConfig {
-  /** Defaults to on for a preset mode card and off for a preset card. */
+  /** Defaults to on. */
   visible?: boolean | ModeVisibility;
-  style?: "chips" | "dropdown";
   icons?: boolean;
   /** Mode key -> colour, for the chip of that mode while it is active. */
   colors?: Record<string, string>;
@@ -51,58 +50,28 @@ export type ParameterRowConfig =
   | string
   | { parameter: string; name?: string; icon?: string | false };
 
+/**
+ * What the value list shows, and whether it can be changed.
+ *
+ * One ladder, not a switch plus a choice: `active` is a card to read, the
+ * other three are the ways of editing. Folding "can this card edit" into
+ * "which mode" leaves no combination that contradicts itself.
+ */
+export type ValuesMode = "active" | "picker" | "edit" | "all";
+
 export interface ValuesConfig {
   visible?: boolean;
+  /**
+   * `active` shows the values that are valid right now, read-only - which is
+   * what a dashboard is for, and the default. `picker` puts a row of chips
+   * above the list: *Active* first, and every other chip opens that mode's
+   * values as editors. `edit` skips the picker and edits the active mode,
+   * `all` shows every mode of every parameter at once.
+   */
+  mode?: ValuesMode;
   /** Which parameters to show, in which order. Omit for all of them. */
   parameters?: ParameterRowConfig[];
   icons?: boolean;
-}
-
-export interface EditorConfig {
-  /**
-   * Off by default. The editors are `EntityCategory.CONFIG` entities - they
-   * are how a preset is set up, not how it is operated.
-   */
-  enabled?: boolean;
-  /**
-   * `picker` lets the card choose which mode is edited, `active` edits the
-   * mode that is active right now, `all` shows every mode of every parameter.
-   */
-  mode?: "picker" | "active" | "all";
-  /** How `picker` is drawn. */
-  style?: "chips" | "dropdown";
-  /** Mode key the picker starts on; defaults to the active mode. */
-  default_mode?: string;
-  /**
-   * Make editing a deliberate act: the card shows the values, offers a switch
-   * to edit them, holds what is changed and writes it only when applied - then
-   * goes back to the values. Implies `enabled`, because there is nothing to
-   * switch into otherwise.
-   */
-  confirm?: boolean;
-}
-
-export interface PresetsConfig {
-  /** On a preset mode card: list the presets that follow it. */
-  visible?: boolean;
-  /** Also show each preset's resolved values. */
-  values?: boolean;
-  /**
-   * Turn those values into editors for the mode each preset is on. Implies
-   * the two above - there is nothing to edit in a list of names.
-   */
-  editable?: boolean;
-}
-
-export type FooterItem =
-  | "preset_mode"
-  | "blueprint"
-  | "source"
-  | "last_changed";
-
-export interface FooterConfig {
-  visible?: boolean;
-  content?: FooterItem[];
 }
 
 export interface PresetManagerCardConfig {
@@ -112,9 +81,6 @@ export interface PresetManagerCardConfig {
   header?: HeaderConfig;
   modes?: ModesConfig;
   values?: ValuesConfig;
-  editor?: EditorConfig;
-  presets?: PresetsConfig;
-  footer?: FooterConfig;
   /** Home Assistant's own action keys, at the top level as everywhere else. */
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
@@ -130,21 +96,17 @@ export interface ResolvedParameterRow {
 export interface ResolvedConfig {
   type: string;
   entity: string;
-  header: Required<Pick<HeaderConfig, "visible">> & HeaderConfig;
-  /**
-   * `visible` is left undefined where the user said nothing: what a card shows
-   * by default depends on what it turned out to be about, and that is only
-   * known once the structure has arrived.
-   */
+  header: Required<Pick<HeaderConfig, "visible" | "automatic">> & HeaderConfig;
   modes: Required<Omit<ModesConfig, "colors" | "visible">> & {
-    visible: ModeVisibility | undefined;
+    visible: ModeVisibility;
     colors: Record<string, string>;
   };
-  values: { visible: boolean; parameters: ResolvedParameterRow[] | null; icons: boolean };
-  editor: Required<Pick<EditorConfig, "enabled" | "mode" | "style" | "confirm">> &
-    EditorConfig;
-  presets: Required<PresetsConfig>;
-  footer: { visible: boolean; content: FooterItem[] };
+  values: {
+    visible: boolean;
+    mode: ValuesMode;
+    parameters: ResolvedParameterRow[] | null;
+    icons: boolean;
+  };
   tap_action?: ActionConfig;
   hold_action?: ActionConfig;
   double_tap_action?: ActionConfig;

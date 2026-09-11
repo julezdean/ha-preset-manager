@@ -99,7 +99,7 @@
      tall card's worth of air beneath it. */
   .grid.gallery {
     display: block;
-    column-count: 4;
+    column-count: var(--gallery-columns, 4);
     column-gap: 24px;
   }
 
@@ -229,11 +229,7 @@
           modes: HOUSE_MODES,
           source_entity: null,
           has_conditions: true,
-          entities: {
-            mode: "sensor.house_mode_mode",
-            active_mode: "select.house_mode_active_mode",
-            automatic: "switch.house_mode_automatic",
-          },
+          entities: { mode: "sensor.house_mode_mode" },
         },
         {
           id: "pm2",
@@ -253,7 +249,11 @@
           preset_mode: "pm1",
           blueprint: null,
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.motion_active_mode" },
+          entities: {
+            active_mode: "sensor.motion_active_mode",
+            mode_selection: "select.motion_mode_selection",
+            automatic: "switch.motion_follows_preset_mode",
+          },
           parameters: [
             {
               key: "brightness",
@@ -285,7 +285,11 @@
           preset_mode: "pm1",
           blueprint: "bp1",
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.heating_active_mode" },
+          entities: {
+            active_mode: "sensor.heating_active_mode",
+            mode_selection: "select.heating_mode_selection",
+            automatic: "switch.heating_follows_preset_mode",
+          },
           parameters: [
             {
               key: "target_temperature",
@@ -312,7 +316,11 @@
           preset_mode: "pm1",
           blueprint: null,
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.clock_active_mode" },
+          entities: {
+            active_mode: "sensor.clock_active_mode",
+            mode_selection: "select.clock_mode_selection",
+            automatic: "switch.clock_follows_preset_mode",
+          },
           parameters: [
             {
               key: "volume",
@@ -379,7 +387,11 @@
           preset_mode: "pm2",
           blueprint: null,
           modes: WINDOW_MODES,
-          entities: { active_mode: "sensor.shutter_active_mode" },
+          entities: {
+            active_mode: "sensor.shutter_active_mode",
+            mode_selection: "select.shutter_mode_selection",
+            automatic: "switch.shutter_follows_preset_mode",
+          },
           parameters: [
             {
               key: "position",
@@ -399,7 +411,11 @@
           preset_mode: null,
           blueprint: null,
           modes: HOUSE_MODES,
-          entities: { active_mode: "sensor.fan_active_mode" },
+          entities: {
+            active_mode: "sensor.fan_active_mode",
+            mode_selection: "select.fan_mode_selection",
+            automatic: "switch.fan_follows_preset_mode",
+          },
           parameters: [
             {
               key: "speed",
@@ -420,11 +436,14 @@
     // The service calls are emulated rather than swallowed: a mode switch
     // resolves the values of every preset following that preset mode, the way
     // the coordinator does, so the whole path from a click to a redrawn card
-    // is exercised. It is a stand-in and knows nothing about conditions,
-    // defaults or the automatic - the real thing is in Python.
+    // is exercised - including the automatic of a single preset, which is
+    // the one place two objects disagree on purpose. It is a stand-in and
+    // knows nothing about conditions or defaults - that is in Python.
     // ---------------------------------------------------------------------
 
     const states = {};
+    /** The mode each preset was set to by hand, keyed the way the store is. */
+    const manualModes = {};
 
     const put = (entityId, state, attributes = {}) => {
       states[entityId] = {
@@ -437,10 +456,16 @@
     };
 
     put("sensor.house_mode_mode", "Night", { mode_key: "night" });
-    put("select.house_mode_active_mode", "Night", {
-      options: HOUSE_MODES.map((mode) => mode.name),
-    });
-    put("switch.house_mode_automatic", "off");
+    // Every preset has one, and every one of them starts where it should:
+    // following its preset mode. The shutter below is the exception.
+    for (const preset of ["motion", "heating", "clock", "shutter", "fan"]) {
+      put(`switch.${preset}_follows_preset_mode`, "on");
+    }
+    // The shutter has stepped out from under "Window State": that preset mode
+    // follows an entity and has no automatic of its own, which is exactly the
+    // case a preset could not escape before it had one.
+    put("switch.shutter_follows_preset_mode", "off");
+    manualModes.p4 = "open";
     put("sensor.window_state_mode", "Closed", { mode_key: "closed" });
     put("binary_sensor.window_living_room", "off", {
       friendly_name: "Window living room",
@@ -543,12 +568,21 @@
      */
     function resolvePreset(preset) {
       const presetMode = presetModeOf(preset.preset_mode);
-      const activeKey = presetMode
+      const inherited = presetMode
         ? states[presetMode.entities.mode]?.attributes.mode_key
         : null;
+      const manual = manualModes[preset.id] ?? null;
+      // A preset that stepped out of its dimension holds its own mode - and
+      // one that has no dimension at all resolves nothing either way.
+      const automatic = states[preset.entities.automatic]?.state !== "off";
+      const activeKey = !presetMode ? null : automatic ? inherited : (manual ?? inherited);
       const mode = preset.modes.find((item) => item.key === activeKey) ?? null;
       put(preset.entities.active_mode, mode ? mode.name : "unknown", {
         mode_key: mode ? mode.key : null,
+        automatic,
+      });
+      put(preset.entities.mode_selection, mode ? mode.name : "unknown", {
+        options: preset.modes.map((item) => item.name),
       });
 
       for (const parameter of preset.parameters) {
@@ -577,6 +611,20 @@
     const cards = [];
     let hass;
 
+    /** Move a preset mode, the way its conditions or its entity would.
+
+        There is no service and no entity for this - that is the point - so the
+        page reaches into the fake state machine directly, which is what the
+        condition source does inside Home Assistant. */
+    function activateMode(presetMode, key) {
+      const mode = presetMode.modes.find((item) => item.key === key);
+      if (!mode) return;
+      put(presetMode.entities.mode, mode.name, { mode_key: mode.key });
+      resolveAll();
+      publish();
+    }
+    window.activateMode = activateMode;
+
     /** Hand every card a fresh `hass`, the way Home Assistant does. */
     function publish() {
       hass = { ...hass, states: { ...states } };
@@ -589,17 +637,16 @@
       console.info("service", `${domain}.${service}`, data, target);
 
       if (domain === "preset_manager" && service === "set_active_mode") {
-        const presetMode = STRUCTURE.preset_modes.find(
-          (item) => item.entities.active_mode === entityId,
+        const preset = STRUCTURE.presets.find(
+          (item) => item.entities.mode_selection === entityId,
         );
-        if (!presetMode) return;
-        if (states[presetMode.entities.automatic]?.state === "on") {
-          throw { message: "The mode follows its source. Turn the automatic off first." };
+        if (!preset) return;
+        if (states[preset.entities.automatic]?.state !== "off") {
+          throw {
+            message: "The mode comes from the preset mode. Turn following off first.",
+          };
         }
-        const mode = presetMode.modes.find((item) => item.key === data.mode);
-        if (!mode) return;
-        put(presetMode.entities.mode, mode.name, { mode_key: mode.key });
-        put(entityId, mode.name, states[entityId].attributes);
+        manualModes[preset.id] = data.mode;
         resolveAll();
         publish();
         return;
@@ -607,6 +654,13 @@
 
       if (!current) return;
       if (service === "turn_on" || service === "turn_off") {
+        const held = STRUCTURE.presets.find(
+          (item) => item.entities.automatic === entityId,
+        );
+        if (held && service === "turn_off") {
+          manualModes[held.id] =
+            states[held.entities.active_mode]?.attributes.mode_key ?? null;
+        }
         put(entityId, service === "turn_on" ? "on" : "off", current.attributes);
       } else if (service === "select_option") {
         put(entityId, data.option, current.attributes);
@@ -618,6 +672,11 @@
       publish();
     }
 
+    // `publish` replaces `states` with a snapshot before any card sees this,
+    // and that matters: a card compares the state objects it draws to decide
+    // whether to render, so handing it the live map would make every one of
+    // them compare equal to itself after a write - and the first interaction
+    // on a card would change the state machine and redraw nothing.
     hass = {
       states,
       entities: {},
@@ -646,64 +705,42 @@
 
     // ---------------------------------------------------------------------
     // 4. One card per thing worth looking at.
+    //
+    // The third element tags a card: `narrow` puts it in a 200 pixel column,
+    // `showcase` marks the handful that stand for the rest. Which cards the
+    // picture in the README shows is decided here, not on the command line -
+    // so a card that changes shape changes the picture with it.
     // ---------------------------------------------------------------------
 
     const CARDS = [
-      ["Preset — default", { entity: "sensor.motion_active_mode" }],
-      ["Preset mode — default", { entity: "sensor.house_mode_mode" }],
-      [
-        "Preset — editors, dropdown picker",
-        {
-          entity: "sensor.motion_active_mode",
-          editor: { enabled: true, mode: "picker", style: "dropdown" },
-        },
-      ],
+      ["Preset — default", { entity: "sensor.motion_active_mode" }, "showcase"],
       [
         "Preset — editors, mode picker",
         {
           entity: "sensor.motion_active_mode",
-          editor: { enabled: true, mode: "picker" },
-          footer: { content: ["preset_mode", "last_changed"] },
+          values: { mode: "picker" },
         },
-      ],
-      [
-        "Preset — edit behind a switch",
-        {
-          entity: "sensor.motion_active_mode",
-          editor: { confirm: true, style: "dropdown" },
-        },
+        "showcase",
       ],
       [
         "Preset — one value",
         {
           entity: "sensor.motion_active_mode",
-          header: { subtitle: false },
+          // One row in a grid of many: everything that decides the mode is
+          // somewhere else on that dashboard.
+          header: { subtitle: false, automatic: false },
+          modes: { visible: false },
           values: { parameters: ["brightness"] },
         },
-      ],
-      [
-        "Preset mode — editing its presets",
-        {
-          entity: "sensor.house_mode_mode",
-          presets: { editable: true },
-        },
-      ],
-      [
-        "Preset mode — with its presets",
-        {
-          entity: "sensor.house_mode_mode",
-          presets: { visible: true, values: true },
-          modes: { colors: { night: "#5c6bc0", window_open: "#ef6c00" } },
-          footer: { content: ["last_changed"] },
-        },
+        "showcase",
       ],
       [
         "Preset — every mode at once",
         {
           entity: "sensor.heating_active_mode",
-          editor: { enabled: true, mode: "all" },
-          footer: { content: ["preset_mode", "blueprint"] },
+          values: { mode: "all" },
         },
+        "showcase",
       ],
       [
         "Every parameter type — values",
@@ -713,32 +750,20 @@
         "Every parameter type — editors",
         {
           entity: "sensor.clock_active_mode",
-          editor: { enabled: true, mode: "active" },
+          values: { mode: "edit" },
         },
-      ],
-      [
-        "Preset mode — handed to an entity",
-        { entity: "sensor.window_state_mode", footer: { content: ["source"] } },
+        "showcase",
       ],
       [
         "Preset — modes forced on",
         { entity: "sensor.motion_active_mode", modes: { visible: true } },
       ],
       [
-        "Preset mode — modes only while settable",
+        "Preset — set by hand",
         {
-          entity: "sensor.house_mode_mode",
-          modes: { visible: "manual" },
-          footer: { content: ["preset_mode"] },
+          entity: "sensor.shutter_active_mode",
         },
-      ],
-      [
-        "Preset mode — dropdown",
-        {
-          entity: "sensor.house_mode_mode",
-          modes: { style: "dropdown" },
-          footer: { content: ["preset_mode"] },
-        },
+        "showcase",
       ],
       ["Preset without a preset mode", { entity: "sensor.fan_active_mode" }],
       [
@@ -762,22 +787,23 @@
         "Narrow — editors",
         {
           entity: "sensor.clock_active_mode",
-          editor: { enabled: true, mode: "active" },
+          values: { mode: "edit" },
         },
         "narrow",
       ],
-      ["Narrow — preset mode", { entity: "sensor.house_mode_mode" }, "narrow"],
     ];
 
     resolveAll();
 
-    // Two query parameters, so a screenshot is a command rather than a series
-    // of clicks: `?theme=dark` opens in the dark palette, and `?gallery=1`
-    // drops the prose, the toggle and the narrow column tests - what is left
-    // is the set of cards worth putting in front of a reader.
+    // Query parameters, so a screenshot is a command rather than a series of
+    // clicks: `?theme=dark` opens in the dark palette, `?gallery=1480` drops
+    // the prose, the toggle and the narrow column tests and lays the rest out
+    // at that width, `?showcase=1` narrows it further to the tagged few, and
+    // `?columns=3` says how many columns they are poured into.
     const params = new URLSearchParams(location.search);
     if (params.get("theme") === "dark") document.body.classList.add("dark");
     const gallery = params.has("gallery");
+    const showcase = params.has("showcase");
     if (gallery) {
       for (const id of ["intro", "theme-toggle"]) document.getElementById(id)?.remove();
       // A fixed width so the same command produces the same picture, whatever
@@ -785,17 +811,21 @@
       document.body.style.width = `${params.get("gallery") || 1480}px`;
       document.body.style.boxSizing = "border-box";
       document.getElementById("grid").classList.add("gallery");
+      if (params.has("columns")) {
+        document.body.style.setProperty("--gallery-columns", params.get("columns"));
+      }
     }
 
     import("../custom_components/preset_manager/www/preset-manager-card.js")
       .then(() => {
         const grid = document.getElementById("grid");
-        for (const [title, config, className] of CARDS) {
-          if (gallery && (className === "narrow" || title.includes("Not an entity"))) {
+        for (const [title, config, tags = ""] of CARDS) {
+          if (gallery && (tags.includes("narrow") || title.includes("Not an entity"))) {
             continue;
           }
+          if (showcase && !tags.includes("showcase")) continue;
           const column = document.createElement("div");
-          if (className) column.className = className;
+          if (tags) column.className = tags;
           const heading = document.createElement("h2");
           heading.textContent = title;
           column.appendChild(heading);
@@ -808,11 +838,11 @@
             grid.appendChild(column);
             continue;
           }
-          card.hass = hass;
           cards.push(card);
           column.appendChild(card);
           grid.appendChild(column);
         }
+        publish();
       })
       .catch((error) => {
         document.getElementById("grid").textContent =

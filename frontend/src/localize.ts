@@ -16,16 +16,17 @@ import type { HomeAssistant } from "./types/ha";
 type Strings = Record<string, string>;
 
 const EN: Strings = {
-  active_is: "Active: {mode}",
+  active: "Active",
   apply: "Apply",
   automatic: "Automatic",
-  blueprint: "Blueprint",
-  changed: "Changed",
+  discard: "Discard",
   editing: "Edit",
-  follows: "Follows {entity}",
+  mode_automatic: "Automatic mode selection",
   loading: "Loading…",
+  manual: "Manual",
   mode: "Mode",
-  no_entity: "Set “entity” to any entity of Preset Manager.",
+  no_entity: "Set “entity” to any entity of a preset.",
+  not_a_preset: "“{entity}” belongs to a preset mode. A card shows a preset; point it at one of its entities.",
   no_mode: "No mode active",
   no_modes: "This preset mode has no modes yet.",
   no_parameters: "This preset has no parameters yet.",
@@ -35,24 +36,21 @@ const EN: Strings = {
   not_set: "Not set",
   not_set_up: "Preset Manager is not set up.",
   orphaned: "Waiting for a preset mode; values do not resolve.",
-  preset_mode: "Preset mode",
-  presets_one: "1 preset",
-  presets_other: "{count} presets",
-  source: "Source",
   unavailable: "Unavailable",
 };
 
 const DE: Strings = {
-  active_is: "Aktiv: {mode}",
+  active: "Aktiv",
   apply: "Übernehmen",
   automatic: "Automatik",
-  blueprint: "Blueprint",
-  changed: "Geändert",
+  discard: "Verwerfen",
   editing: "Bearbeiten",
-  follows: "Folgt {entity}",
+  mode_automatic: "Mode-Automatik",
   loading: "Wird geladen…",
+  manual: "Manuell",
   mode: "Mode",
-  no_entity: "„entity“ auf eine beliebige Entität von Preset Manager setzen.",
+  no_entity: "„entity“ auf eine beliebige Entität eines Presets setzen.",
+  not_a_preset: "„{entity}“ gehört zu einem Preset Mode. Eine Card zeigt ein Preset; zeig auf eine seiner Entitäten.",
   no_mode: "Kein Mode aktiv",
   no_modes: "Dieser Preset Mode hat noch keine Modes.",
   no_parameters: "Dieses Preset hat noch keine Parameter.",
@@ -62,10 +60,6 @@ const DE: Strings = {
   not_set: "Nicht gesetzt",
   not_set_up: "Preset Manager ist nicht eingerichtet.",
   orphaned: "Wartet auf einen Preset Mode; die Werte lösen nicht auf.",
-  preset_mode: "Preset Mode",
-  presets_one: "1 Preset",
-  presets_other: "{count} Presets",
-  source: "Quelle",
   unavailable: "Nicht verfügbar",
 };
 
@@ -83,16 +77,4 @@ export function localize(
     text = text.replace(`{${name}}`, String(value));
   }
   return text;
-}
-
-/** "3 presets" in the language of the instance. */
-export function localizeCount(
-  hass: Pick<HomeAssistant, "language"> | undefined,
-  singular: string,
-  plural: string,
-  count: number,
-): string {
-  return count === 1
-    ? localize(hass, singular, { count })
-    : localize(hass, plural, { count });
 }

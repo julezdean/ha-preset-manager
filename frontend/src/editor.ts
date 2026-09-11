@@ -9,9 +9,9 @@
  * Two rules shape it.
  *
  * **Only the entity is on the surface.** Everything else sits in a collapsed
- * group, so a new card asks for one thing. The groups the current subject
- * cannot use - the preset list of a preset mode, the editors of a preset - are
- * not shown at all rather than shown and ignored.
+ * group, so a new card asks for one thing. The entity picker offers the mode
+ * sensor of each preset and nothing else - a preset mode has no card, and a
+ * picker that offered one would be an invitation to an error message.
  *
  * **What is left at its default is not written.** The form has to show a
  * checkbox in its real position, so it is fed the resolved configuration; what
@@ -39,9 +39,6 @@ const LABELS: Record<string, string> = {
   header: "Header",
   modes: "Modes",
   values: "Values",
-  editor: "Editing",
-  presets: "Presets",
-  footer: "Footer",
   actions: "Actions",
   visible: "Show",
   automatic: "Automatic switch",
@@ -49,15 +46,10 @@ const LABELS: Record<string, string> = {
   subtitle: "Subtitle",
   icon: "Icon",
   icon_color: "Icon colour",
-  style: "Style",
   icons: "Show icons",
   parameters: "Parameters",
   parameters_note: "Parameters",
-  enabled: "Editable",
-  confirm: "Confirm with a button",
-  editable: "Editable",
   mode: "Which mode",
-  default_mode: "Start on",
   content: "Content",
   tap_action: "Tap",
   hold_action: "Hold",
@@ -133,10 +125,9 @@ export class PresetManagerCardEditor extends LitElement {
    * narrow it with, so it falls back to the whole integration.
    */
   private _entityPicker(): Record<string, unknown> {
-    const canonical = [
-      ...(this._structure?.preset_modes ?? []).map((item) => item.entities.mode),
-      ...(this._structure?.presets ?? []).map((item) => item.entities.active_mode),
-    ].filter((entityId): entityId is string => Boolean(entityId));
+    const canonical = (this._structure?.presets ?? [])
+      .map((item) => item.entities.active_mode)
+      .filter((entityId): entityId is string => Boolean(entityId));
     return canonical.length
       ? { include_entities: canonical }
       : { integration: "preset_manager" };
@@ -156,11 +147,7 @@ export class PresetManagerCardEditor extends LitElement {
   }
 
   private _schema(subject: Subject | null): Schema[] {
-    const isPreset = subject?.kind === "preset";
-    const isPresetMode = subject?.kind === "preset_mode";
-    const modes = subject
-      ? (subject.kind === "preset_mode" ? subject.presetMode.modes : subject.preset.modes)
-      : [];
+    const modes = subject ? subject.preset.modes : [];
 
     const schema: Schema[] = [
       {
@@ -194,13 +181,6 @@ export class PresetManagerCardEditor extends LitElement {
               ["manual", "While the mode can be set by hand"],
             ]),
           },
-          {
-            name: "style",
-            ...options([
-              ["chips", "Chips"],
-              ["dropdown", "Dropdown"],
-            ]),
-          },
           // Only where there is an icon to show. Mode icons are set per mode
           // in the config flow, and most setups have none - a switch that
           // visibly does nothing is worse than no switch, because the user
@@ -212,7 +192,7 @@ export class PresetManagerCardEditor extends LitElement {
       },
     ];
 
-    if (isPreset) {
+    if (subject) {
       const parameters = subject.preset.parameters.map((parameter) => ({
         value: parameter.key,
         label: parameter.name,
@@ -224,6 +204,15 @@ export class PresetManagerCardEditor extends LitElement {
           title: LABELS.values,
           schema: [
             { name: "visible", selector: { boolean: {} } },
+            {
+              name: "mode",
+              ...options([
+                ["active", "Show the active values"],
+                ["picker", "Pick a mode in the card"],
+                ["edit", "Edit the active mode"],
+                ["all", "Every mode at once"],
+              ]),
+            },
             // A list of plain keys round-trips through a multi select; rows
             // that also rename a parameter or give it an icon do not, and a
             // select fed those would show nothing selected and then throw the
@@ -239,74 +228,10 @@ export class PresetManagerCardEditor extends LitElement {
             { name: "icons", selector: { boolean: {} } },
           ],
         },
-        {
-          type: "expandable",
-          name: "editor",
-          title: LABELS.editor,
-          schema: [
-            { name: "enabled", selector: { boolean: {} } },
-            { name: "confirm", selector: { boolean: {} } },
-            {
-              name: "mode",
-              ...options([
-                ["picker", "Pick a mode in the card"],
-                ["active", "The active mode"],
-                ["all", "Every mode"],
-              ]),
-            },
-            {
-              name: "style",
-              ...options([
-                ["chips", "Chips"],
-                ["dropdown", "Dropdown"],
-              ]),
-            },
-            {
-              name: "default_mode",
-              ...options(modes.map((mode) => [mode.key, mode.name] as [string, string])),
-            },
-          ],
-        },
       );
     }
 
-    if (isPresetMode) {
-      schema.push({
-        type: "expandable",
-        name: "presets",
-        title: LABELS.presets,
-        schema: [
-          { name: "visible", selector: { boolean: {} } },
-          { name: "values", selector: { boolean: {} } },
-          { name: "editable", selector: { boolean: {} } },
-        ],
-      });
-    }
-
     schema.push(
-      {
-        type: "expandable",
-        name: "footer",
-        title: LABELS.footer,
-        schema: [
-          { name: "visible", selector: { boolean: {} } },
-          {
-            name: "content",
-            selector: {
-              select: {
-                multiple: true,
-                mode: "list",
-                options: [
-                  { value: "preset_mode", label: "Preset mode" },
-                  { value: "blueprint", label: "Blueprint" },
-                  { value: "source", label: "Source entity" },
-                  { value: "last_changed", label: "Last change" },
-                ],
-              },
-            },
-          },
-        ],
-      },
       {
         // No `name`: the action keys stay at the top level of the
         // configuration, where every other Home Assistant card has them.

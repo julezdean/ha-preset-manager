@@ -21,8 +21,12 @@ import { customElement, state } from "lit/decorators.js";
 import { CARD_TYPE } from "./const";
 import { resolveConfig } from "./config";
 import { cachedPresetManagerConfig, loadPresetManagerConfig, subscribePresetManagerConfig } from "./data/store";
-import { activeModeKey, modesOf } from "./data/state";
-import { resolveSubject, watchedEntityIds, type Subject } from "./data/subject";
+import {
+  belongsToPresetMode,
+  resolveSubject,
+  watchedEntityIds,
+  type Subject,
+} from "./data/subject";
 import { localize } from "./localize";
 import { cardStyles } from "./styles";
 import type { ResolvedConfig } from "./types/config";
@@ -32,8 +36,6 @@ import { hasAction, isDefined, performAction } from "./util/ha";
 import { renderHeader } from "./ui/header";
 import { renderModes } from "./ui/modes";
 import { renderValues } from "./ui/values";
-import { renderPresets } from "./ui/presets";
-import { renderFooter } from "./ui/footer";
 import type { CardContext } from "./ui/context";
 import type { StagedWrite } from "./ui/controls";
 
@@ -53,9 +55,12 @@ export class PresetManagerCard extends LitElement {
 
   @state() private _config?: ResolvedConfig;
   @state() private _structure?: PresetManagerConfig;
-  @state() private _editModeOverride: string | null = null;
-  /** Confirmed editing: whether the editors are open, and what they changed. */
-  @state() private _editing = false;
+  /**
+   * Which mode the value list shows: a key, `null` for the resolved values,
+   * and `undefined` while nobody has picked - which falls back to whatever
+   * `editor.default_mode` says, or to the resolved values.
+   */
+  @state() private _viewMode: string | null | undefined;
   @state() private _draft: Map<string, StagedWrite> = new Map();
   @state() private _error?: string;
 
@@ -74,8 +79,7 @@ export class PresetManagerCard extends LitElement {
     // Anything thrown here is what the user sees in place of the card, so
     // `resolveConfig` speaks in sentences rather than in stack traces.
     this._config = resolveConfig(config);
-    this._editModeOverride = null;
-    this._editing = false;
+    this._viewMode = undefined;
     this._draft = new Map();
     this._watched = [];
   }
@@ -95,11 +99,8 @@ export class PresetManagerCard extends LitElement {
   ): Promise<Record<string, unknown>> {
     const structure =
       cachedPresetManagerConfig(hass) ?? (await loadPresetManagerConfig(hass));
-    // A preset mode first: it is the object a dashboard starts from, and its
-    // card needs nothing else to be useful.
-    const entity =
-      structure.preset_modes.find((item) => item.entities.mode)?.entities.mode ??
-      structure.presets.find((item) => item.entities.active_mode)?.entities.active_mode;
+    const entity = structure.presets.find((item) => item.entities.active_mode)
+      ?.entities.active_mode;
     return { type: `custom:${CARD_TYPE}`, entity: entity ?? "" };
   }
 
@@ -158,18 +159,8 @@ export class PresetManagerCard extends LitElement {
     const config = this._config;
     if (!config) return 2;
     let size = config.header.visible ? 1 : 0;
-    // The default depends on what the entity turned out to be, which is known
-    // here only after the structure arrived. Before that it counts as shown,
-    // so a card is never given less room than it needs.
-    const subject = this._subject;
-    const modes =
-      config.modes.visible === undefined
-        ? subject === null || subject.kind === "preset_mode"
-        : config.modes.visible !== "never";
-    if (modes) size += 1;
+    if (config.modes.visible !== "never") size += 1;
     if (config.values.visible) size += 2;
-    if (config.presets.visible) size += 2;
-    if (config.footer.visible) size += 1;
     return Math.max(1, size);
   }
 
@@ -233,10 +224,7 @@ export class PresetManagerCard extends LitElement {
 
   private _run(action: ActionConfig | undefined, subject: Subject): void {
     if (!this._hass) return;
-    const fallback =
-      subject.kind === "preset_mode"
-        ? subject.presetMode.entities.mode
-        : subject.preset.entities.active_mode;
+    const fallback = subject.preset.entities.active_mode;
     this._call(performAction(this, this._hass, action, fallback ?? this._config?.entity));
   }
 
@@ -257,9 +245,10 @@ export class PresetManagerCard extends LitElement {
         entity_id: entityId,
       }),
     );
-    this._editing = false;
     this._draft = new Map();
-    this._editModeOverride = null;
+    // Back to the resolved values: what was just written is now what they
+    // say, and staying in an editor would show the same number twice.
+    this._viewMode = undefined;
     this._call(Promise.all(writes));
   }
 
@@ -312,13 +301,9 @@ export class PresetManagerCard extends LitElement {
     return resolveSubject(this._structure, this._config.entity);
   }
 
-  /** The mode the editors write to: the user's pick, else what is active. */
-  private _editMode(subject: Subject): string | null {
-    if (this._editModeOverride) return this._editModeOverride;
-    const configured = this._config?.editor.default_mode;
-    const modes = modesOf(subject);
-    if (configured && modes.some((mode) => mode.key === configured)) return configured;
-    return activeModeKey(this._hass!, subject) ?? modes[0]?.key ?? null;
+  /** The mode the list shows: the user's pick, else the resolved values. */
+  private _viewedMode(): string | null {
+    return this._viewMode ?? null;
   }
 
   protected override render(): TemplateResult | typeof nothing {
@@ -332,13 +317,15 @@ export class PresetManagerCard extends LitElement {
     if (!subject) {
       const known =
         this._structure.preset_modes.length + this._structure.presets.length;
-      return this._shell(
-        this._alert(
-          known
-            ? localize(hass, "not_found", { entity: config.entity })
-            : localize(hass, "not_set_up"),
-        ),
-      );
+      // Three different mistakes, three different sentences: nothing set up,
+      // an entity of ours that is not a preset's, and an entity that is not
+      // ours at all.
+      let message: string;
+      if (!known) message = localize(hass, "not_set_up");
+      else if (belongsToPresetMode(this._structure, config.entity)) {
+        message = localize(hass, "not_a_preset", { entity: config.entity });
+      } else message = localize(hass, "not_found", { entity: config.entity });
+      return this._shell(this._alert(message));
     }
 
     const context: CardContext = {
@@ -346,25 +333,19 @@ export class PresetManagerCard extends LitElement {
       config,
       subject,
       host: this,
-      editMode: this._editMode(subject),
+      editMode: this._viewedMode(),
       selectEditMode: (key) => {
-        this._editModeOverride = key;
+        this._viewMode = key;
       },
       call: (promise) => this._call(promise),
-      editing: this._editing,
       draft: this._draft,
-      setEditing: (open) => {
-        // Closing throws the draft away. Nothing was written, so there is
-        // nothing to undo - and a confirmation dialog for abandoning values
-        // the user has not committed to is a dialog for its own sake.
-        this._editing = open;
-        this._draft = new Map();
-        if (!open) this._editModeOverride = null;
-      },
       stage: (entityId, write) => {
         this._draft = new Map(this._draft).set(entityId, write);
       },
       apply: () => this._apply(),
+      discard: () => {
+        this._draft = new Map();
+      },
       tappable: hasAction(this._tapAction) || hasAction(config.hold_action),
       onHeaderDown: () => this._headerDown(subject),
       onHeaderUp: () => this._headerUp(),
@@ -373,7 +354,7 @@ export class PresetManagerCard extends LitElement {
 
     return this._shell(html`
       ${renderHeader(context)} ${renderModes(context)} ${renderValues(context)}
-      ${renderPresets(context)} ${renderFooter(context)}
+     
       ${this._error
         ? html`<div class="section inline-error" role="alert">${this._error}</div>`
         : nothing}

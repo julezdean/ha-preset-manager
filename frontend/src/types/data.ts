@@ -26,13 +26,11 @@ export interface PresetModeInfo {
   /** Set while the whole preset mode follows another entity. */
   source_entity: string | null;
   has_conditions: boolean;
-  entities: {
-    mode?: string;
-    /** Absent on a preset mode that follows another entity. */
-    active_mode?: string;
-    /** Absent unless at least one mode has conditions. */
-    automatic?: string;
-  };
+  /**
+   * One entity, and only one: a preset mode reports which mode is active and
+   * is never operated. Everything a hand reaches sits on the presets.
+   */
+  entities: { mode?: string };
 }
 
 export type ParameterType =
@@ -63,7 +61,14 @@ export interface PresetInfo {
   blueprint: string | null;
   modes: ModeInfo[];
   parameters: ParameterInfo[];
-  entities: { active_mode?: string };
+  entities: {
+    /** The sensor naming the mode this preset resolves right now. */
+    active_mode?: string;
+    /** Its own mode selector, writable while its automatic is off. */
+    mode_selection?: string;
+    /** Its own automatic: whether it takes the mode of its preset mode. */
+    automatic?: string;
+  };
 }
 
 export interface BlueprintInfo {

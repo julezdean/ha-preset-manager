@@ -29,11 +29,7 @@ export function structure(
         modes: MODES,
         source_entity: null,
         has_conditions: true,
-        entities: {
-          mode: "sensor.house_mode_mode",
-          active_mode: "select.house_mode_active_mode",
-          automatic: "switch.house_mode_automatic",
-        },
+        entities: { mode: "sensor.house_mode_mode" },
       },
     ],
     presets: [
@@ -65,7 +61,11 @@ export function structure(
             editors: { night: "number.motion_sensor_living_room_night_off_delay" },
           },
         ],
-        entities: { active_mode: "sensor.motion_sensor_living_room_active_mode" },
+        entities: {
+          active_mode: "sensor.motion_sensor_living_room_active_mode",
+          mode_selection: "select.motion_sensor_living_room_mode_selection",
+          automatic: "switch.motion_sensor_living_room_follows_preset_mode",
+        },
       },
       {
         id: "p2",
@@ -76,7 +76,11 @@ export function structure(
         blueprint: "bp1",
         modes: MODES,
         parameters: [],
-        entities: { active_mode: "sensor.shutter_living_room_active_mode" },
+        entities: {
+          active_mode: "sensor.shutter_living_room_active_mode",
+          mode_selection: "select.shutter_living_room_mode_selection",
+          automatic: "switch.shutter_living_room_follows_preset_mode",
+        },
       },
     ],
     blueprints: [{ id: "bp1", name: "Shutters" }],

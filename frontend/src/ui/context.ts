@@ -18,22 +18,31 @@ export interface CardContext {
   subject: Subject;
   /** The element events are fired from. */
   host: HTMLElement;
-  /** Mode key whose values the editors write to. */
+  /**
+   * Which mode the value list shows: a mode key, or `null` for "active".
+   *
+   * `null` is the resting state - the resolved values, read-only. A key means
+   * that mode's values, as editors.
+   */
   editMode: string | null;
-  /** Change the mode being edited. */
-  selectEditMode(modeKey: string): void;
+  /** Show another mode, or `null` for the resolved values. */
+  selectEditMode(modeKey: string | null): void;
   /** Run a service call and surface a rejection on the card itself. */
   call(promise: Promise<unknown>): void;
-  /**
-   * Confirmed editing, when `editor.confirm` is on: whether the editors are
-   * open, what has been changed but not written, and the three things the user
-   * can do about it.
-   */
-  editing: boolean;
+  /** What has been changed but not written yet. */
   draft: ReadonlyMap<string, StagedWrite>;
-  setEditing(open: boolean): void;
+  /**
+   * Present only where something applies the draft afterwards.
+   *
+   * Every editor stages; nothing on this card writes on its own. What made
+   * that worth stating is the version where the card handed this over even
+   * where no *Apply* existed - those edits vanished into a draft nobody
+   * flushed, silently.
+   */
   stage(entityId: string, write: StagedWrite): void;
   apply(): void;
+  /** Drop the draft; the editors go back to what the entities say. */
+  discard(): void;
   /** Whether the header carries a tap/hold action worth a cursor and a role. */
   tappable: boolean;
   /** Pointer plumbing of the header action; see `card.ts`. */

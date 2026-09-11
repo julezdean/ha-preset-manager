@@ -7,7 +7,7 @@
  * this integration keys off it, and so does the card.
  */
 
-import type { ModeInfo, PresetInfo, PresetModeInfo } from "../types/data";
+import type { ModeInfo, PresetInfo } from "../types/data";
 import type { HassEntity, HomeAssistant } from "../types/ha";
 import type { Subject } from "./subject";
 import { hasNoValue, stateOf } from "../util/ha";
@@ -20,11 +20,9 @@ function modeKeyOf(entity: HassEntity | undefined): string | null {
   return typeof key === "string" && key ? key : null;
 }
 
-/** The entity whose `mode_key` says what is active for this subject. */
+/** The entity whose `mode_key` says what this preset resolves right now. */
 export function modeSourceEntityId(subject: Subject): string | undefined {
-  return subject.kind === "preset_mode"
-    ? subject.presetMode.entities.mode
-    : subject.preset.entities.active_mode;
+  return subject.preset.entities.active_mode;
 }
 
 export function activeModeKey(
@@ -48,9 +46,7 @@ export function presetModeKey(
 }
 
 export function modesOf(subject: Subject): ModeInfo[] {
-  return subject.kind === "preset_mode"
-    ? subject.presetMode.modes
-    : subject.preset.modes;
+  return subject.preset.modes;
 }
 
 export function activeMode(
@@ -62,15 +58,25 @@ export function activeMode(
   return modesOf(subject).find((mode) => mode.key === key) ?? null;
 }
 
+/** The switch saying whether a preset follows its preset mode. */
+export function followsEntityId(subject: Subject): string | undefined {
+  return subject.preset.entities.automatic;
+}
+
+/** The entity the mode of this subject is set on, if it can be set at all. */
+export function modeSelectEntityId(subject: Subject): string | undefined {
+  return subject.preset.entities.mode_selection;
+}
+
 /**
- * `true` while a preset mode follows its conditions, `false` while it has been
- * taken over by hand, `null` when there is no automatic at all.
+ * `true` while a preset takes the mode of its preset mode, `false` while it
+ * has been taken out by hand, `null` where there is no such switch.
  */
-export function automaticState(
+export function followsPresetMode(
   hass: HomeAssistant,
-  presetMode: PresetModeInfo | null,
+  subject: Subject,
 ): boolean | null {
-  const entity = stateOf(hass, presetMode?.entities.automatic);
+  const entity = stateOf(hass, followsEntityId(subject));
   if (!entity || hasNoValue(entity.state)) return null;
   return entity.state === "on";
 }
@@ -78,14 +84,12 @@ export function automaticState(
 /** Why the mode cannot be set here, or `null` when it can. */
 export function modeLockReason(
   hass: HomeAssistant,
-  presetMode: PresetModeInfo | null,
-): "external" | "automatic" | "missing" | null {
-  if (!presetMode) return "missing";
-  // The integration refuses the write in both cases and says why. The card
-  // shows the same reason before the click instead of after it.
-  if (presetMode.source_entity) return "external";
-  if (!presetMode.entities.active_mode) return "missing";
-  return automaticState(hass, presetMode) ? "automatic" : null;
+  subject: Subject,
+): "following" | "missing" | null {
+  // A preset without a preset mode has no modes to choose between.
+  if (!subject.presetMode) return "missing";
+  if (!modeSelectEntityId(subject)) return "missing";
+  return followsPresetMode(hass, subject) ? "following" : null;
 }
 
 /** Whether an entity of the integration currently has a usable value. */

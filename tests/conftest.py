@@ -40,8 +40,6 @@ PRESET_MODE_ID = "11111111111111111111111111111111"
 PRESET_ID = "0123456789abcdef0123456789abcdef"
 #: Subentry id of the blueprint created by :func:`make_blueprint`.
 BLUEPRINT_ID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-#: Mode selector of the preset mode created by :func:`make_preset_mode`.
-PRESET_MODE_SELECT = "select.house_mode_active_mode"
 
 MODES = [
     {"key": "home", "name": "Home"},
@@ -329,13 +327,25 @@ def runtime_of(hass: HomeAssistant) -> PresetManagerRuntime:
     return runtime
 
 
-async def async_set_active_mode(
-    hass: HomeAssistant, mode: str, *, entity_id: str = PRESET_MODE_SELECT
+async def async_activate_mode(
+    hass: HomeAssistant, mode: str, *, subentry_id: str = PRESET_MODE_ID
 ) -> None:
-    """Call ``set_active_mode`` on a mode selector.
+    """Move a preset mode onto ``mode``.
 
-    The service is an entity service, so the preset mode is addressed by its
-    selector rather than by its display name.
+    There is no service for this and no entity to write to: a preset mode gets
+    its mode from its conditions or from the entity it follows. Tests that only
+    need the dimension to be somewhere say so directly; the ones about *how* it
+    gets there drive a source entity or a condition instead.
+    """
+    runtime_of(hass).preset_modes[subentry_id].async_apply_mode(mode)
+    await hass.async_block_till_done()
+
+
+async def async_set_preset_mode(hass: HomeAssistant, entity_id: str, mode: str) -> None:
+    """Call ``set_active_mode`` on the selector of one preset.
+
+    The one place the mode is set by hand, and only while that preset is not
+    following its preset mode.
     """
     await hass.services.async_call(
         DOMAIN,

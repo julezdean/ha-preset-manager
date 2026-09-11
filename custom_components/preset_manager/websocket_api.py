@@ -44,6 +44,7 @@ from .const import (
     UID_ACTIVE_MODE,
     UID_AUTOMATIC,
     UID_CONFIG,
+    UID_MODE_SELECTION,
     UID_PRESET_MODE_SENSOR,
     UID_SEPARATOR,
     UID_VALUE,
@@ -105,19 +106,11 @@ def _async_preset_modes(hass: HomeAssistant, lookup: _EntityLookup) -> list[dict
         config = PresetModeConfig.from_subentry(
             subentry_id, subentry.title, subentry.data
         )
+        # One entity, always the same one: a preset mode reports its mode and
+        # is not operated, so there is nothing else for a card to reach.
         entities: dict[str, str] = {}
         if entity_id := lookup("sensor", f"{subentry_id}_{UID_PRESET_MODE_SENSOR}"):
             entities["mode"] = entity_id
-        # Both of these exist only for some preset modes - an external one has
-        # no selector, and one without conditions has nothing to automate.
-        if not config.is_external and (
-            entity_id := lookup("select", f"{subentry_id}_{UID_ACTIVE_MODE}")
-        ):
-            entities["active_mode"] = entity_id
-        if config.has_conditions and (
-            entity_id := lookup("switch", f"{subentry_id}_{UID_AUTOMATIC}")
-        ):
-            entities["automatic"] = entity_id
 
         result.append(
             {
@@ -176,9 +169,17 @@ def _async_presets(hass: HomeAssistant, lookup: _EntityLookup) -> list[dict]:
                 }
             )
 
+        # Unlike a preset mode, a preset has all three whatever its
+        # configuration says: its automatic decides whether it listens to the
+        # dimension, which is a question every preset has.
         entities = {}
-        if entity_id := lookup("sensor", f"{subentry_id}_{UID_ACTIVE_MODE}"):
-            entities["active_mode"] = entity_id
+        for domain, suffix, name in (
+            ("sensor", UID_ACTIVE_MODE, "active_mode"),
+            ("select", UID_MODE_SELECTION, "mode_selection"),
+            ("switch", UID_AUTOMATIC, "automatic"),
+        ):
+            if entity_id := lookup(domain, f"{subentry_id}_{suffix}"):
+                entities[name] = entity_id
 
         result.append(
             {

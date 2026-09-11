@@ -32,6 +32,7 @@ from .const import (
     CONF_PRESET_MODE,
     DOMAIN,
     HUB_PRESETS,
+    ISSUE_MANUAL_MODE_DELETED,
     ISSUE_ORPHANED_PRESET,
 )
 from .store import async_get_store
@@ -154,6 +155,38 @@ def async_create_orphan_issue(hass: HomeAssistant, preset_id: str, name: str) ->
 def async_clear_orphan_issue(hass: HomeAssistant, preset_id: str) -> None:
     """Withdraw the issue of a preset that has a preset mode again."""
     ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_ORPHANED_PRESET}_{preset_id}")
+
+
+@callback
+def async_create_manual_mode_issue(
+    hass: HomeAssistant, preset_id: str, name: str, mode: str
+) -> None:
+    """Tell the user that a preset lost the mode it was held on.
+
+    Nobody else would notice: the mode was deleted somewhere else, and what it
+    cost is one preset quietly rejoining the dimension it had been taken out
+    of. The issue outlives the restart the deletion causes, which is the whole
+    reason it is an issue rather than a line in the log.
+    """
+    ir.async_create_issue(
+        hass,
+        DOMAIN,
+        f"{ISSUE_MANUAL_MODE_DELETED}_{preset_id}",
+        is_fixable=False,
+        severity=ir.IssueSeverity.WARNING,
+        translation_key=ISSUE_MANUAL_MODE_DELETED,
+        translation_placeholders={"preset": name, "mode": mode},
+    )
+
+
+@callback
+def async_clear_manual_mode_issue(hass: HomeAssistant, preset_id: str) -> None:
+    """Withdraw it once the preset has been taken out by hand again.
+
+    Not on the next restart, and not when the values happen to resolve again:
+    the issue asks for a decision, and only making it withdraws the question.
+    """
+    ir.async_delete_issue(hass, DOMAIN, f"{ISSUE_MANUAL_MODE_DELETED}_{preset_id}")
 
 
 @callback

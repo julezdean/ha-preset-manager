@@ -1,12 +1,16 @@
 /**
  * What the card is about, resolved from the one entity the user named.
  *
- * A card takes a single `entity:` and works out the rest: point it at the mode
- * sensor of a preset mode and it becomes a preset mode card, point it at any
- * entity of a preset - its active mode sensor, one of its values, one of its
- * editors - and it becomes a card for that preset. That is what keeps the
- * simple case to one line, and it is only possible because the structure says
- * which entity belongs to what. Nothing here parses a name.
+ * A card is about a **preset**, and it takes any entity of one: its active
+ * mode sensor, one of its values, one of its editors, its selector, its
+ * switch. That is what keeps the simple case to one line, and it is only
+ * possible because the structure says which entity belongs to what. Nothing
+ * here parses a name.
+ *
+ * A preset mode has no card of its own. It is a definition plus the logic that
+ * picks a mode, it is not operated, and what it computes is one sensor that
+ * every core card can already draw. `presetModeOf` still finds it, because a
+ * preset resolves against its modes and redraws when it switches.
  */
 
 import type {
@@ -18,28 +22,19 @@ import type {
 } from "../types/data";
 
 export interface PresetSubject {
-  kind: "preset";
   preset: PresetInfo;
   /** The preset mode it follows, `null` while it follows none. */
   presetMode: PresetModeInfo | null;
   blueprint: BlueprintInfo | null;
 }
 
-export interface PresetModeSubject {
-  kind: "preset_mode";
-  presetMode: PresetModeInfo;
-  /** The presets following it, in configuration order. */
-  presets: PresetInfo[];
-}
-
-export type Subject = PresetSubject | PresetModeSubject;
+export type Subject = PresetSubject;
 
 function presetSubject(
   config: PresetManagerConfig,
   preset: PresetInfo,
 ): PresetSubject {
   return {
-    kind: "preset",
     preset,
     presetMode:
       config.preset_modes.find((item) => item.id === preset.preset_mode) ?? null,
@@ -48,21 +43,9 @@ function presetSubject(
   };
 }
 
-function presetModeSubject(
-  config: PresetManagerConfig,
-  presetMode: PresetModeInfo,
-): PresetModeSubject {
-  return {
-    kind: "preset_mode",
-    presetMode,
-    presets: config.presets.filter((item) => item.preset_mode === presetMode.id),
-  };
-}
-
 /** Every entity id of a preset, whatever it is for. */
 export function presetEntityIds(preset: PresetInfo): string[] {
-  const ids: string[] = [];
-  if (preset.entities.active_mode) ids.push(preset.entities.active_mode);
+  const ids: string[] = Object.values(preset.entities);
   for (const parameter of preset.parameters) {
     if (parameter.entity) ids.push(parameter.entity);
     ids.push(...Object.values(parameter.editors));
@@ -79,22 +62,33 @@ export function presetModeEntityIds(presetMode: PresetModeInfo): string[] {
   return ids;
 }
 
-/** Resolve the entity the user named to the object it belongs to. */
+/** Resolve the entity the user named to the preset it belongs to. */
 export function resolveSubject(
   config: PresetManagerConfig,
   entityId: string,
 ): Subject | null {
-  for (const presetMode of config.preset_modes) {
-    if (presetModeEntityIds(presetMode).includes(entityId)) {
-      return presetModeSubject(config, presetMode);
-    }
-  }
   for (const preset of config.presets) {
     if (presetEntityIds(preset).includes(entityId)) {
       return presetSubject(config, preset);
     }
   }
   return null;
+}
+
+/**
+ * Whether the entity belongs to a preset mode.
+ *
+ * Only to tell the user why there is no card for it. A wrong entity and an
+ * entity of the wrong kind are different mistakes and deserve different
+ * sentences.
+ */
+export function belongsToPresetMode(
+  config: PresetManagerConfig,
+  entityId: string,
+): boolean {
+  return config.preset_modes.some((item) =>
+    presetModeEntityIds(item).includes(entityId),
+  );
 }
 
 /**
@@ -106,12 +100,9 @@ export function resolveSubject(
  * actually changed".
  */
 export function watchedEntityIds(subject: Subject): string[] {
-  if (subject.kind === "preset_mode") {
-    const ids = presetModeEntityIds(subject.presetMode);
-    for (const preset of subject.presets) ids.push(...presetEntityIds(preset));
-    return ids;
-  }
   const ids = presetEntityIds(subject.preset);
+  // The mode of the preset mode decides what this preset resolves to, so a
+  // switch over there has to redraw the card over here.
   if (subject.presetMode) ids.push(...presetModeEntityIds(subject.presetMode));
   return ids;
 }

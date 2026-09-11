@@ -17,7 +17,9 @@ A preset coordinator is *attached* to the coordinator of the preset mode it
 follows, and lives without one: the hubs are set up in whatever order Home
 Assistant picks, and a preset outlives the deletion of its preset mode. It
 therefore takes its modes from its own configuration and asks the preset mode
-for one thing only - which of them is active right now.
+for one thing only - which of them is active right now. It may also decline to
+ask: a preset has an automatic of its own, and with it off the mode is the one
+somebody set on the preset itself.
 """
 
 from __future__ import annotations
@@ -39,6 +41,7 @@ from .models import (
     ParameterDef,
     PresetConfig,
     PresetModeConfig,
+    find_mode,
     modes_to_data,
     resolve_mode,
 )
@@ -153,6 +156,10 @@ class PresetManagerRuntime:
             coordinator = PresetCoordinator(self, config, entry)
             self.presets[subentry_id] = coordinator
             coordinator.async_initialize()
+            # A mode can also disappear while this hub is not loaded, and the
+            # pruning below would take the evidence with it.
+            if coordinator.async_release_lost_hold():
+                coordinator.async_update_state()
 
         self.async_attach()
         self.async_prune_store()
@@ -245,6 +252,10 @@ class PresetManagerRuntime:
                 subentry.title,
                 hubs.async_resolve_preset_data(self.hass, subentry.data),
             )
+            # Before the shape decides anything: this is the one moment where
+            # the modes the preset had and the ones it is about to have are
+            # both in reach, and the deleted one still has a name.
+            coordinator.async_release_lost_hold(config.modes)
             if _preset_shape(config) != _preset_shape(coordinator.config):
                 return True
             applied.append((coordinator, config))
@@ -361,14 +372,14 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
     def _initial_mode_key(self) -> str | None:
         """Return the mode to start with; the source corrects it right after.
 
-        A manual preset mode has no source to correct it, so it starts on its first
-        mode - the same mode the condition source would pick, where every
-        mode is a match because none of them has conditions.
+        A preset mode nothing drives has no source to correct it, so it starts
+        on its first mode - the same mode the condition source would pick,
+        where every mode is a match because none of them has conditions.
         """
         stored = self.store.active_mode(self.config.subentry_id)
         if stored and self.config.mode(stored) is not None:
             return stored
-        if self.has_source or self.external or not self.config.modes:
+        if self.config.has_conditions or self.external or not self.config.modes:
             return None
         return self.config.modes[0].key
 
@@ -386,25 +397,6 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
     def external(self) -> bool:
         """Return whether another entity decides the mode."""
         return self.config.is_external
-
-    @property
-    def has_source(self) -> bool:
-        """Return whether the automatic can be switched off.
-
-        Only the conditions can: an external preset mode is not something the user
-        takes over by hand, it belongs to the entity it follows.
-        """
-        return self.config.has_conditions
-
-    @property
-    def automatic(self) -> bool:
-        """Return whether the mode currently follows its conditions."""
-        return self.has_source and self.store.automatic(self.config.subentry_id)
-
-    @property
-    def writable(self) -> bool:
-        """Return whether the active mode may be set by hand."""
-        return not self.automatic and not self.external
 
     @property
     def source_kind(self) -> str:
@@ -451,52 +443,6 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
         for preset in self.presets:
             preset.async_update_state()
 
-    async def async_set_automatic(self, value: bool) -> None:
-        """Switch between following the source and setting the mode by hand."""
-        if not self.store.set_automatic(self.config.subentry_id, value):
-            return
-        if value and self._source is not None:
-            # Do not wait for the next event to catch up with the source.
-            await self._source.async_refresh()
-        self.async_update_listeners()
-
-    @callback
-    def async_apply_from_source(self, mode_key: str | None) -> None:
-        """Apply a mode proposed by the source, unless it is switched off."""
-        if not self.external and not self.automatic:
-            return
-        self.async_apply_mode(mode_key)
-
-    @callback
-    def async_set_active_mode(self, value: str) -> None:
-        """Set the active mode from a key or display name."""
-        if self.external:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="external_source",
-                translation_placeholders={
-                    "preset_mode": self.config.name,
-                    "entity_id": self.config.source_entity or "",
-                },
-            )
-        if not self.writable:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="automatic_active",
-                translation_placeholders={"preset_mode": self.config.name},
-            )
-        mode = self.resolve_mode(value)
-        if mode is None:
-            raise ServiceValidationError(
-                translation_domain=DOMAIN,
-                translation_key="unknown_mode",
-                translation_placeholders={
-                    "mode": value,
-                    "modes": ", ".join(item.name for item in self.modes),
-                },
-            )
-        self.async_apply_mode(mode.key)
-
     @callback
     def async_apply_mode(self, mode_key: str | None) -> None:
         """Activate a mode and update everything that depends on it."""
@@ -509,7 +455,13 @@ class PresetModeCoordinator(DataUpdateCoordinator[str | None]):
 
 
 class PresetCoordinator(DataUpdateCoordinator[PresetState]):
-    """Resolves the currently valid values of a single preset."""
+    """Resolves the currently valid values of a single preset.
+
+    Which mode those values come from is normally the preset mode's business,
+    but not necessarily: every preset carries an automatic of its own, and
+    switching it off pins the preset to a mode while the dimension carries on
+    without it.
+    """
 
     def __init__(
         self,
@@ -561,6 +513,133 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
     def resolve_mode(self, value: str) -> ModeDef | None:
         """Resolve a mode from a key, a display name or a slug."""
         return resolve_mode(self.config.modes, value)
+
+    # Automatic ---------------------------------------------------------------
+
+    @property
+    def automatic(self) -> bool:
+        """Return whether the preset takes the mode of its preset mode.
+
+        Unlike the automatic of a preset mode, this one exists for every
+        preset: there is always something to step out from under, even where
+        the preset mode itself is set by hand or follows another entity.
+        """
+        return self.store.preset_automatic(self.config.subentry_id)
+
+    @property
+    def writable(self) -> bool:
+        """Return whether the mode of this preset may be set by hand.
+
+        Orphaned rather than merely unattached: a preset whose hub is not up
+        yet is still going to follow a preset mode, and refusing writes for
+        the length of a restart would be an error nobody can act on.
+        """
+        return not self.automatic and not self.config.is_orphaned
+
+    async def async_set_automatic(self, value: bool) -> None:
+        """Switch between following the preset mode and setting the mode here."""
+        if self.config.is_orphaned:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="preset_orphaned",
+                translation_placeholders={"preset": self.config.name},
+            )
+        if self.automatic == value:
+            return
+        if not value:
+            # Taking it out by hand again is the decision the repair asked for.
+            following.async_clear_manual_mode_issue(self.hass, self.config.subentry_id)
+            # Switching off changes nothing that is on screen: the mode the
+            # preset mode was handing over becomes the hand-set one. Without
+            # this the preset would drop onto whatever was set by hand last -
+            # possibly months ago - the moment the switch flips.
+            self.store.set_manual_mode(self.config.subentry_id, self.data.mode_key)
+        self.store.set_preset_automatic(self.config.subentry_id, value)
+        self._async_push_mode_change()
+
+    @callback
+    def async_set_active_mode(self, value: str) -> None:
+        """Set the mode of this preset by hand, from a key or display name."""
+        if self.config.is_orphaned:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="preset_orphaned",
+                translation_placeholders={"preset": self.config.name},
+            )
+        if self.automatic:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="preset_automatic_active",
+                translation_placeholders={"preset": self.config.name},
+            )
+        mode = self.resolve_mode(value)
+        if mode is None:
+            raise ServiceValidationError(
+                translation_domain=DOMAIN,
+                translation_key="unsupported_mode",
+                translation_placeholders={
+                    "mode": value,
+                    "preset": self.config.name,
+                    "modes": ", ".join(item.name for item in self.modes),
+                },
+            )
+        if not self.store.set_manual_mode(self.config.subentry_id, mode.key):
+            return
+        self._async_push_mode_change()
+
+    @callback
+    def async_release_lost_hold(self, modes: tuple[ModeDef, ...] | None = None) -> bool:
+        """Rejoin the preset mode when the mode this preset held was deleted.
+
+        Holding nothing is not the same as being held: the preset would follow
+        every switch of its preset mode from then on, with a switch that says
+        it does not - which is worse than either of the two honest states. So
+        it really does follow again, and a repair says what happened, because
+        the mode was deleted somewhere else and nothing else would mention it.
+
+        ``modes`` are the modes the preset is about to have; without them the
+        ones it has now. The name for the repair comes from the configuration
+        this coordinator still holds, which is where the deleted mode was last
+        written down.
+        """
+        if self.automatic:
+            return False
+        held = self.store.manual_mode(self.config.subentry_id)
+        available = self.config.modes if modes is None else modes
+        if held is None or find_mode(available, held) is not None:
+            return False
+
+        deleted = self.config.mode(held)
+        self.store.set_manual_mode(self.config.subentry_id, None)
+        self.store.set_preset_automatic(self.config.subentry_id, True)
+        following.async_create_manual_mode_issue(
+            self.hass,
+            self.config.subentry_id,
+            self.config.name,
+            deleted.name if deleted else held,
+        )
+        _LOGGER.info(
+            "Preset '%s' was set to mode '%s', which no longer exists; "
+            "it follows its preset mode again",
+            self.config.name,
+            deleted.name if deleted else held,
+        )
+        return True
+
+    @callback
+    def _async_push_mode_change(self) -> None:
+        """Write the state again, even where the resolved values did not move.
+
+        Switching the automatic normally resolves to the very same mode - that
+        is the point of it - so the ordinary "only push what changed" would
+        push nothing, while the switch, the selector and the sensor all have to
+        show the new arrangement.
+        """
+        new_state = self._compute_state()
+        if new_state == self.data:
+            self.async_update_listeners()
+        else:
+            self.async_set_updated_data(new_state)
 
     @callback
     def async_apply_config(self, config: PresetConfig) -> None:
@@ -617,9 +696,18 @@ class PresetCoordinator(DataUpdateCoordinator[PresetState]):
         A preset covers every mode of its preset mode, so the active mode is
         always usable. It stays undefined while no preset mode is attached -
         the hub is not up yet, or the preset is waiting to be assigned one.
+        A preset without a preset mode resolves nothing even when it was set
+        to a mode by hand: it is broken configuration, and a preset that
+        quietly kept working would hide that.
         """
         if self.preset_mode is None:
             return None
+        if not self.automatic:
+            manual = self.store.manual_mode(self.config.subentry_id)
+            # A mode that was deleted under the preset falls back to the one
+            # of the preset mode rather than leaving it without any.
+            if manual is not None and self.config.mode(manual) is not None:
+                return manual
         active = self.preset_mode.active_mode_key
         if active is not None and self.config.mode(active) is not None:
             return active

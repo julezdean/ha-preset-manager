@@ -45,7 +45,6 @@ from .conftest import (
 
 async def test_setup_creates_entities(hass: HomeAssistant, motion: Hubs) -> None:
     """The preset mode and preset entities are created."""
-    assert hass.states.get("select.house_mode_active_mode") is not None
     assert hass.states.get("sensor.house_mode_mode") is not None
     assert hass.states.get("sensor.motion_sensor_living_room_active_mode") is not None
     assert hass.states.get("sensor.motion_sensor_living_room_brightness") is not None

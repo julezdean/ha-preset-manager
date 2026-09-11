@@ -1,11 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { activeMode, activeModeKey, automaticState, modeLockReason } from "../src/data/state";
+import {
+  activeMode,
+  activeModeKey,
+  followsPresetMode,
+  modeLockReason,
+} from "../src/data/state";
 import { resolveSubject } from "../src/data/subject";
 import { entity, hass, structure } from "./fixtures";
 
 const CONFIG = structure();
-const presetMode = resolveSubject(CONFIG, "sensor.house_mode_mode")!;
 const preset = resolveSubject(CONFIG, "sensor.motion_sensor_living_room_active_mode")!;
 
 describe("activeModeKey", () => {
@@ -13,12 +17,14 @@ describe("activeModeKey", () => {
     // The state is the name and is renameable and translated; `mode_key` is
     // the thing every other part of the integration keys off.
     const states = {
-      "sensor.house_mode_mode": entity("sensor.house_mode_mode", "Night", {
-        mode_key: "night",
-      }),
+      "sensor.motion_sensor_living_room_active_mode": entity(
+        "sensor.motion_sensor_living_room_active_mode",
+        "Night",
+        { mode_key: "night" },
+      ),
     };
-    expect(activeModeKey(hass(states), presetMode)).toBe("night");
-    expect(activeMode(hass(states), presetMode)?.name).toBe("Night");
+    expect(activeModeKey(hass(states), preset)).toBe("night");
+    expect(activeMode(hass(states), preset)?.name).toBe("Night");
   });
 
   it("reads a preset from its own active mode sensor", () => {
@@ -35,72 +41,99 @@ describe("activeModeKey", () => {
   it("is nothing while no mode is active", () => {
     // No condition matched, or the source entity names no mode.
     const states = {
-      "sensor.house_mode_mode": entity("sensor.house_mode_mode", "unknown", {}),
+      "sensor.motion_sensor_living_room_active_mode": entity(
+        "sensor.motion_sensor_living_room_active_mode",
+        "unknown",
+        {},
+      ),
     };
-    expect(activeModeKey(hass(states), presetMode)).toBeNull();
-    expect(activeMode(hass(states), presetMode)).toBeNull();
+    expect(activeModeKey(hass(states), preset)).toBeNull();
+    expect(activeMode(hass(states), preset)).toBeNull();
   });
 
   it("is nothing while the entity does not exist at all", () => {
-    expect(activeModeKey(hass({}), presetMode)).toBeNull();
+    expect(activeModeKey(hass({}), preset)).toBeNull();
   });
 
   it("does not invent a mode for a key that was deleted", () => {
     const states = {
-      "sensor.house_mode_mode": entity("sensor.house_mode_mode", "Party", {
-        mode_key: "party",
-      }),
+      "sensor.motion_sensor_living_room_active_mode": entity(
+        "sensor.motion_sensor_living_room_active_mode",
+        "Party",
+        { mode_key: "party" },
+      ),
     };
-    expect(activeMode(hass(states), presetMode)).toBeNull();
+    expect(activeMode(hass(states), preset)).toBeNull();
   });
 });
 
-describe("automaticState", () => {
-  const target = CONFIG.preset_modes[0];
-
+describe("followsPresetMode", () => {
   it.each([
     ["on", true],
     ["off", false],
-  ])("reports the switch as %s", (state, expected) => {
+  ])("reports the switch of a preset as %s", (state, expected) => {
     const states = {
-      "switch.house_mode_automatic": entity("switch.house_mode_automatic", state),
+      "switch.motion_sensor_living_room_follows_preset_mode": entity(
+        "switch.motion_sensor_living_room_follows_preset_mode",
+        state,
+      ),
     };
-    expect(automaticState(hass(states), target)).toBe(expected);
+    expect(followsPresetMode(hass(states), preset)).toBe(expected);
   });
 
-  it("reports nothing when there is no automatic", () => {
-    expect(automaticState(hass({}), target)).toBeNull();
+  it("reports nothing while the entity does not exist", () => {
+    expect(followsPresetMode(hass({}), preset)).toBeNull();
   });
 });
 
 describe("modeLockReason", () => {
-  const target = CONFIG.preset_modes[0];
-
-  it("lets the mode be set while the automatic is off", () => {
+  it("lets a preset be set while it is not following", () => {
     const states = {
-      "switch.house_mode_automatic": entity("switch.house_mode_automatic", "off"),
+      "switch.motion_sensor_living_room_follows_preset_mode": entity(
+        "switch.motion_sensor_living_room_follows_preset_mode",
+        "off",
+      ),
     };
-    expect(modeLockReason(hass(states), target)).toBeNull();
+    expect(modeLockReason(hass(states), preset)).toBeNull();
   });
 
-  it("refuses while the automatic is on, the way the service does", () => {
+  it("refuses a preset that is following, the way the service does", () => {
     const states = {
-      "switch.house_mode_automatic": entity("switch.house_mode_automatic", "on"),
+      "switch.motion_sensor_living_room_follows_preset_mode": entity(
+        "switch.motion_sensor_living_room_follows_preset_mode",
+        "on",
+      ),
     };
-    expect(modeLockReason(hass(states), target)).toBe("automatic");
+    expect(modeLockReason(hass(states), preset)).toBe("following");
   });
 
-  it("refuses when the preset mode belongs to another entity", () => {
-    const external = { ...target, source_entity: "input_select.house_mode" };
-    expect(modeLockReason(hass({}), external)).toBe("external");
+  it("refuses a preset that follows no preset mode", () => {
+    const orphan = resolveSubject(CONFIG, "sensor.shutter_living_room_active_mode")!;
+    const states = {
+      "switch.shutter_living_room_follows_preset_mode": entity(
+        "switch.shutter_living_room_follows_preset_mode",
+        "off",
+      ),
+    };
+    expect(modeLockReason(hass(states), orphan)).toBe("missing");
   });
 
-  it("refuses when there is no preset mode to set", () => {
-    expect(modeLockReason(hass({}), null)).toBe("missing");
-  });
-
-  it("refuses when the selector is missing from the registry", () => {
-    const withoutSelector = { ...target, entities: { mode: "sensor.house_mode_mode" } };
-    expect(modeLockReason(hass({}), withoutSelector)).toBe("missing");
+  it("refuses a preset whose selector is missing from the registry", () => {
+    const withoutSelector = structure({
+      presets: [
+        {
+          ...CONFIG.presets[0],
+          entities: {
+            active_mode: "sensor.motion_sensor_living_room_active_mode",
+            automatic: "switch.motion_sensor_living_room_follows_preset_mode",
+          },
+        },
+      ],
+    });
+    const subject = resolveSubject(
+      withoutSelector,
+      "sensor.motion_sensor_living_room_active_mode",
+    )!;
+    expect(modeLockReason(hass({}), subject)).toBe("missing");
   });
 });

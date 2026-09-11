@@ -12,6 +12,171 @@ whatever it hands them — `b10` and `b11` landed between `b4` and `b3`. A final
 release sorts above every beta in either spelling, so the 0.3.0 tags were left
 as they are rather than renamed mid-series.
 
+## [0.4.0] - 2026-09-11
+
+A preset is what you operate; a preset mode is what defines the modes. This
+release makes the code say that. The preset mode loses its selector and its
+automatic - its mode comes from its conditions or from the entity it follows,
+and from nothing else - while every preset gains one of each, so a single
+preset can hold a mode of its own while the dimension carries on switching for
+the others. The card is about a preset only, and its value list gained a way
+to read and edit any mode without switching the house into it.
+
+**This release breaks things on purpose.** Two entities of a preset mode are
+gone and nothing replaces them there, `preset_manager.set_active_mode` is now
+aimed at a preset, and the card's options lost four groups. There is no
+migration path and no deprecation period: the integration has one user, who
+decided this. Storage grows one minor version, which older versions simply do
+not read.
+
+### Added
+
+- **The value list has a mode picker.** With `values.mode: picker` a row of
+  chips above it says which mode it shows: *Active* first - the resolved
+  values, and where the card rests - then one chip per mode, each opening that
+  mode's values as editors. Nothing is written until *Apply*, the draft is keyed by
+  entity so one round can touch several modes, and two buttons appear exactly
+  while something is waiting: *Apply* sends it, *Discard* drops it and the
+  editors go back to what the entities say. Reading a mode can therefore never
+  change the house, which is what made it worth showing at all.
+- **An automatic per preset.** Every preset gets
+  `switch.<preset>_follows_preset_mode` and `select.<preset>_mode_selection`.
+  With the switch off, that one preset holds a mode of its own while its preset
+  mode carries on switching for every other preset that follows it. Switching it
+  off changes nothing on the spot — the mode being handed over becomes the one
+  the preset holds; switching it back on rejoins the dimension and drops what
+  was set by hand. It exists on every preset, including those under a preset
+  mode with no conditions or one that follows another entity: this switch is
+  not about conditions, it is about whether a preset listens to its dimension.
+  A preset that follows no preset mode has nothing to hold and says so instead
+  of pretending to work.
+- `preset_manager.set_active_mode` now also takes a preset, addressed by its own
+  selector. Same service, same field.
+- `sensor.<preset>_active_mode` carries an `automatic` attribute. `mode_source`
+  keeps naming the preset mode, which stays true while the preset holds its own
+  mode.
+- A preset whose hand-set mode is deleted from its preset mode **rejoins it**:
+  its automatic goes back on, and a repair issue names the mode that went. The
+  quiet fall-back this replaces was not a fall-back at all - the preset went on
+  following every switch of its preset mode, with a switch that read "off" and
+  a card that said "set by hand". The repair is withdrawn when the preset is
+  taken out by hand again, which is the decision it asks for.
+- The preset's switch is `follows_preset_mode`, not `automatic`: the preset
+  mode's switch already owns that object id, and a preset named like its preset
+  mode would push one of the two into an `_2` suffix. The symmetric-looking
+  `mode_automatic` would have been worse - a preset "House" under a preset mode
+  "House Mode" builds the very same id, and that collision is invisible.
+- Storage minor version 2: two additional keys in
+  `.storage/preset_manager.values`. An older version simply does not find them,
+  so there is no migration step.
+
+### Fixed
+
+- The card picker in Home Assistant still offered "the values of a preset, or
+  the modes of a preset mode" - the second half of that sentence has had no
+  card behind it since the preset mode card went.
+- **The plain editors wrote nothing at all.** A control collects instead of
+  writing as soon as the card gives it somewhere to collect into, and the card
+  did that unconditionally - so unless editing sat behind a switch with an
+  *Apply* button, every change went into a draft nothing ever flushed. Silently,
+  and in the default way of editing rather than the opt-in one, since the card's
+  first release in 0.3.0. There is one way to write now and it always ends in
+  *Apply*, so the two paths that disagreed no longer exist.
+
+### Removed
+
+- **The footer is gone**, and `footer.visible` and `footer.content` with it. It
+  carried what a preset follows, which blueprint defines its parameters, the
+  entity its dimension follows and when the mode last changed - facts that
+  matter exactly when something looks wrong, which is not often enough to spend
+  a line of every card on. They are on the device page and in the attributes of
+  `sensor.<preset>_active_mode`.
+- **`editor.*` is one option under `values`.** `values.mode` takes `active` -
+  the resolved values, read-only, and the default - `picker`, `edit` or `all`.
+  "Can this card edit" and "which mode" were never two questions, and
+  `editor.style` and `editor.default_mode` went with the answer: the picker is
+  chips, and it starts on *Active*.
+- **A preset mode has no card.** It is a definition plus the logic that picks a
+  mode, it is not operated, and what it computes is one sensor that every core
+  card already draws - so the card is about a preset, and the entity picker
+  offers presets only. Pointing a card at a preset mode entity says that rather
+  than drawing something read-only. With it go `presets.visible`,
+  `presets.values` and `presets.editable`, which listed the presets of a
+  dimension.
+- **`editor.confirm` is gone**, and the *Edit* switch with it. The mode picker
+  starts on **Active** - the resolved values, read-only - and picking a mode is
+  itself the deliberate act the switch used to be: one gesture instead of two.
+  Every editor collects and nothing writes without *Apply*, so there is no
+  second way of editing left to switch into.
+- **A preset mode is not operated any more.** `select.<preset_mode>_active_mode`
+  and `switch.<preset_mode>_automatic` are gone, and
+  `preset_manager.set_active_mode` no longer has anything on a preset mode to be
+  aimed at. Its mode comes from its conditions or from the entity it follows,
+  and from nothing else - it is the definition of the modes plus, optionally,
+  the logic that picks one. Two places to switch an automatic on and off was one
+  too many, and the built-in selector was an `input_select` with fewer
+  abilities: point a preset mode at a real one and you get the same thing on any
+  dashboard, in any automation, with a history. A preset mode with neither
+  conditions nor an entity stays on its first mode; the presets following it are
+  the ones taken out by hand.
+- The one switch left in the integration sits on the preset. Its entity id says
+  what it does - `switch.<preset>_follows_preset_mode`, so that a preset named
+  like its preset mode has nothing to collide with - and its name says what it
+  is: **Mode-Automatik**, *Automatic mode selection* in English. Nothing else is
+  called automatic any more, so the word is unambiguous again.
+
+### Changed
+
+- **The mode picker in the value list is a tab strip, not a second row of
+  chips.** However small those chips were made, two rows of pills on one card
+  claimed the same authority - and they are not the same act: the row above
+  switches the house, this one switches nothing but the panel underneath. A
+  pill is a state, a tab is a view. The strip carries no colour and no icons,
+  reaches both edges of the card, and scrolls sideways rather than wrapping,
+  so it stays one strip with twelve modes as with three. Arrow keys walk along
+  it and the selection follows the focus, which costs nothing here because
+  reading a mode changes nothing.
+- **No more rules between the sections of a card.** Header, modes and values
+  were separated by a hairline each; the padding around them already groups
+  them, and three lines on a card that carries at most four blocks drew more
+  attention to the seams than to what is in them.
+- **`modes.style` is gone.** It had two settings and one of them stopped
+  existing: a preset mode draws its modes as a list, so the option did nothing
+  there at all, and an option that is silently inert on one kind of card is
+  worse than no option. On a preset card the row is only usable while that
+  preset is not following, so a compact rendering of a rarely-touched control
+  bought little - and `modes.visible: manual` takes the row away entirely,
+  which is what a dense dashboard actually wants. `editor.style` keeps both
+  shapes; that picker is used while editing, not in the exception.
+- **The visual editor stops offering a preset mode what it cannot use**: the
+  automatic switch is gone from its header group, and the mode row is a plain
+  switch there rather than a choice of three - "while the mode can be set by
+  hand" means the same as "never" on an object that is never set by hand, and a
+  choice between two words for one outcome is one the user has to work out
+  before discarding it.
+- **The second line of a preset card always says where the mode comes from** -
+  `Night · Automatic` or `Night · Manual`, not only the deviating one. Three
+  states used to collapse into two: a bare `Night` meant either "follows" or
+  "the switch is missing or unavailable", and naming both leaves the bare form
+  to mean only the third.
+- **The header is a real button again.** It had to give up `role="button"` and
+  its keyboard handling for as long as the whole row was one and contained a
+  switch, so `tap_action` and `hold_action` were reachable with the mouse and
+  with nothing else. The name is the button now and the switch is its sibling,
+  which is valid, announceable, and fires on Enter and Space by itself. The
+  switch also lost its label: it can only belong to the object named beside it,
+  so the word rides on the `aria-label` and costs no width - the title has 186
+  pixels where the labelled version left it 137.
+- **A card now only ever operates the object it is about.** On a preset card the
+  switch is that preset's automatic and the chips set that preset's mode; both
+  used to reach into the preset mode. Because of that the mode row is shown on a
+  preset card by default now — it no longer changes what every other preset of
+  the dimension does.
+- **`header.automatic` switches the automatic of the preset**, not the one of
+  its preset mode - which no longer has one. Same key, same place on the card,
+  and now it belongs to the object whose name it sits beside. That mismatch was
+  the whole reason it ever looked out of place.
+
 ## [0.3.0] - 2026-09-09
 
 The integration gets a face: a dashboard card it ships and registers itself.

@@ -477,13 +477,13 @@
       }
     },
     "select": {
-      "active_mode": {
-        "name": "Active mode"
+      "mode_selection": {
+        "name": "Mode selection"
       }
     },
     "switch": {
-      "automatic": {
-        "name": "Automatic"
+      "mode_automatic": {
+        "name": "Automatic mode selection"
       }
     }
   },
@@ -509,11 +509,11 @@
     "single_preset_required": {
       "message": "This service can only be called for exactly one preset."
     },
-    "automatic_active": {
-      "message": "The mode of \"{preset_mode}\" follows its source. Turn the automatic switch off to set the mode by hand."
+    "preset_automatic_active": {
+      "message": "The mode of \"{preset}\" comes from its preset mode. Turn off \"Automatic mode selection\" to set it here."
     },
-    "external_source": {
-      "message": "The mode of “{preset_mode}” follows {entity_id} and cannot be set by hand. Clear that entity in the settings of the preset mode first."
+    "preset_orphaned": {
+      "message": "\"{preset}\" follows no preset mode, so it has no mode to set. Assign a preset mode in the settings of the preset first."
     }
   },
   "services": {
@@ -560,6 +560,10 @@
     "orphaned_preset": {
       "title": "Preset \"{preset}\" has no preset mode",
       "description": "Nothing decides which mode is active for this preset, so its values do not resolve. Either it was created without a preset mode, or the one it followed was deleted - in which case it kept its parameters, its values and its modes.\n\nAssign it a preset mode: Settings > Devices & services > Preset Manager > Presets, then the preset, then “Assign preset mode”."
+    },
+    "manual_mode_deleted": {
+      "title": "Preset \"{preset}\" lost the mode it was set to",
+      "description": "It was set by hand to \"{mode}\", and that mode has been deleted from its preset mode. A preset that holds nothing is not held at all - it would follow every switch of its preset mode with a switch that says it does not - so it follows its preset mode again.\n\nIf it should stand on its own, turn \"Automatic mode selection\" off and pick one of the remaining modes."
     }
   }
 }

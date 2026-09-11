@@ -10,12 +10,22 @@ describe("resolveConfig", () => {
     expect(config.entity).toBe("sensor.house_mode_mode");
     expect(config.header.visible).toBe(true);
     expect(config.values.visible).toBe(true);
-    expect(config.modes.visible).toBeUndefined();
+    expect(config.modes.visible).toBe("always");
   });
 
   it("keeps the editors closed unless asked", () => {
     // They are configuration entities: setting a preset up, not running it.
-    expect(resolveConfig(MINIMAL).editor.enabled).toBe(false);
+    expect(resolveConfig(MINIMAL).values.mode).toBe("active");
+  });
+
+  it("has no editor group any more", () => {
+    // "Can this card edit" and "which mode" were one ladder, and folding them
+    // together leaves no combination that contradicts itself.
+    expect(resolveConfig(MINIMAL)).not.toHaveProperty("editor");
+  });
+
+  it.each(["active", "picker", "edit", "all"])("takes %s", (mode) => {
+    expect(resolveConfig({ ...MINIMAL, values: { mode } }).values.mode).toBe(mode);
   });
 
   it("says what to write when the entity is missing", () => {
@@ -34,27 +44,25 @@ describe("resolveConfig", () => {
   });
 
   it("names the option when a value is out of range", () => {
-    expect(() => resolveConfig({ ...MINIMAL, editor: { mode: "sometimes" } })).toThrow(
-      /picker, active, all/,
+    expect(() => resolveConfig({ ...MINIMAL, values: { mode: "sometimes" } })).toThrow(
+      /active, picker, edit, all/,
     );
   });
 
-  it("leaves the two visibility switches alone until they are set", () => {
-    // What a card shows by default depends on what its entity turned out to
-    // be, and that is not known here. Undefined means "the card decides".
+  it("shows the mode row and the automatic unless told otherwise", () => {
     const config = resolveConfig(MINIMAL);
-    expect(config.modes.visible).toBeUndefined();
-    expect(config.header.automatic).toBeUndefined();
+    expect(config.modes.visible).toBe("always");
+    expect(config.header.automatic).toBe(true);
   });
 
-  it("takes them as plain switches once they are", () => {
+  it("takes them as plain switches once they are set", () => {
     const config = resolveConfig({
       ...MINIMAL,
+      header: { automatic: false },
       modes: { visible: false },
-      header: { automatic: true },
     });
     expect(config.modes.visible).toBe("never");
-    expect(config.header.automatic).toBe(true);
+    expect(config.header.automatic).toBe(false);
   });
 
   it.each([
@@ -88,16 +96,7 @@ describe("resolveConfig", () => {
     ]);
   });
 
-  it("shows a footer that was given content, without a second switch", () => {
-    const config = resolveConfig({ ...MINIMAL, footer: { content: ["blueprint"] } });
-    expect(config.footer.visible).toBe(true);
-    expect(config.footer.content).toEqual(["blueprint"]);
-  });
 
-  it("gives an asked-for footer something to say", () => {
-    const config = resolveConfig({ ...MINIMAL, footer: { visible: true } });
-    expect(config.footer.content).toEqual(["preset_mode"]);
-  });
 
   it("leaves keys Lovelace adds alone", () => {
     expect(() =>
@@ -126,14 +125,13 @@ describe("pruneConfig", () => {
       ...resolved,
       type: MINIMAL.type,
       entity: MINIMAL.entity,
-      editor: { enabled: true, mode: "picker" },
-      modes: { visible: true, style: "chips" },
+      values: { mode: "picker", icons: false },
+      modes: { visible: true },
     });
-    // `mode: picker` and `style: chips` are the defaults and go; the other two
-    // stay.
+    // `icons: false` is the default and goes; the other two stay.
     expect(pruned).toEqual({
       ...MINIMAL,
-      editor: { enabled: true },
+      values: { mode: "picker" },
       modes: { visible: true },
     });
   });
@@ -145,35 +143,5 @@ describe("pruneConfig", () => {
       modes: { visible: true },
     });
     expect(resolveConfig(written).modes.visible).toBe("always");
-  });
-});
-
-describe("editable presets", () => {
-  const MODE_CARD = { ...MINIMAL, entity: "sensor.house_mode_mode" };
-
-  it("is off, like every other editor on this card", () => {
-    expect(resolveConfig(MODE_CARD).presets.editable).toBe(false);
-  });
-
-  it("brings the list and the values with it", () => {
-    // Asking for editable presets is asking to see them; a third switch to
-    // turn on first would only be a way to get it wrong.
-    const config = resolveConfig({ ...MODE_CARD, presets: { editable: true } });
-    expect(config.presets.visible).toBe(true);
-    expect(config.presets.values).toBe(true);
-  });
-
-  it("still lets the list be shown without editing it", () => {
-    const config = resolveConfig({ ...MODE_CARD, presets: { visible: true } });
-    expect(config.presets.values).toBe(false);
-    expect(config.presets.editable).toBe(false);
-  });
-
-  it("takes an explicit no over the implication", () => {
-    const config = resolveConfig({
-      ...MODE_CARD,
-      presets: { editable: true, values: false },
-    });
-    expect(config.presets.values).toBe(false);
   });
 });

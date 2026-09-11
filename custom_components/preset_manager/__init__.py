@@ -53,11 +53,7 @@ CONFIG_SCHEMA = cv.config_entry_only_config_schema(DOMAIN)
 #: switch belong to a preset mode; everything else belongs to a preset. Three
 #: platforms are forwarded by both hubs and tell the two apart by the hub they
 #: are set up from.
-PLATFORMS_PRESET_MODES: list[Platform] = [
-    Platform.SELECT,
-    Platform.SENSOR,
-    Platform.SWITCH,
-]
+PLATFORMS_PRESET_MODES: list[Platform] = [Platform.SENSOR]
 PLATFORMS_PRESETS: list[Platform] = [
     Platform.BINARY_SENSOR,
     Platform.DATE,

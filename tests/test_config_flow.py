@@ -102,7 +102,7 @@ async def test_config_flow_creates_a_preset_mode(hass: HomeAssistant) -> None:
         "away",
         "night",
     ]
-    assert hass.states.get("select.house_mode_active_mode").state == "Home"
+    assert hass.states.get("sensor.house_mode_mode").state == "Home"
 
 
 async def test_config_flow_rejects_duplicates(hass: HomeAssistant) -> None:
@@ -140,7 +140,7 @@ async def test_second_preset_mode_joins_the_hub(hass: HomeAssistant) -> None:
 
     assert len(hass.config_entries.async_entries(DOMAIN)) == 1
     assert hass.states.get("sensor.window_state_mode").state == "Closed"
-    assert hass.states.get("select.window_state_active_mode") is not None
+    assert hass.states.get("sensor.window_state_mode") is not None
     # The first preset mode is untouched.
     assert hass.states.get("sensor.house_mode_mode").state == "Home"
 
@@ -195,7 +195,7 @@ async def test_preset_mode_settings_set_and_clear_the_source_entity(
     await hass.async_block_till_done()
 
     # Without an entity the preset mode is its own again, selector included.
-    assert hass.states.get("select.house_mode_active_mode") is not None
+    assert hass.states.get("sensor.house_mode_mode") is not None
 
 
 async def test_manage_modes_renames_and_keeps_values(
@@ -258,7 +258,7 @@ async def test_manage_modes_adds_reorders_and_deletes(
         "window_open",
     ]
     # The order is also the order of the select options.
-    assert hass.states.get("select.house_mode_active_mode").attributes["options"] == [
+    assert hass.states.get("sensor.house_mode_mode").attributes["modes"] == [
         "Night",
         "Vacation",
         "Home",
@@ -361,7 +361,6 @@ async def test_manage_modes_sets_conditions(hass: HomeAssistant, motion: Hubs) -
     await hass.async_block_till_done()
 
     # Conditions turn the preset mode automatic.
-    assert hass.states.get("switch.house_mode_automatic").state == "on"
     assert hass.states.get("sensor.house_mode_mode").state == "Window open"
 
     hass.states.async_set("binary_sensor.window", "off")

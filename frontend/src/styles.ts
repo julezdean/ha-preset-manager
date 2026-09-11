@@ -47,17 +47,11 @@ export const cardStyles = css`
     padding: var(--pm-padding-y) var(--pm-padding-x);
   }
 
-  /* A rule only ever appears between two sections that are both there, so an
-     empty card never shows a line with nothing on either side of it. */
-  .section + .section {
-    border-top: 1px solid var(--pm-divider);
-  }
-
   /* Header ---------------------------------------------------------------- */
 
-  /* The name and whatever sits at the end share a line while both fit, and
-     the end drops onto its own when they do not - so a labelled switch never
-     squeezes the name down to two letters on a narrow card. */
+  /* Name and switch share a line while both fit, and the switch drops onto
+     its own when they do not - so a toggle in the corner never squeezes the
+     name down to two letters on a narrow card. */
   .header {
     display: flex;
     flex-wrap: wrap;
@@ -65,7 +59,43 @@ export const cardStyles = css`
     gap: 8px var(--pm-gap);
   }
 
-  .header.tappable {
+  /* The name is the button, not the row: a row that also holds a switch must
+     not be one, and making it one anyway is what cost this header its
+     keyboard. Everything below only takes the button back out of its default
+     appearance - it has to read as the content it wraps. */
+  .header-main {
+    flex: 1 1 160px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--pm-gap);
+    appearance: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+  }
+
+  .header-main.tappable {
+    cursor: pointer;
+  }
+
+  .header-end {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  /* A switch with nothing written next to it. It can only belong to the object
+     named beside it, so the row says what it switches; the word rides on the
+     aria-label, where it is needed and costs no width. */
+  .switch-field {
+    display: inline-flex;
+    align-items: center;
     cursor: pointer;
   }
 
@@ -107,25 +137,6 @@ export const cardStyles = css`
     white-space: nowrap;
   }
 
-  .header-end {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-  }
-
-  /* A switch with the word it belongs to, both clickable. A bare toggle in a
-     corner says that something can be turned on, and nothing about what. */
-  .switch-field {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--pm-muted);
-    font-size: 13px;
-    cursor: pointer;
-  }
-
   /* Modes ----------------------------------------------------------------- */
 
   .chips {
@@ -153,7 +164,12 @@ export const cardStyles = css`
     --mdc-icon-size: 16px;
   }
 
-  .chip:hover:not(:disabled) {
+  /* A list item is not a control: no pointer, no hover, no press. */
+  span.chip {
+    cursor: default;
+  }
+
+  button.chip:hover:not(:disabled) {
     background: color-mix(in srgb, var(--pm-text) 14%, transparent);
   }
 
@@ -167,31 +183,62 @@ export const cardStyles = css`
     cursor: default;
   }
 
-  /* The mode row changes the house; the editing row changes what this card
-     shows. Two rows of identical chips said those were the same kind of act.
-     This one is smaller, carries no icons and takes its selected colour from
-     the text rather than the accent - a switch on the card, not a state of
-     the home. */
-  .chips.secondary .chip {
-    min-height: 26px;
-    padding: 0 10px;
-    font-size: 12px;
-    background: transparent;
-    box-shadow: inset 0 0 0 1px var(--pm-divider);
+  .chip:disabled:not([aria-pressed="true"]) {
+    color: var(--pm-disabled);
   }
 
-  .chips.secondary .chip:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--pm-text) 8%, transparent);
+  /* Mode tabs -------------------------------------------------------------- */
+
+  /* The chip row changes the house; this one changes what the card shows. As
+     two rows of pills they claimed the same authority, however small the
+     second one was made - a pill is a state, a tab is a view. So: no colour,
+     no icons, no enclosure, and flush against the list it governs, which is
+     why the strip is its own section and pulls back out of its padding. */
+  .section.strip {
+    padding-bottom: 0;
   }
 
-  .chips.secondary .chip[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--pm-text) 14%, transparent);
-    box-shadow: none;
+  .tabs {
+    display: flex;
+    gap: 18px;
+    /* Sideways rather than into a second line: a strip that wraps stops
+       reading as one strip. The scrollbar stays hidden; the cut-off tab at
+       the edge is what says there is more. */
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * var(--pm-padding-x));
+    padding: 0 var(--pm-padding-x);
+    border-bottom: 1px solid var(--pm-divider);
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    appearance: none;
+    border: none;
+    background: none;
+    color: var(--pm-muted);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 4px 0 10px;
+    /* Over the strip's own line, so the two never stack into 3px. */
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+
+  .tab:hover {
     color: var(--pm-text);
   }
 
-  .chip:disabled:not([aria-pressed="true"]) {
-    color: var(--pm-disabled);
+  .tab[aria-selected="true"] {
+    color: var(--pm-text);
+    border-bottom-color: var(--pm-accent);
   }
 
   /* Rows ------------------------------------------------------------------ */
@@ -439,11 +486,15 @@ export const cardStyles = css`
   }
 
   /* The row that opens the editors, and the one that closes them. */
+  /* A label and the switch it belongs to, the whole row clickable. A bare
+     toggle in a corner says that something can be turned on, and nothing
+     about what - this says it, and says it in the width the sentence needs. */
   .toolbar {
     display: flex;
     align-items: center;
     gap: var(--pm-gap);
     min-height: 28px;
+    cursor: pointer;
   }
 
   .toolbar-label {
@@ -451,6 +502,25 @@ export const cardStyles = css`
     min-width: 0;
     color: var(--pm-muted);
     font-size: 14px;
+  }
+
+  /* Quiet beside the accent: discarding is the way back, not the point of
+     the row, and two filled buttons would ask which one is the safe one. */
+  .discard {
+    appearance: none;
+    min-height: 32px;
+    padding: 0 12px;
+    border: none;
+    border-radius: var(--pm-chip-radius);
+    background: none;
+    color: var(--pm-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .discard:hover {
+    color: var(--pm-text);
   }
 
   .apply {

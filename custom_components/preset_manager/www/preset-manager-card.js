@@ -1,4 +1,4 @@
-const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3?t:null===i?i=Object.getOwnPropertyDescriptor(t,s):i;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)o=Reflect.decorate(e,t,s,i);else for(var a=e.length-1;a>=0;a--)(n=e[a])&&(o=(r<3?n(o):r>3?n(t,s,o):n(t,s))||o);return r>3&&o&&Object.defineProperty(t,s,o),o}"function"==typeof SuppressedError&&SuppressedError;const s=globalThis,i=s.ShadowRoot&&(void 0===s.ShadyCSS||s.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,n=Symbol(),r=new WeakMap;let o=class{constructor(e,t,s){if(this._$cssResult$=!0,s!==n)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=e,this.t=t}get styleSheet(){let e=this.o;const t=this.t;if(i&&void 0===e){const s=void 0!==t&&1===t.length;s&&(e=r.get(t)),void 0===e&&((this.o=e=new CSSStyleSheet).replaceSync(this.cssText),s&&r.set(t,e))}return e}toString(){return this.cssText}};const a=i?e=>e:e=>e instanceof CSSStyleSheet?(e=>{let t="";for(const s of e.cssRules)t+=s.cssText;return(e=>new o("string"==typeof e?e:e+"",void 0,n))(t)})(e):e,{is:c,defineProperty:l,getOwnPropertyDescriptor:d,getOwnPropertyNames:h,getOwnPropertySymbols:p,getPrototypeOf:u}=Object,m=globalThis,f=m.trustedTypes,_=f?f.emptyScript:"",v=m.reactiveElementPolyfillSupport,b=(e,t)=>e,g={toAttribute(e,t){switch(t){case Boolean:e=e?_:null;break;case Object:case Array:e=null==e?e:JSON.stringify(e)}return e},fromAttribute(e,t){let s=e;switch(t){case Boolean:s=null!==e;break;case Number:s=null===e?null:Number(e);break;case Object:case Array:try{s=JSON.parse(e)}catch(e){s=null}}return s}},$=(e,t)=>!c(e,t),y={attribute:!0,type:String,converter:g,reflect:!1,useDefault:!1,hasChanged:$};Symbol.metadata??=Symbol("metadata"),m.litPropertyMetadata??=new WeakMap;let w=class extends HTMLElement{static addInitializer(e){this._$Ei(),(this.l??=[]).push(e)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(e,t=y){if(t.state&&(t.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(e)&&((t=Object.create(t)).wrapped=!0),this.elementProperties.set(e,t),!t.noAccessor){const s=Symbol(),i=this.getPropertyDescriptor(e,s,t);void 0!==i&&l(this.prototype,e,i)}}static getPropertyDescriptor(e,t,s){const{get:i,set:n}=d(this.prototype,e)??{get(){return this[t]},set(e){this[t]=e}};return{get:i,set(t){const r=i?.call(this);n?.call(this,t),this.requestUpdate(e,r,s)},configurable:!0,enumerable:!0}}static getPropertyOptions(e){return this.elementProperties.get(e)??y}static _$Ei(){if(this.hasOwnProperty(b("elementProperties")))return;const e=u(this);e.finalize(),void 0!==e.l&&(this.l=[...e.l]),this.elementProperties=new Map(e.elementProperties)}static finalize(){if(this.hasOwnProperty(b("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(b("properties"))){const e=this.properties,t=[...h(e),...p(e)];for(const s of t)this.createProperty(s,e[s])}const e=this[Symbol.metadata];if(null!==e){const t=litPropertyMetadata.get(e);if(void 0!==t)for(const[e,s]of t)this.elementProperties.set(e,s)}this._$Eh=new Map;for(const[e,t]of this.elementProperties){const s=this._$Eu(e,t);void 0!==s&&this._$Eh.set(s,e)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(e){const t=[];if(Array.isArray(e)){const s=new Set(e.flat(1/0).reverse());for(const e of s)t.unshift(a(e))}else void 0!==e&&t.push(a(e));return t}static _$Eu(e,t){const s=t.attribute;return!1===s?void 0:"string"==typeof s?s:"string"==typeof e?e.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(e=>this.enableUpdating=e),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(e=>e(this))}addController(e){(this._$EO??=new Set).add(e),void 0!==this.renderRoot&&this.isConnected&&e.hostConnected?.()}removeController(e){this._$EO?.delete(e)}_$E_(){const e=new Map,t=this.constructor.elementProperties;for(const s of t.keys())this.hasOwnProperty(s)&&(e.set(s,this[s]),delete this[s]);e.size>0&&(this._$Ep=e)}createRenderRoot(){const e=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((e,t)=>{if(i)e.adoptedStyleSheets=t.map(e=>e instanceof CSSStyleSheet?e:e.styleSheet);else for(const i of t){const t=document.createElement("style"),n=s.litNonce;void 0!==n&&t.setAttribute("nonce",n),t.textContent=i.cssText,e.appendChild(t)}})(e,this.constructor.elementStyles),e}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(e=>e.hostConnected?.())}enableUpdating(e){}disconnectedCallback(){this._$EO?.forEach(e=>e.hostDisconnected?.())}attributeChangedCallback(e,t,s){this._$AK(e,s)}_$ET(e,t){const s=this.constructor.elementProperties.get(e),i=this.constructor._$Eu(e,s);if(void 0!==i&&!0===s.reflect){const n=(void 0!==s.converter?.toAttribute?s.converter:g).toAttribute(t,s.type);this._$Em=e,null==n?this.removeAttribute(i):this.setAttribute(i,n),this._$Em=null}}_$AK(e,t){const s=this.constructor,i=s._$Eh.get(e);if(void 0!==i&&this._$Em!==i){const e=s.getPropertyOptions(i),n="function"==typeof e.converter?{fromAttribute:e.converter}:void 0!==e.converter?.fromAttribute?e.converter:g;this._$Em=i;const r=n.fromAttribute(t,e.type);this[i]=r??this._$Ej?.get(i)??r,this._$Em=null}}requestUpdate(e,t,s,i=!1,n){if(void 0!==e){const r=this.constructor;if(!1===i&&(n=this[e]),s??=r.getPropertyOptions(e),!((s.hasChanged??$)(n,t)||s.useDefault&&s.reflect&&n===this._$Ej?.get(e)&&!this.hasAttribute(r._$Eu(e,s))))return;this.C(e,t,s)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(e,t,{useDefault:s,reflect:i,wrapped:n},r){s&&!(this._$Ej??=new Map).has(e)&&(this._$Ej.set(e,r??t??this[e]),!0!==n||void 0!==r)||(this._$AL.has(e)||(this.hasUpdated||s||(t=void 0),this._$AL.set(e,t)),!0===i&&this._$Em!==e&&(this._$Eq??=new Set).add(e))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(e){Promise.reject(e)}const e=this.scheduleUpdate();return null!=e&&await e,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[e,t]of this._$Ep)this[e]=t;this._$Ep=void 0}const e=this.constructor.elementProperties;if(e.size>0)for(const[t,s]of e){const{wrapped:e}=s,i=this[t];!0!==e||this._$AL.has(t)||void 0===i||this.C(t,void 0,s,i)}}let e=!1;const t=this._$AL;try{e=this.shouldUpdate(t),e?(this.willUpdate(t),this._$EO?.forEach(e=>e.hostUpdate?.()),this.update(t)):this._$EM()}catch(t){throw e=!1,this._$EM(),t}e&&this._$AE(t)}willUpdate(e){}_$AE(e){this._$EO?.forEach(e=>e.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(e)),this.updated(e)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(e){return!0}update(e){this._$Eq&&=this._$Eq.forEach(e=>this._$ET(e,this[e])),this._$EM()}updated(e){}firstUpdated(e){}};w.elementStyles=[],w.shadowRootOptions={mode:"open"},w[b("elementProperties")]=new Map,w[b("finalized")]=new Map,v?.({ReactiveElement:w}),(m.reactiveElementVersions??=[]).push("2.1.2");const x=globalThis,A=e=>e,k=x.trustedTypes,E=k?k.createPolicy("lit-html",{createHTML:e=>e}):void 0,S="$lit$",M=`lit$${Math.random().toFixed(9).slice(2)}$`,T="?"+M,C=`<${T}>`,P=document,j=()=>P.createComment(""),O=e=>null===e||"object"!=typeof e&&"function"!=typeof e,N=Array.isArray,U="[ \t\n\f\r]",z=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,H=/-->/g,R=/>/g,D=RegExp(`>|${U}(?:([^\\s"'>=/]+)(${U}*=${U}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),L=/'/g,B=/"/g,W=/^(?:script|style|textarea|title)$/i,I=(e=>(t,...s)=>({_$litType$:e,strings:t,values:s}))(1),q=Symbol.for("lit-noChange"),F=Symbol.for("lit-nothing"),V=new WeakMap,J=P.createTreeWalker(P,129);function K(e,t){if(!N(e)||!e.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==E?E.createHTML(t):t}const G=(e,t)=>{const s=e.length-1,i=[];let n,r=2===t?"<svg>":3===t?"<math>":"",o=z;for(let t=0;t<s;t++){const s=e[t];let a,c,l=-1,d=0;for(;d<s.length&&(o.lastIndex=d,c=o.exec(s),null!==c);)d=o.lastIndex,o===z?"!--"===c[1]?o=H:void 0!==c[1]?o=R:void 0!==c[2]?(W.test(c[2])&&(n=RegExp("</"+c[2],"g")),o=D):void 0!==c[3]&&(o=D):o===D?">"===c[0]?(o=n??z,l=-1):void 0===c[1]?l=-2:(l=o.lastIndex-c[2].length,a=c[1],o=void 0===c[3]?D:'"'===c[3]?B:L):o===B||o===L?o=D:o===H||o===R?o=z:(o=D,n=void 0);const h=o===D&&e[t+1].startsWith("/>")?" ":"";r+=o===z?s+C:l>=0?(i.push(a),s.slice(0,l)+S+s.slice(l)+M+h):s+M+(-2===l?t:h)}return[K(e,r+(e[s]||"<?>")+(2===t?"</svg>":3===t?"</math>":"")),i]};class X{constructor({strings:e,_$litType$:t},s){let i;this.parts=[];let n=0,r=0;const o=e.length-1,a=this.parts,[c,l]=G(e,t);if(this.el=X.createElement(c,s),J.currentNode=this.el.content,2===t||3===t){const e=this.el.content.firstChild;e.replaceWith(...e.childNodes)}for(;null!==(i=J.nextNode())&&a.length<o;){if(1===i.nodeType){if(i.hasAttributes())for(const e of i.getAttributeNames())if(e.endsWith(S)){const t=l[r++],s=i.getAttribute(e).split(M),o=/([.?@])?(.*)/.exec(t);a.push({type:1,index:n,name:o[2],strings:s,ctor:"."===o[1]?te:"?"===o[1]?se:"@"===o[1]?ie:ee}),i.removeAttribute(e)}else e.startsWith(M)&&(a.push({type:6,index:n}),i.removeAttribute(e));if(W.test(i.tagName)){const e=i.textContent.split(M),t=e.length-1;if(t>0){i.textContent=k?k.emptyScript:"";for(let s=0;s<t;s++)i.append(e[s],j()),J.nextNode(),a.push({type:2,index:++n});i.append(e[t],j())}}}else if(8===i.nodeType)if(i.data===T)a.push({type:2,index:n});else{let e=-1;for(;-1!==(e=i.data.indexOf(M,e+1));)a.push({type:7,index:n}),e+=M.length-1}n++}}static createElement(e,t){const s=P.createElement("template");return s.innerHTML=e,s}}function Y(e,t,s=e,i){if(t===q)return t;let n=void 0!==i?s._$Co?.[i]:s._$Cl;const r=O(t)?void 0:t._$litDirective$;return n?.constructor!==r&&(n?._$AO?.(!1),void 0===r?n=void 0:(n=new r(e),n._$AT(e,s,i)),void 0!==i?(s._$Co??=[])[i]=n:s._$Cl=n),void 0!==n&&(t=Y(e,n._$AS(e,t.values),n,i)),t}class Z{constructor(e,t){this._$AV=[],this._$AN=void 0,this._$AD=e,this._$AM=t}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(e){const{el:{content:t},parts:s}=this._$AD,i=(e?.creationScope??P).importNode(t,!0);J.currentNode=i;let n=J.nextNode(),r=0,o=0,a=s[0];for(;void 0!==a;){if(r===a.index){let t;2===a.type?t=new Q(n,n.nextSibling,this,e):1===a.type?t=new a.ctor(n,a.name,a.strings,this,e):6===a.type&&(t=new ne(n,this,e)),this._$AV.push(t),a=s[++o]}r!==a?.index&&(n=J.nextNode(),r++)}return J.currentNode=P,i}p(e){let t=0;for(const s of this._$AV)void 0!==s&&(void 0!==s.strings?(s._$AI(e,s,t),t+=s.strings.length-2):s._$AI(e[t])),t++}}class Q{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(e,t,s,i){this.type=2,this._$AH=F,this._$AN=void 0,this._$AA=e,this._$AB=t,this._$AM=s,this.options=i,this._$Cv=i?.isConnected??!0}get parentNode(){let e=this._$AA.parentNode;const t=this._$AM;return void 0!==t&&11===e?.nodeType&&(e=t.parentNode),e}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(e,t=this){e=Y(this,e,t),O(e)?e===F||null==e||""===e?(this._$AH!==F&&this._$AR(),this._$AH=F):e!==this._$AH&&e!==q&&this._(e):void 0!==e._$litType$?this.$(e):void 0!==e.nodeType?this.T(e):(e=>N(e)||"function"==typeof e?.[Symbol.iterator])(e)?this.k(e):this._(e)}O(e){return this._$AA.parentNode.insertBefore(e,this._$AB)}T(e){this._$AH!==e&&(this._$AR(),this._$AH=this.O(e))}_(e){this._$AH!==F&&O(this._$AH)?this._$AA.nextSibling.data=e:this.T(P.createTextNode(e)),this._$AH=e}$(e){const{values:t,_$litType$:s}=e,i="number"==typeof s?this._$AC(e):(void 0===s.el&&(s.el=X.createElement(K(s.h,s.h[0]),this.options)),s);if(this._$AH?._$AD===i)this._$AH.p(t);else{const e=new Z(i,this),s=e.u(this.options);e.p(t),this.T(s),this._$AH=e}}_$AC(e){let t=V.get(e.strings);return void 0===t&&V.set(e.strings,t=new X(e)),t}k(e){N(this._$AH)||(this._$AH=[],this._$AR());const t=this._$AH;let s,i=0;for(const n of e)i===t.length?t.push(s=new Q(this.O(j()),this.O(j()),this,this.options)):s=t[i],s._$AI(n),i++;i<t.length&&(this._$AR(s&&s._$AB.nextSibling,i),t.length=i)}_$AR(e=this._$AA.nextSibling,t){for(this._$AP?.(!1,!0,t);e!==this._$AB;){const t=A(e).nextSibling;A(e).remove(),e=t}}setConnected(e){void 0===this._$AM&&(this._$Cv=e,this._$AP?.(e))}}class ee{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(e,t,s,i,n){this.type=1,this._$AH=F,this._$AN=void 0,this.element=e,this.name=t,this._$AM=i,this.options=n,s.length>2||""!==s[0]||""!==s[1]?(this._$AH=Array(s.length-1).fill(new String),this.strings=s):this._$AH=F}_$AI(e,t=this,s,i){const n=this.strings;let r=!1;if(void 0===n)e=Y(this,e,t,0),r=!O(e)||e!==this._$AH&&e!==q,r&&(this._$AH=e);else{const i=e;let o,a;for(e=n[0],o=0;o<n.length-1;o++)a=Y(this,i[s+o],t,o),a===q&&(a=this._$AH[o]),r||=!O(a)||a!==this._$AH[o],a===F?e=F:e!==F&&(e+=(a??"")+n[o+1]),this._$AH[o]=a}r&&!i&&this.j(e)}j(e){e===F?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,e??"")}}class te extends ee{constructor(){super(...arguments),this.type=3}j(e){this.element[this.name]=e===F?void 0:e}}class se extends ee{constructor(){super(...arguments),this.type=4}j(e){this.element.toggleAttribute(this.name,!!e&&e!==F)}}class ie extends ee{constructor(e,t,s,i,n){super(e,t,s,i,n),this.type=5}_$AI(e,t=this){if((e=Y(this,e,t,0)??F)===q)return;const s=this._$AH,i=e===F&&s!==F||e.capture!==s.capture||e.once!==s.once||e.passive!==s.passive,n=e!==F&&(s===F||i);i&&this.element.removeEventListener(this.name,this,s),n&&this.element.addEventListener(this.name,this,e),this._$AH=e}handleEvent(e){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,e):this._$AH.handleEvent(e)}}class ne{constructor(e,t,s){this.element=e,this.type=6,this._$AN=void 0,this._$AM=t,this.options=s}get _$AU(){return this._$AM._$AU}_$AI(e){Y(this,e)}}const re=x.litHtmlPolyfillSupport;re?.(X,Q),(x.litHtmlVersions??=[]).push("3.3.3");const oe=globalThis;class ae extends w{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const e=super.createRenderRoot();return this.renderOptions.renderBefore??=e.firstChild,e}update(e){const t=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(e),this._$Do=((e,t,s)=>{const i=s?.renderBefore??t;let n=i._$litPart$;if(void 0===n){const e=s?.renderBefore??null;i._$litPart$=n=new Q(t.insertBefore(j(),e),e,void 0,s??{})}return n._$AI(e),n})(t,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return q}}ae._$litElement$=!0,ae.finalized=!0,oe.litElementHydrateSupport?.({LitElement:ae});const ce=oe.litElementPolyfillSupport;ce?.({LitElement:ae}),(oe.litElementVersions??=[]).push("4.2.2");const le=e=>(t,s)=>{void 0!==s?s.addInitializer(()=>{customElements.define(e,t)}):customElements.define(e,t)},de={attribute:!0,type:String,converter:g,reflect:!1,hasChanged:$},he=(e=de,t,s)=>{const{kind:i,metadata:n}=s;let r=globalThis.litPropertyMetadata.get(n);if(void 0===r&&globalThis.litPropertyMetadata.set(n,r=new Map),"setter"===i&&((e=Object.create(e)).wrapped=!0),r.set(s.name,e),"accessor"===i){const{name:i}=s;return{set(s){const n=t.get.call(this);t.set.call(this,s),this.requestUpdate(i,n,e,!0,s)},init(t){return void 0!==t&&this.C(i,void 0,e,t),t}}}if("setter"===i){const{name:i}=s;return function(s){const n=this[i];t.call(this,s),this.requestUpdate(i,n,e,!0,s)}}throw Error("Unsupported decorator location: "+i)};function pe(e){return function(e){return(t,s)=>"object"==typeof s?he(e,t,s):((e,t,s)=>{const i=t.hasOwnProperty(s);return t.constructor.createProperty(s,e),i?Object.getOwnPropertyDescriptor(t,s):void 0})(e,t,s)}({...e,state:!0,attribute:!1})}class ue extends Error{}const me=["chips","dropdown"],fe=["always","never","manual"],_e=["picker","active","all"],ve=["preset_mode","blueprint","source","last_changed"];function be(e){throw new ue(e)}function ge(e,t){return null==e?{}:(("object"!=typeof e||Array.isArray(e))&&be(`"${t}" has to be a group of options, for example "${t}: {visible: false}"`),e)}function $e(e,t,s){return void 0===e?s:("boolean"!=typeof e&&be(`"${t}" has to be true or false`),e)}function ye(e,t){if(void 0!==e)return"boolean"!=typeof e&&be(`"${t}" has to be true or false`),e}function we(e,t){if(void 0!==e)return!0===e?"always":!1===e?"never":("string"==typeof e&&fe.includes(e)||be(`"${t}" has to be true, false, or one of ${fe.join(", ")}`),e)}function xe(e,t){if(null!=e)return"string"!=typeof e&&be(`"${t}" has to be text`),e}function Ae(e,t,s,i){return void 0===e?i:("string"==typeof e&&s.includes(e)||be(`"${t}" has to be one of ${s.join(", ")}`),e)}function ke(e,t){if(null!=e)return!1!==e&&("string"!=typeof e&&be(`"${t}" has to be text, or false to hide it`),e)}function Ee(e,t){const s=ge(e,t),i={};for(const[e,n]of Object.entries(s))"string"!=typeof n&&be(`"${t}.${e}" has to be a colour`),i[e]=n;return i}function Se(e){return null==e?[]:(Array.isArray(e)||be('"footer.content" has to be a list'),e.map((e,t)=>Ae(e,`footer.content[${t}]`,ve,"preset_mode")))}function Me(e){"object"==typeof e&&null!==e||be("The card needs a configuration.");const t=e,s=xe(t.entity,"entity");s||be('Pick an entity of Preset Manager, for example "entity: sensor.house_mode_mode" or the active mode sensor of a preset.'),s.includes(".")||be(`"${s}" is not an entity id.`);const i=ge(t.header,"header"),n=ge(t.modes,"modes"),r=ge(t.values,"values"),o=ge(t.editor,"editor"),a=ge(t.presets,"presets"),c=ge(t.footer,"footer"),l=$e(a.editable,"presets.editable",!1),d=$e(o.confirm,"editor.confirm",!1),h={type:String(t.type??""),entity:s,header:{visible:$e(i.visible,"header.visible",!0),automatic:ye(i.automatic,"header.automatic"),title:xe(i.title,"header.title"),subtitle:ke(i.subtitle,"header.subtitle"),icon:ke(i.icon,"header.icon"),icon_color:xe(i.icon_color,"header.icon_color")},modes:{visible:we(n.visible,"modes.visible"),style:Ae(n.style,"modes.style",me,"chips"),icons:$e(n.icons,"modes.icons",!0),colors:Ee(n.colors,"modes.colors")},values:{visible:$e(r.visible,"values.visible",!0),parameters:(p=r.parameters,null==p?null:(Array.isArray(p)||be('"values.parameters" has to be a list of parameter keys'),p.map((e,t)=>{const s=`values.parameters[${t}]`;if("string"==typeof e)return{parameter:e};"object"==typeof e&&null!==e&&"parameter"in e||be(`"${s}" has to be a parameter key, or a group with a "parameter" key`);const i=xe(e.parameter,`${s}.parameter`);i||be(`"${s}.parameter" is required`);const n={parameter:i},r=xe(e.name,`${s}.name`);void 0!==r&&(n.name=r);const o=ke(e.icon,`${s}.icon`);return void 0!==o&&(n.icon=o),n}))),icons:$e(r.icons,"values.icons",!1)},editor:{enabled:$e(o.enabled,"editor.enabled",d),confirm:d,mode:Ae(o.mode,"editor.mode",_e,"picker"),style:Ae(o.style,"editor.style",me,"chips"),default_mode:xe(o.default_mode,"editor.default_mode")},presets:{visible:$e(a.visible,"presets.visible",l),values:$e(a.values,"presets.values",l),editable:l},footer:{visible:$e(c.visible,"footer.visible",void 0!==c.content),content:Se(c.content)},tap_action:t.tap_action,hold_action:t.hold_action,double_tap_action:t.double_tap_action};var p;return h.footer.visible&&!h.footer.content.length&&(h.footer.content=["preset_mode"]),h}function Te(t){const s=String(t.type??`custom:${e}`),i="string"==typeof t.entity?t.entity:"";let n={};try{n=Me({type:s,entity:i||"sensor.placeholder"})}catch(e){n={}}const r={type:s,entity:i};for(const[e,s]of Object.entries(t)){if("type"===e||"entity"===e)continue;const t=Ce(s,n[e]);void 0!==t&&(r[e]=t)}return r}function Ce(e,t){if(null!=e&&""!==e){if(Array.isArray(e))return e.length?e:void 0;if("object"==typeof e){const s=e,i=t??{},n={};for(const[e,t]of Object.entries(s)){const s=Ce(t,i[e]);void 0!==s&&JSON.stringify(s)!==JSON.stringify(i[e])&&(n[e]=s)}return Object.keys(n).length?n:void 0}return e===t?void 0:e}}const Pe={preset_modes:[],presets:[],blueprints:[]};class je{constructor(e){this._hass=e,this._listeners=new Set,this._unsubscribes=[]}get current(){return this._config}async load(e){return this._hass=e,this._config?this._config:(this._pending||(this._pending=this._fetch()),this._pending)}subscribe(e){return this._listeners.add(e),1===this._listeners.size&&this._watch(),()=>{this._listeners.delete(e),this._listeners.size||this._stop()}}async _fetch(){try{const e=await this._hass.callWS({type:"preset_manager/config"});return this._apply(e),e}catch(e){return this._apply(Pe),Pe}finally{this._pending=void 0}}_apply(e){const t=JSON.stringify(e);if(t!==this._serialised){this._serialised=t,this._config=e;for(const t of this._listeners)t(e)}}async _watch(){for(const e of["entity_registry_updated","device_registry_updated"])try{const t=await this._hass.connection.subscribeEvents(()=>this._scheduleRefresh(),e);this._listeners.size?this._unsubscribes.push(()=>{t()}):t()}catch(e){}}_scheduleRefresh(){this._timer&&clearTimeout(this._timer),this._timer=setTimeout(()=>{this._timer=void 0,this._config=void 0,this._pending=this._fetch()},400)}_stop(){for(this._timer&&clearTimeout(this._timer),this._timer=void 0;this._unsubscribes.length;)this._unsubscribes.pop()()}}const Oe=new WeakMap;function Ne(e){let t=Oe.get(e.connection);return t||(t=new je(e),Oe.set(e.connection,t)),t}function Ue(e){return Ne(e).load(e)}function ze(e){return Ne(e).current}function He(e,t){return Ne(e).subscribe(t)}const Re="unavailable",De="unknown";function Le(e){return void 0===e||e===Re||e===De}function Be(e,t){if(e&&t)return e.states[t]}function We(e,t,s){e.dispatchEvent(new CustomEvent(t,{detail:s,bubbles:!0,composed:!0}))}function Ie(e,t){if("function"==typeof e.formatEntityState)return e.formatEntityState(t);const s=t.attributes.unit_of_measurement;return s?`${t.state} ${s}`:t.state}function qe(e,t){We(e,"hass-more-info",{entityId:t})}function Fe(e){return void 0!==e&&"none"!==e.action}async function Ve(e,t,s,i){if(!s||"none"===s.action)return;const n=s.entity??i;switch(s.action){case"more-info":return void(n&&qe(e,n));case"toggle":return void(n&&await t.callService("homeassistant","toggle",{},{entity_id:n}));case"navigate":return void(s.navigation_path&&(r=s.navigation_path,history.pushState(null,"",r),We(window,"location-changed",{replace:!1})));case"url":return void(s.url_path&&window.open(s.url_path,"_blank","noreferrer"));case"perform-action":case"call-service":{const e=s.perform_action??s.service;if(!e||!e.includes("."))return;const[i,n]=e.split(".",2);return void await t.callService(i,n,s.data??s.service_data??{},s.target)}default:return}var r}function Je(e){return"undefined"!=typeof customElements&&!!customElements.get(e)}function Ke(e){const t=e?.attributes.mode_key;return"string"==typeof t&&t?t:null}function Ge(e){return"preset_mode"===e.kind?e.presetMode.entities.mode:e.preset.entities.active_mode}function Xe(e,t){return Ke(Be(e,Ge(t)))}function Ye(e,t){return Ke(Be(e,t.entities.active_mode))}function Ze(e){return"preset_mode"===e.kind?e.presetMode.modes:e.preset.modes}function Qe(e,t){const s=Xe(e,t);return s?Ze(t).find(e=>e.key===s)??null:null}function et(e,t){const s=Be(e,t?.entities.automatic);return!s||Le(s.state)?null:"on"===s.state}function tt(e,t){return t?t.source_entity?"external":t.entities.active_mode?et(e,t)?"automatic":null:"missing":"missing"}function st(e,t){return{kind:"preset",preset:t,presetMode:e.preset_modes.find(e=>e.id===t.preset_mode)??null,blueprint:e.blueprints.find(e=>e.id===t.blueprint)??null}}function it(e,t){return{kind:"preset_mode",presetMode:t,presets:e.presets.filter(e=>e.preset_mode===t.id)}}function nt(e){const t=[];e.entities.active_mode&&t.push(e.entities.active_mode);for(const s of e.parameters)s.entity&&t.push(s.entity),t.push(...Object.values(s.editors));return t}function rt(e){const t=Object.values(e.entities);return e.source_entity&&t.push(e.source_entity),t}function ot(e,t){for(const s of e.preset_modes)if(rt(s).includes(t))return it(e,s);for(const s of e.presets)if(nt(s).includes(t))return st(e,s);return null}const at={active_is:"Active: {mode}",apply:"Apply",automatic:"Automatic",blueprint:"Blueprint",changed:"Changed",editing:"Edit",follows:"Follows {entity}",loading:"Loading…",mode:"Mode",no_entity:"Set “entity” to any entity of Preset Manager.",no_mode:"No mode active",no_modes:"This preset mode has no modes yet.",no_parameters:"This preset has no parameters yet.",no_preset_mode:"No preset mode",not_editable:"Not editable here",not_found:"“{entity}” does not belong to Preset Manager.",not_set:"Not set",not_set_up:"Preset Manager is not set up.",orphaned:"Waiting for a preset mode; values do not resolve.",preset_mode:"Preset mode",presets_one:"1 preset",presets_other:"{count} presets",source:"Source",unavailable:"Unavailable"},ct={en:at,de:{active_is:"Aktiv: {mode}",apply:"Übernehmen",automatic:"Automatik",blueprint:"Blueprint",changed:"Geändert",editing:"Bearbeiten",follows:"Folgt {entity}",loading:"Wird geladen…",mode:"Mode",no_entity:"„entity“ auf eine beliebige Entität von Preset Manager setzen.",no_mode:"Kein Mode aktiv",no_modes:"Dieser Preset Mode hat noch keine Modes.",no_parameters:"Dieses Preset hat noch keine Parameter.",no_preset_mode:"Kein Preset Mode",not_editable:"Hier nicht editierbar",not_found:"„{entity}“ gehört nicht zu Preset Manager.",not_set:"Nicht gesetzt",not_set_up:"Preset Manager ist nicht eingerichtet.",orphaned:"Wartet auf einen Preset Mode; die Werte lösen nicht auf.",preset_mode:"Preset Mode",presets_one:"1 Preset",presets_other:"{count} Presets",source:"Quelle",unavailable:"Nicht verfügbar"}};function lt(e,t,s={}){const i=(e?.language??"en").toLowerCase().split("-")[0];let n=(ct[i]??at)[t]??at[t]??t;for(const[e,t]of Object.entries(s))n=n.replace(`{${e}}`,String(t));return n}function dt(e,t,s,i){return lt(e,1===i?t:s,{count:i})}const ht=((e,...t)=>{const s=1===e.length?e[0]:t.reduce((t,s,i)=>t+(e=>{if(!0===e._$cssResult$)return e.cssText;if("number"==typeof e)return e;throw Error("Value passed to 'css' function must be a 'css' function result: "+e+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(s)+e[i+1],e[0]);return new o(s,e,n)})`
+const t="preset-manager-card";function e(t,e,i,s){var n,r=arguments.length,o=r<3?e:null===s?s=Object.getOwnPropertyDescriptor(e,i):s;if("object"==typeof Reflect&&"function"==typeof Reflect.decorate)o=Reflect.decorate(t,e,i,s);else for(var a=t.length-1;a>=0;a--)(n=t[a])&&(o=(r<3?n(o):r>3?n(e,i,o):n(e,i))||o);return r>3&&o&&Object.defineProperty(e,i,o),o}"function"==typeof SuppressedError&&SuppressedError;const i=globalThis,s=i.ShadowRoot&&(void 0===i.ShadyCSS||i.ShadyCSS.nativeShadow)&&"adoptedStyleSheets"in Document.prototype&&"replace"in CSSStyleSheet.prototype,n=Symbol(),r=new WeakMap;let o=class{constructor(t,e,i){if(this._$cssResult$=!0,i!==n)throw Error("CSSResult is not constructable. Use `unsafeCSS` or `css` instead.");this.cssText=t,this.t=e}get styleSheet(){let t=this.o;const e=this.t;if(s&&void 0===t){const i=void 0!==e&&1===e.length;i&&(t=r.get(e)),void 0===t&&((this.o=t=new CSSStyleSheet).replaceSync(this.cssText),i&&r.set(e,t))}return t}toString(){return this.cssText}};const a=s?t=>t:t=>t instanceof CSSStyleSheet?(t=>{let e="";for(const i of t.cssRules)e+=i.cssText;return(t=>new o("string"==typeof t?t:t+"",void 0,n))(e)})(t):t,{is:c,defineProperty:l,getOwnPropertyDescriptor:d,getOwnPropertyNames:h,getOwnPropertySymbols:u,getPrototypeOf:p}=Object,m=globalThis,f=m.trustedTypes,_=f?f.emptyScript:"",v=m.reactiveElementPolyfillSupport,b=(t,e)=>t,g={toAttribute(t,e){switch(e){case Boolean:t=t?_:null;break;case Object:case Array:t=null==t?t:JSON.stringify(t)}return t},fromAttribute(t,e){let i=t;switch(e){case Boolean:i=null!==t;break;case Number:i=null===t?null:Number(t);break;case Object:case Array:try{i=JSON.parse(t)}catch(t){i=null}}return i}},y=(t,e)=>!c(t,e),$={attribute:!0,type:String,converter:g,reflect:!1,useDefault:!1,hasChanged:y};Symbol.metadata??=Symbol("metadata"),m.litPropertyMetadata??=new WeakMap;let w=class extends HTMLElement{static addInitializer(t){this._$Ei(),(this.l??=[]).push(t)}static get observedAttributes(){return this.finalize(),this._$Eh&&[...this._$Eh.keys()]}static createProperty(t,e=$){if(e.state&&(e.attribute=!1),this._$Ei(),this.prototype.hasOwnProperty(t)&&((e=Object.create(e)).wrapped=!0),this.elementProperties.set(t,e),!e.noAccessor){const i=Symbol(),s=this.getPropertyDescriptor(t,i,e);void 0!==s&&l(this.prototype,t,s)}}static getPropertyDescriptor(t,e,i){const{get:s,set:n}=d(this.prototype,t)??{get(){return this[e]},set(t){this[e]=t}};return{get:s,set(e){const r=s?.call(this);n?.call(this,e),this.requestUpdate(t,r,i)},configurable:!0,enumerable:!0}}static getPropertyOptions(t){return this.elementProperties.get(t)??$}static _$Ei(){if(this.hasOwnProperty(b("elementProperties")))return;const t=p(this);t.finalize(),void 0!==t.l&&(this.l=[...t.l]),this.elementProperties=new Map(t.elementProperties)}static finalize(){if(this.hasOwnProperty(b("finalized")))return;if(this.finalized=!0,this._$Ei(),this.hasOwnProperty(b("properties"))){const t=this.properties,e=[...h(t),...u(t)];for(const i of e)this.createProperty(i,t[i])}const t=this[Symbol.metadata];if(null!==t){const e=litPropertyMetadata.get(t);if(void 0!==e)for(const[t,i]of e)this.elementProperties.set(t,i)}this._$Eh=new Map;for(const[t,e]of this.elementProperties){const i=this._$Eu(t,e);void 0!==i&&this._$Eh.set(i,t)}this.elementStyles=this.finalizeStyles(this.styles)}static finalizeStyles(t){const e=[];if(Array.isArray(t)){const i=new Set(t.flat(1/0).reverse());for(const t of i)e.unshift(a(t))}else void 0!==t&&e.push(a(t));return e}static _$Eu(t,e){const i=e.attribute;return!1===i?void 0:"string"==typeof i?i:"string"==typeof t?t.toLowerCase():void 0}constructor(){super(),this._$Ep=void 0,this.isUpdatePending=!1,this.hasUpdated=!1,this._$Em=null,this._$Ev()}_$Ev(){this._$ES=new Promise(t=>this.enableUpdating=t),this._$AL=new Map,this._$E_(),this.requestUpdate(),this.constructor.l?.forEach(t=>t(this))}addController(t){(this._$EO??=new Set).add(t),void 0!==this.renderRoot&&this.isConnected&&t.hostConnected?.()}removeController(t){this._$EO?.delete(t)}_$E_(){const t=new Map,e=this.constructor.elementProperties;for(const i of e.keys())this.hasOwnProperty(i)&&(t.set(i,this[i]),delete this[i]);t.size>0&&(this._$Ep=t)}createRenderRoot(){const t=this.shadowRoot??this.attachShadow(this.constructor.shadowRootOptions);return((t,e)=>{if(s)t.adoptedStyleSheets=e.map(t=>t instanceof CSSStyleSheet?t:t.styleSheet);else for(const s of e){const e=document.createElement("style"),n=i.litNonce;void 0!==n&&e.setAttribute("nonce",n),e.textContent=s.cssText,t.appendChild(e)}})(t,this.constructor.elementStyles),t}connectedCallback(){this.renderRoot??=this.createRenderRoot(),this.enableUpdating(!0),this._$EO?.forEach(t=>t.hostConnected?.())}enableUpdating(t){}disconnectedCallback(){this._$EO?.forEach(t=>t.hostDisconnected?.())}attributeChangedCallback(t,e,i){this._$AK(t,i)}_$ET(t,e){const i=this.constructor.elementProperties.get(t),s=this.constructor._$Eu(t,i);if(void 0!==s&&!0===i.reflect){const n=(void 0!==i.converter?.toAttribute?i.converter:g).toAttribute(e,i.type);this._$Em=t,null==n?this.removeAttribute(s):this.setAttribute(s,n),this._$Em=null}}_$AK(t,e){const i=this.constructor,s=i._$Eh.get(t);if(void 0!==s&&this._$Em!==s){const t=i.getPropertyOptions(s),n="function"==typeof t.converter?{fromAttribute:t.converter}:void 0!==t.converter?.fromAttribute?t.converter:g;this._$Em=s;const r=n.fromAttribute(e,t.type);this[s]=r??this._$Ej?.get(s)??r,this._$Em=null}}requestUpdate(t,e,i,s=!1,n){if(void 0!==t){const r=this.constructor;if(!1===s&&(n=this[t]),i??=r.getPropertyOptions(t),!((i.hasChanged??y)(n,e)||i.useDefault&&i.reflect&&n===this._$Ej?.get(t)&&!this.hasAttribute(r._$Eu(t,i))))return;this.C(t,e,i)}!1===this.isUpdatePending&&(this._$ES=this._$EP())}C(t,e,{useDefault:i,reflect:s,wrapped:n},r){i&&!(this._$Ej??=new Map).has(t)&&(this._$Ej.set(t,r??e??this[t]),!0!==n||void 0!==r)||(this._$AL.has(t)||(this.hasUpdated||i||(e=void 0),this._$AL.set(t,e)),!0===s&&this._$Em!==t&&(this._$Eq??=new Set).add(t))}async _$EP(){this.isUpdatePending=!0;try{await this._$ES}catch(t){Promise.reject(t)}const t=this.scheduleUpdate();return null!=t&&await t,!this.isUpdatePending}scheduleUpdate(){return this.performUpdate()}performUpdate(){if(!this.isUpdatePending)return;if(!this.hasUpdated){if(this.renderRoot??=this.createRenderRoot(),this._$Ep){for(const[t,e]of this._$Ep)this[t]=e;this._$Ep=void 0}const t=this.constructor.elementProperties;if(t.size>0)for(const[e,i]of t){const{wrapped:t}=i,s=this[e];!0!==t||this._$AL.has(e)||void 0===s||this.C(e,void 0,i,s)}}let t=!1;const e=this._$AL;try{t=this.shouldUpdate(e),t?(this.willUpdate(e),this._$EO?.forEach(t=>t.hostUpdate?.()),this.update(e)):this._$EM()}catch(e){throw t=!1,this._$EM(),e}t&&this._$AE(e)}willUpdate(t){}_$AE(t){this._$EO?.forEach(t=>t.hostUpdated?.()),this.hasUpdated||(this.hasUpdated=!0,this.firstUpdated(t)),this.updated(t)}_$EM(){this._$AL=new Map,this.isUpdatePending=!1}get updateComplete(){return this.getUpdateComplete()}getUpdateComplete(){return this._$ES}shouldUpdate(t){return!0}update(t){this._$Eq&&=this._$Eq.forEach(t=>this._$ET(t,this[t])),this._$EM()}updated(t){}firstUpdated(t){}};w.elementStyles=[],w.shadowRootOptions={mode:"open"},w[b("elementProperties")]=new Map,w[b("finalized")]=new Map,v?.({ReactiveElement:w}),(m.reactiveElementVersions??=[]).push("2.1.2");const x=globalThis,A=t=>t,k=x.trustedTypes,S=k?k.createPolicy("lit-html",{createHTML:t=>t}):void 0,E="$lit$",T=`lit$${Math.random().toFixed(9).slice(2)}$`,M="?"+T,C=`<${M}>`,P=document,O=()=>P.createComment(""),j=t=>null===t||"object"!=typeof t&&"function"!=typeof t,U=Array.isArray,N="[ \t\n\f\r]",z=/<(?:(!--|\/[^a-zA-Z])|(\/?[a-zA-Z][^>\s]*)|(\/?$))/g,H=/-->/g,R=/>/g,D=RegExp(`>|${N}(?:([^\\s"'>=/]+)(${N}*=${N}*(?:[^ \t\n\f\r"'\`<>=]|("|')|))|$)`,"g"),L=/'/g,W=/"/g,q=/^(?:script|style|textarea|title)$/i,I=(t=>(e,...i)=>({_$litType$:t,strings:e,values:i}))(1),B=Symbol.for("lit-noChange"),V=Symbol.for("lit-nothing"),J=new WeakMap,K=P.createTreeWalker(P,129);function F(t,e){if(!U(t)||!t.hasOwnProperty("raw"))throw Error("invalid template strings array");return void 0!==S?S.createHTML(e):e}const G=(t,e)=>{const i=t.length-1,s=[];let n,r=2===e?"<svg>":3===e?"<math>":"",o=z;for(let e=0;e<i;e++){const i=t[e];let a,c,l=-1,d=0;for(;d<i.length&&(o.lastIndex=d,c=o.exec(i),null!==c);)d=o.lastIndex,o===z?"!--"===c[1]?o=H:void 0!==c[1]?o=R:void 0!==c[2]?(q.test(c[2])&&(n=RegExp("</"+c[2],"g")),o=D):void 0!==c[3]&&(o=D):o===D?">"===c[0]?(o=n??z,l=-1):void 0===c[1]?l=-2:(l=o.lastIndex-c[2].length,a=c[1],o=void 0===c[3]?D:'"'===c[3]?W:L):o===W||o===L?o=D:o===H||o===R?o=z:(o=D,n=void 0);const h=o===D&&t[e+1].startsWith("/>")?" ":"";r+=o===z?i+C:l>=0?(s.push(a),i.slice(0,l)+E+i.slice(l)+T+h):i+T+(-2===l?e:h)}return[F(t,r+(t[i]||"<?>")+(2===e?"</svg>":3===e?"</math>":"")),s]};class X{constructor({strings:t,_$litType$:e},i){let s;this.parts=[];let n=0,r=0;const o=t.length-1,a=this.parts,[c,l]=G(t,e);if(this.el=X.createElement(c,i),K.currentNode=this.el.content,2===e||3===e){const t=this.el.content.firstChild;t.replaceWith(...t.childNodes)}for(;null!==(s=K.nextNode())&&a.length<o;){if(1===s.nodeType){if(s.hasAttributes())for(const t of s.getAttributeNames())if(t.endsWith(E)){const e=l[r++],i=s.getAttribute(t).split(T),o=/([.?@])?(.*)/.exec(e);a.push({type:1,index:n,name:o[2],strings:i,ctor:"."===o[1]?et:"?"===o[1]?it:"@"===o[1]?st:tt}),s.removeAttribute(t)}else t.startsWith(T)&&(a.push({type:6,index:n}),s.removeAttribute(t));if(q.test(s.tagName)){const t=s.textContent.split(T),e=t.length-1;if(e>0){s.textContent=k?k.emptyScript:"";for(let i=0;i<e;i++)s.append(t[i],O()),K.nextNode(),a.push({type:2,index:++n});s.append(t[e],O())}}}else if(8===s.nodeType)if(s.data===M)a.push({type:2,index:n});else{let t=-1;for(;-1!==(t=s.data.indexOf(T,t+1));)a.push({type:7,index:n}),t+=T.length-1}n++}}static createElement(t,e){const i=P.createElement("template");return i.innerHTML=t,i}}function Y(t,e,i=t,s){if(e===B)return e;let n=void 0!==s?i._$Co?.[s]:i._$Cl;const r=j(e)?void 0:e._$litDirective$;return n?.constructor!==r&&(n?._$AO?.(!1),void 0===r?n=void 0:(n=new r(t),n._$AT(t,i,s)),void 0!==s?(i._$Co??=[])[s]=n:i._$Cl=n),void 0!==n&&(e=Y(t,n._$AS(t,e.values),n,s)),e}class Z{constructor(t,e){this._$AV=[],this._$AN=void 0,this._$AD=t,this._$AM=e}get parentNode(){return this._$AM.parentNode}get _$AU(){return this._$AM._$AU}u(t){const{el:{content:e},parts:i}=this._$AD,s=(t?.creationScope??P).importNode(e,!0);K.currentNode=s;let n=K.nextNode(),r=0,o=0,a=i[0];for(;void 0!==a;){if(r===a.index){let e;2===a.type?e=new Q(n,n.nextSibling,this,t):1===a.type?e=new a.ctor(n,a.name,a.strings,this,t):6===a.type&&(e=new nt(n,this,t)),this._$AV.push(e),a=i[++o]}r!==a?.index&&(n=K.nextNode(),r++)}return K.currentNode=P,s}p(t){let e=0;for(const i of this._$AV)void 0!==i&&(void 0!==i.strings?(i._$AI(t,i,e),e+=i.strings.length-2):i._$AI(t[e])),e++}}class Q{get _$AU(){return this._$AM?._$AU??this._$Cv}constructor(t,e,i,s){this.type=2,this._$AH=V,this._$AN=void 0,this._$AA=t,this._$AB=e,this._$AM=i,this.options=s,this._$Cv=s?.isConnected??!0}get parentNode(){let t=this._$AA.parentNode;const e=this._$AM;return void 0!==e&&11===t?.nodeType&&(t=e.parentNode),t}get startNode(){return this._$AA}get endNode(){return this._$AB}_$AI(t,e=this){t=Y(this,t,e),j(t)?t===V||null==t||""===t?(this._$AH!==V&&this._$AR(),this._$AH=V):t!==this._$AH&&t!==B&&this._(t):void 0!==t._$litType$?this.$(t):void 0!==t.nodeType?this.T(t):(t=>U(t)||"function"==typeof t?.[Symbol.iterator])(t)?this.k(t):this._(t)}O(t){return this._$AA.parentNode.insertBefore(t,this._$AB)}T(t){this._$AH!==t&&(this._$AR(),this._$AH=this.O(t))}_(t){this._$AH!==V&&j(this._$AH)?this._$AA.nextSibling.data=t:this.T(P.createTextNode(t)),this._$AH=t}$(t){const{values:e,_$litType$:i}=t,s="number"==typeof i?this._$AC(t):(void 0===i.el&&(i.el=X.createElement(F(i.h,i.h[0]),this.options)),i);if(this._$AH?._$AD===s)this._$AH.p(e);else{const t=new Z(s,this),i=t.u(this.options);t.p(e),this.T(i),this._$AH=t}}_$AC(t){let e=J.get(t.strings);return void 0===e&&J.set(t.strings,e=new X(t)),e}k(t){U(this._$AH)||(this._$AH=[],this._$AR());const e=this._$AH;let i,s=0;for(const n of t)s===e.length?e.push(i=new Q(this.O(O()),this.O(O()),this,this.options)):i=e[s],i._$AI(n),s++;s<e.length&&(this._$AR(i&&i._$AB.nextSibling,s),e.length=s)}_$AR(t=this._$AA.nextSibling,e){for(this._$AP?.(!1,!0,e);t!==this._$AB;){const e=A(t).nextSibling;A(t).remove(),t=e}}setConnected(t){void 0===this._$AM&&(this._$Cv=t,this._$AP?.(t))}}class tt{get tagName(){return this.element.tagName}get _$AU(){return this._$AM._$AU}constructor(t,e,i,s,n){this.type=1,this._$AH=V,this._$AN=void 0,this.element=t,this.name=e,this._$AM=s,this.options=n,i.length>2||""!==i[0]||""!==i[1]?(this._$AH=Array(i.length-1).fill(new String),this.strings=i):this._$AH=V}_$AI(t,e=this,i,s){const n=this.strings;let r=!1;if(void 0===n)t=Y(this,t,e,0),r=!j(t)||t!==this._$AH&&t!==B,r&&(this._$AH=t);else{const s=t;let o,a;for(t=n[0],o=0;o<n.length-1;o++)a=Y(this,s[i+o],e,o),a===B&&(a=this._$AH[o]),r||=!j(a)||a!==this._$AH[o],a===V?t=V:t!==V&&(t+=(a??"")+n[o+1]),this._$AH[o]=a}r&&!s&&this.j(t)}j(t){t===V?this.element.removeAttribute(this.name):this.element.setAttribute(this.name,t??"")}}class et extends tt{constructor(){super(...arguments),this.type=3}j(t){this.element[this.name]=t===V?void 0:t}}class it extends tt{constructor(){super(...arguments),this.type=4}j(t){this.element.toggleAttribute(this.name,!!t&&t!==V)}}class st extends tt{constructor(t,e,i,s,n){super(t,e,i,s,n),this.type=5}_$AI(t,e=this){if((t=Y(this,t,e,0)??V)===B)return;const i=this._$AH,s=t===V&&i!==V||t.capture!==i.capture||t.once!==i.once||t.passive!==i.passive,n=t!==V&&(i===V||s);s&&this.element.removeEventListener(this.name,this,i),n&&this.element.addEventListener(this.name,this,t),this._$AH=t}handleEvent(t){"function"==typeof this._$AH?this._$AH.call(this.options?.host??this.element,t):this._$AH.handleEvent(t)}}class nt{constructor(t,e,i){this.element=t,this.type=6,this._$AN=void 0,this._$AM=e,this.options=i}get _$AU(){return this._$AM._$AU}_$AI(t){Y(this,t)}}const rt=x.litHtmlPolyfillSupport;rt?.(X,Q),(x.litHtmlVersions??=[]).push("3.3.3");const ot=globalThis;class at extends w{constructor(){super(...arguments),this.renderOptions={host:this},this._$Do=void 0}createRenderRoot(){const t=super.createRenderRoot();return this.renderOptions.renderBefore??=t.firstChild,t}update(t){const e=this.render();this.hasUpdated||(this.renderOptions.isConnected=this.isConnected),super.update(t),this._$Do=((t,e,i)=>{const s=i?.renderBefore??e;let n=s._$litPart$;if(void 0===n){const t=i?.renderBefore??null;s._$litPart$=n=new Q(e.insertBefore(O(),t),t,void 0,i??{})}return n._$AI(t),n})(e,this.renderRoot,this.renderOptions)}connectedCallback(){super.connectedCallback(),this._$Do?.setConnected(!0)}disconnectedCallback(){super.disconnectedCallback(),this._$Do?.setConnected(!1)}render(){return B}}at._$litElement$=!0,at.finalized=!0,ot.litElementHydrateSupport?.({LitElement:at});const ct=ot.litElementPolyfillSupport;ct?.({LitElement:at}),(ot.litElementVersions??=[]).push("4.2.2");const lt=t=>(e,i)=>{void 0!==i?i.addInitializer(()=>{customElements.define(t,e)}):customElements.define(t,e)},dt={attribute:!0,type:String,converter:g,reflect:!1,hasChanged:y},ht=(t=dt,e,i)=>{const{kind:s,metadata:n}=i;let r=globalThis.litPropertyMetadata.get(n);if(void 0===r&&globalThis.litPropertyMetadata.set(n,r=new Map),"setter"===s&&((t=Object.create(t)).wrapped=!0),r.set(i.name,t),"accessor"===s){const{name:s}=i;return{set(i){const n=e.get.call(this);e.set.call(this,i),this.requestUpdate(s,n,t,!0,i)},init(e){return void 0!==e&&this.C(s,void 0,t,e),e}}}if("setter"===s){const{name:s}=i;return function(i){const n=this[s];e.call(this,i),this.requestUpdate(s,n,t,!0,i)}}throw Error("Unsupported decorator location: "+s)};function ut(t){return function(t){return(e,i)=>"object"==typeof i?ht(t,e,i):((t,e,i)=>{const s=e.hasOwnProperty(i);return e.constructor.createProperty(i,t),s?Object.getOwnPropertyDescriptor(e,i):void 0})(t,e,i)}({...t,state:!0,attribute:!1})}class pt extends Error{}const mt=["always","never","manual"],ft=["active","picker","edit","all"];function _t(t){throw new pt(t)}function vt(t,e){return null==t?{}:(("object"!=typeof t||Array.isArray(t))&&_t(`"${e}" has to be a group of options, for example "${e}: {visible: false}"`),t)}function bt(t,e,i){return void 0===t?i:("boolean"!=typeof t&&_t(`"${e}" has to be true or false`),t)}function gt(t,e){if(null!=t)return"string"!=typeof t&&_t(`"${e}" has to be text`),t}function yt(t,e,i,s){return void 0===t?s:("string"==typeof t&&i.includes(t)||_t(`"${e}" has to be one of ${i.join(", ")}`),t)}function $t(t,e){if(null!=t)return!1!==t&&("string"!=typeof t&&_t(`"${e}" has to be text, or false to hide it`),t)}function wt(t,e){const i=vt(t,e),s={};for(const[t,n]of Object.entries(i))"string"!=typeof n&&_t(`"${e}.${t}" has to be a colour`),s[t]=n;return s}function xt(t){return null==t?null:(Array.isArray(t)||_t('"values.parameters" has to be a list of parameter keys'),t.map((t,e)=>{const i=`values.parameters[${e}]`;if("string"==typeof t)return{parameter:t};"object"==typeof t&&null!==t&&"parameter"in t||_t(`"${i}" has to be a parameter key, or a group with a "parameter" key`);const s=gt(t.parameter,`${i}.parameter`);s||_t(`"${i}.parameter" is required`);const n={parameter:s},r=gt(t.name,`${i}.name`);void 0!==r&&(n.name=r);const o=$t(t.icon,`${i}.icon`);return void 0!==o&&(n.icon=o),n}))}function At(t){"object"==typeof t&&null!==t||_t("The card needs a configuration.");const e=t,i=gt(e.entity,"entity");i||_t('Pick an entity of Preset Manager, for example "entity: sensor.house_mode_mode" or the active mode sensor of a preset.'),i.includes(".")||_t(`"${i}" is not an entity id.`);const s=vt(e.header,"header"),n=vt(e.modes,"modes"),r=vt(e.values,"values");var o,a,c;return{type:String(e.type??""),entity:i,header:{visible:bt(s.visible,"header.visible",!0),automatic:bt(s.automatic,"header.automatic",!0),title:gt(s.title,"header.title"),subtitle:$t(s.subtitle,"header.subtitle"),icon:$t(s.icon,"header.icon"),icon_color:gt(s.icon_color,"header.icon_color")},modes:{visible:(o=n.visible,a="modes.visible",c="always",void 0===o?c:!0===o?"always":!1===o?"never":("string"==typeof o&&mt.includes(o)||_t(`"${a}" has to be true, false, or one of ${mt.join(", ")}`),o)),icons:bt(n.icons,"modes.icons",!0),colors:wt(n.colors,"modes.colors")},values:{visible:bt(r.visible,"values.visible",!0),mode:yt(r.mode,"values.mode",ft,"active"),parameters:xt(r.parameters),icons:bt(r.icons,"values.icons",!1)},tap_action:e.tap_action,hold_action:e.hold_action,double_tap_action:e.double_tap_action}}function kt(e){const i=String(e.type??`custom:${t}`),s="string"==typeof e.entity?e.entity:"";let n={};try{n=At({type:i,entity:s||"sensor.placeholder"})}catch(t){n={}}const r={type:i,entity:s};for(const[t,i]of Object.entries(e)){if("type"===t||"entity"===t)continue;const e=St(i,n[t]);void 0!==e&&(r[t]=e)}return r}function St(t,e){if(null!=t&&""!==t){if(Array.isArray(t))return t.length?t:void 0;if("object"==typeof t){const i=t,s=e??{},n={};for(const[t,e]of Object.entries(i)){const i=St(e,s[t]);void 0!==i&&JSON.stringify(i)!==JSON.stringify(s[t])&&(n[t]=i)}return Object.keys(n).length?n:void 0}return t===e?void 0:t}}const Et={preset_modes:[],presets:[],blueprints:[]};class Tt{constructor(t){this._hass=t,this._listeners=new Set,this._unsubscribes=[]}get current(){return this._config}async load(t){return this._hass=t,this._config?this._config:(this._pending||(this._pending=this._fetch()),this._pending)}subscribe(t){return this._listeners.add(t),1===this._listeners.size&&this._watch(),()=>{this._listeners.delete(t),this._listeners.size||this._stop()}}async _fetch(){try{const t=await this._hass.callWS({type:"preset_manager/config"});return this._apply(t),t}catch(t){return this._apply(Et),Et}finally{this._pending=void 0}}_apply(t){const e=JSON.stringify(t);if(e!==this._serialised){this._serialised=e,this._config=t;for(const e of this._listeners)e(t)}}async _watch(){for(const t of["entity_registry_updated","device_registry_updated"])try{const e=await this._hass.connection.subscribeEvents(()=>this._scheduleRefresh(),t);this._listeners.size?this._unsubscribes.push(()=>{e()}):e()}catch(t){}}_scheduleRefresh(){this._timer&&clearTimeout(this._timer),this._timer=setTimeout(()=>{this._timer=void 0,this._config=void 0,this._pending=this._fetch()},400)}_stop(){for(this._timer&&clearTimeout(this._timer),this._timer=void 0;this._unsubscribes.length;)this._unsubscribes.pop()()}}const Mt=new WeakMap;function Ct(t){let e=Mt.get(t.connection);return e||(e=new Tt(t),Mt.set(t.connection,e)),e}function Pt(t){return Ct(t).load(t)}function Ot(t){return Ct(t).current}function jt(t,e){return Ct(t).subscribe(e)}function Ut(t,e){return{preset:e,presetMode:t.preset_modes.find(t=>t.id===e.preset_mode)??null,blueprint:t.blueprints.find(t=>t.id===e.blueprint)??null}}function Nt(t){const e=Object.values(t.entities);for(const i of t.parameters)i.entity&&e.push(i.entity),e.push(...Object.values(i.editors));return e}function zt(t){const e=Object.values(t.entities);return t.source_entity&&e.push(t.source_entity),e}function Ht(t,e){for(const i of t.presets)if(Nt(i).includes(e))return Ut(t,i);return null}const Rt={active:"Active",apply:"Apply",automatic:"Automatic",discard:"Discard",editing:"Edit",mode_automatic:"Automatic mode selection",loading:"Loading…",manual:"Manual",mode:"Mode",no_entity:"Set “entity” to any entity of a preset.",not_a_preset:"“{entity}” belongs to a preset mode. A card shows a preset; point it at one of its entities.",no_mode:"No mode active",no_modes:"This preset mode has no modes yet.",no_parameters:"This preset has no parameters yet.",no_preset_mode:"No preset mode",not_editable:"Not editable here",not_found:"“{entity}” does not belong to Preset Manager.",not_set:"Not set",not_set_up:"Preset Manager is not set up.",orphaned:"Waiting for a preset mode; values do not resolve.",unavailable:"Unavailable"},Dt={en:Rt,de:{active:"Aktiv",apply:"Übernehmen",automatic:"Automatik",discard:"Verwerfen",editing:"Bearbeiten",mode_automatic:"Mode-Automatik",loading:"Wird geladen…",manual:"Manuell",mode:"Mode",no_entity:"„entity“ auf eine beliebige Entität eines Presets setzen.",not_a_preset:"„{entity}“ gehört zu einem Preset Mode. Eine Card zeigt ein Preset; zeig auf eine seiner Entitäten.",no_mode:"Kein Mode aktiv",no_modes:"Dieser Preset Mode hat noch keine Modes.",no_parameters:"Dieses Preset hat noch keine Parameter.",no_preset_mode:"Kein Preset Mode",not_editable:"Hier nicht editierbar",not_found:"„{entity}“ gehört nicht zu Preset Manager.",not_set:"Nicht gesetzt",not_set_up:"Preset Manager ist nicht eingerichtet.",orphaned:"Wartet auf einen Preset Mode; die Werte lösen nicht auf.",unavailable:"Nicht verfügbar"}};function Lt(t,e,i={}){const s=(t?.language??"en").toLowerCase().split("-")[0];let n=(Dt[s]??Rt)[e]??Rt[e]??e;for(const[t,e]of Object.entries(i))n=n.replace(`{${t}}`,String(e));return n}const Wt=((t,...e)=>{const i=1===t.length?t[0]:e.reduce((e,i,s)=>e+(t=>{if(!0===t._$cssResult$)return t.cssText;if("number"==typeof t)return t;throw Error("Value passed to 'css' function must be a 'css' function result: "+t+". Use 'unsafeCSS' to pass non-literal values, but take care to ensure page security.")})(i)+t[s+1],t[0]);return new o(i,t,n)})`
   :host {
     /* Spacing scale. */
     --pm-padding-x: 16px;
@@ -31,17 +31,11 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
     padding: var(--pm-padding-y) var(--pm-padding-x);
   }
 
-  /* A rule only ever appears between two sections that are both there, so an
-     empty card never shows a line with nothing on either side of it. */
-  .section + .section {
-    border-top: 1px solid var(--pm-divider);
-  }
-
   /* Header ---------------------------------------------------------------- */
 
-  /* The name and whatever sits at the end share a line while both fit, and
-     the end drops onto its own when they do not - so a labelled switch never
-     squeezes the name down to two letters on a narrow card. */
+  /* Name and switch share a line while both fit, and the switch drops onto
+     its own when they do not - so a toggle in the corner never squeezes the
+     name down to two letters on a narrow card. */
   .header {
     display: flex;
     flex-wrap: wrap;
@@ -49,7 +43,43 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
     gap: 8px var(--pm-gap);
   }
 
-  .header.tappable {
+  /* The name is the button, not the row: a row that also holds a switch must
+     not be one, and making it one anyway is what cost this header its
+     keyboard. Everything below only takes the button back out of its default
+     appearance - it has to read as the content it wraps. */
+  .header-main {
+    flex: 1 1 160px;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--pm-gap);
+    appearance: none;
+    margin: 0;
+    padding: 0;
+    border: none;
+    background: none;
+    font: inherit;
+    color: inherit;
+    text-align: left;
+  }
+
+  .header-main.tappable {
+    cursor: pointer;
+  }
+
+  .header-end {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    margin-left: auto;
+  }
+
+  /* A switch with nothing written next to it. It can only belong to the object
+     named beside it, so the row says what it switches; the word rides on the
+     aria-label, where it is needed and costs no width. */
+  .switch-field {
+    display: inline-flex;
+    align-items: center;
     cursor: pointer;
   }
 
@@ -91,25 +121,6 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
     white-space: nowrap;
   }
 
-  .header-end {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    margin-left: auto;
-  }
-
-  /* A switch with the word it belongs to, both clickable. A bare toggle in a
-     corner says that something can be turned on, and nothing about what. */
-  .switch-field {
-    display: inline-flex;
-    align-items: center;
-    gap: 8px;
-    color: var(--pm-muted);
-    font-size: 13px;
-    cursor: pointer;
-  }
-
   /* Modes ----------------------------------------------------------------- */
 
   .chips {
@@ -137,7 +148,12 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
     --mdc-icon-size: 16px;
   }
 
-  .chip:hover:not(:disabled) {
+  /* A list item is not a control: no pointer, no hover, no press. */
+  span.chip {
+    cursor: default;
+  }
+
+  button.chip:hover:not(:disabled) {
     background: color-mix(in srgb, var(--pm-text) 14%, transparent);
   }
 
@@ -151,31 +167,62 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
     cursor: default;
   }
 
-  /* The mode row changes the house; the editing row changes what this card
-     shows. Two rows of identical chips said those were the same kind of act.
-     This one is smaller, carries no icons and takes its selected colour from
-     the text rather than the accent - a switch on the card, not a state of
-     the home. */
-  .chips.secondary .chip {
-    min-height: 26px;
-    padding: 0 10px;
-    font-size: 12px;
-    background: transparent;
-    box-shadow: inset 0 0 0 1px var(--pm-divider);
+  .chip:disabled:not([aria-pressed="true"]) {
+    color: var(--pm-disabled);
   }
 
-  .chips.secondary .chip:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--pm-text) 8%, transparent);
+  /* Mode tabs -------------------------------------------------------------- */
+
+  /* The chip row changes the house; this one changes what the card shows. As
+     two rows of pills they claimed the same authority, however small the
+     second one was made - a pill is a state, a tab is a view. So: no colour,
+     no icons, no enclosure, and flush against the list it governs, which is
+     why the strip is its own section and pulls back out of its padding. */
+  .section.strip {
+    padding-bottom: 0;
   }
 
-  .chips.secondary .chip[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--pm-text) 14%, transparent);
-    box-shadow: none;
+  .tabs {
+    display: flex;
+    gap: 18px;
+    /* Sideways rather than into a second line: a strip that wraps stops
+       reading as one strip. The scrollbar stays hidden; the cut-off tab at
+       the edge is what says there is more. */
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * var(--pm-padding-x));
+    padding: 0 var(--pm-padding-x);
+    border-bottom: 1px solid var(--pm-divider);
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    appearance: none;
+    border: none;
+    background: none;
+    color: var(--pm-muted);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 4px 0 10px;
+    /* Over the strip's own line, so the two never stack into 3px. */
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+
+  .tab:hover {
     color: var(--pm-text);
   }
 
-  .chip:disabled:not([aria-pressed="true"]) {
-    color: var(--pm-disabled);
+  .tab[aria-selected="true"] {
+    color: var(--pm-text);
+    border-bottom-color: var(--pm-accent);
   }
 
   /* Rows ------------------------------------------------------------------ */
@@ -423,11 +470,15 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
   }
 
   /* The row that opens the editors, and the one that closes them. */
+  /* A label and the switch it belongs to, the whole row clickable. A bare
+     toggle in a corner says that something can be turned on, and nothing
+     about what - this says it, and says it in the width the sentence needs. */
   .toolbar {
     display: flex;
     align-items: center;
     gap: var(--pm-gap);
     min-height: 28px;
+    cursor: pointer;
   }
 
   .toolbar-label {
@@ -435,6 +486,25 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
     min-width: 0;
     color: var(--pm-muted);
     font-size: 14px;
+  }
+
+  /* Quiet beside the accent: discarding is the way back, not the point of
+     the row, and two filled buttons would ask which one is the safe one. */
+  .discard {
+    appearance: none;
+    min-height: 32px;
+    padding: 0 12px;
+    border: none;
+    border-radius: var(--pm-chip-radius);
+    background: none;
+    color: var(--pm-muted);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+  }
+
+  .discard:hover {
+    color: var(--pm-text);
   }
 
   .apply {
@@ -499,103 +569,80 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
       transition: none !important;
     }
   }
-`;function pt(e){return e&&Je("ha-icon")?I`<ha-icon .icon=${e} aria-hidden="true"></ha-icon>`:F}function ut(e){const{config:t}=e;if(!t.header.visible)return F;const s=function(e){const t=e.config.header.icon;if(!1===t)return null;if(t)return t;const s=Qe(e.hass,e.subject);return s?.icon?s.icon:"preset_mode"===e.subject.kind?"mdi:state-machine":"mdi:tune-variant"}(e),i=!1===t.header.subtitle?null:t.header.subtitle??function(e){const{hass:t,subject:s}=e,i=Qe(t,s),n=i?.name??lt(t,"no_mode");if("preset_mode"===s.kind){const{presetMode:e}=s;if(e.source_entity){const s=t.states[e.source_entity];return`${n} · ${lt(t,"follows",{entity:s?.attributes.friendly_name??e.source_entity})}`}return n}return s.presetMode?n:`${n} · ${lt(t,"no_preset_mode")}`}(e),n=t.header.icon_color??function(e){const t=Qe(e.hass,e.subject);return t?e.config.modes.colors[t.key]:void 0}(e),{tappable:r}=e,o=t.header.automatic??"preset_mode"===e.subject.kind?function(e){const{hass:t,subject:s}=e,i=s.presetMode;if(!i?.entities.automatic)return F;const n=i.entities.automatic,r=et(t,i),o=lt(t,"automatic"),a=e=>e.stopPropagation();return I`
-    <label
-      class="switch-field"
-      @click=${a}
-      @pointerdown=${a}
-      @pointerup=${a}
-      @keydown=${a}
-    >
-      <span>${o}</span>
+`,qt="unavailable",It="unknown";function Bt(t){return void 0===t||t===qt||t===It}function Vt(t,e){if(t&&e)return t.states[e]}function Jt(t,e,i){t.dispatchEvent(new CustomEvent(e,{detail:i,bubbles:!0,composed:!0}))}function Kt(t,e){if("function"==typeof t.formatEntityState)return t.formatEntityState(e);const i=e.attributes.unit_of_measurement;return i?`${e.state} ${i}`:e.state}function Ft(t){return void 0!==t&&"none"!==t.action}async function Gt(t,e,i,s){if(!i||"none"===i.action)return;const n=i.entity??s;switch(i.action){case"more-info":return void(n&&function(t,e){Jt(t,"hass-more-info",{entityId:e})}(t,n));case"toggle":return void(n&&await e.callService("homeassistant","toggle",{},{entity_id:n}));case"navigate":return void(i.navigation_path&&(r=i.navigation_path,history.pushState(null,"",r),Jt(window,"location-changed",{replace:!1})));case"url":return void(i.url_path&&window.open(i.url_path,"_blank","noreferrer"));case"perform-action":case"call-service":{const t=i.perform_action??i.service;if(!t||!t.includes("."))return;const[s,n]=t.split(".",2);return void await e.callService(s,n,i.data??i.service_data??{},i.target)}default:return}var r}function Xt(t){return"undefined"!=typeof customElements&&!!customElements.get(t)}function Yt(t,e){return function(t){const e=t?.attributes.mode_key;return"string"==typeof e&&e?e:null}(Vt(t,function(t){return t.preset.entities.active_mode}(e)))}function Zt(t){return t.preset.modes}function Qt(t,e){const i=Yt(t,e);return i?Zt(e).find(t=>t.key===i)??null:null}function te(t){return t.preset.entities.automatic}function ee(t){return t.preset.entities.mode_selection}function ie(t,e){const i=Vt(t,te(e));return!i||Bt(i.state)?null:"on"===i.state}function se(t,e){return e.presetMode&&ee(e)?ie(t,e)?"following":null:"missing"}function ne(t){return t&&Xt("ha-icon")?I`<ha-icon .icon=${t} aria-hidden="true"></ha-icon>`:V}function re(t){const{config:e}=t;if(!e.header.visible)return V;const i=function(t){const e=t.config.header.icon;if(!1===e)return null;if(e)return e;const i=Qt(t.hass,t.subject);return i?.icon??"mdi:tune-variant"}(t),s=!1===e.header.subtitle?null:e.header.subtitle??function(t){const{hass:e,subject:i}=t,s=Qt(e,i),n=s?.name??Lt(e,"no_mode");if(!i.presetMode)return`${n} · ${Lt(e,"no_preset_mode")}`;const r=ie(e,i);return null===r?n:`${n} · ${Lt(e,r?"automatic":"manual")}`}(t),n=e.header.icon_color??function(t){const e=Qt(t.hass,t.subject);return e?t.config.modes.colors[e.key]:void 0}(t),{tappable:r}=t,o=function(t){const{hass:e,subject:i,config:s}=t;if(!s.header.automatic)return V;const n=te(i);if(!n)return V;const r=ie(e,i),o=Lt(e,"mode_automatic");return I`
+    <label class="switch-field">
       <span class="switch">
         <input
           type="checkbox"
           role="switch"
           aria-label=${o}
+          title=${o}
           .checked=${!0===r}
           .disabled=${null===r}
-          @change=${s=>{const i=s.target.checked;e.call(t.callService("switch",i?"turn_on":"turn_off",{},{entity_id:n}))}}
+          @change=${i=>{const s=i.target.checked;t.call(e.callService("switch",s?"turn_on":"turn_off",{},{entity_id:n}))}}
         />
       </span>
     </label>
-  `}(e):F,a=r&&o===F;return I`
-    <div
-      class="header section ${r?"tappable":""}"
-      style=${n?`--pm-icon-color: ${n}`:""}
-      role=${a?"button":F}
-      tabindex=${a?"0":F}
-      @pointerdown=${()=>e.onHeaderDown()}
-      @pointerup=${()=>e.onHeaderUp()}
-      @pointercancel=${()=>e.onHeaderUp()}
-      @click=${()=>e.onHeaderClick()}
-      @keydown=${t=>{!a||"Enter"!==t.key&&" "!==t.key||(t.preventDefault(),e.onHeaderClick())}}
-    >
-      ${s?I`<div class="icon">${pt(s)}</div>`:F}
-      <div class="titles">
-        <div class="title">${t.header.title??function(e){return"preset_mode"===e.subject.kind?e.subject.presetMode.name:e.subject.preset.name}(e)}</div>
-        ${i?I`<div class="subtitle">${i}</div>`:F}
-      </div>
-      ${o===F?F:I`<div class="header-end">${o}</div>`}
+  `}(t),a=I`
+    ${i?I`<div class="icon">${ne(i)}</div>`:V}
+    <div class="titles">
+      <div class="title">${e.header.title??function(t){return t.subject.preset.name}(t)}</div>
+      ${s?I`<div class="subtitle">${s}</div>`:V}
     </div>
-  `}function mt(e,t,s){const i=t.entities.active_mode;i&&e.call(e.hass.callService("preset_manager","set_active_mode",{mode:s},{entity_id:i}))}function ft(e){if(!function(e){const t=e.config.modes.visible;return void 0===t?"preset_mode"===e.subject.kind:"manual"===t?null===tt(e.hass,e.subject.presetMode):"always"===t}(e))return F;const t=Ze(e.subject);if(!t.length)return I`<div class="section note">
-      ${lt(e.hass,"no_modes")}
-    </div>`;const s=function(e){return e.subject.presetMode}(e),i=Xe(e.hass,e.subject),n=null!==tt(e.hass,s);return I`
-    <div class="section">
-      ${"dropdown"===e.config.modes.style?function(e,t,s,i,n){return I`
-    <select
-      class="select-input"
-      aria-label=${lt(e.hass,"preset_mode")}
-      ?disabled=${n}
-      @change=${t=>{const s=t.target.value;i&&mt(e,i,s)}}
-    >
-      ${null===s?I`<option value="" selected>${lt(e.hass,"no_mode")}</option>`:F}
-      ${t.map(e=>I`
-          <option value=${e.key} ?selected=${e.key===s}>
-            ${e.name}
-          </option>
-        `)}
-    </select>
-  `}(e,t,i,s,n):function(e,t,s,i,n){const{config:r}=e;return I`
+  `;return I`
+    <div class="header section" style=${n?`--pm-icon-color: ${n}`:""}>
+      ${r?I`
+            <button
+              class="header-main tappable"
+              type="button"
+              @pointerdown=${()=>t.onHeaderDown()}
+              @pointerup=${()=>t.onHeaderUp()}
+              @pointercancel=${()=>t.onHeaderUp()}
+              @click=${()=>t.onHeaderClick()}
+            >
+              ${a}
+            </button>
+          `:I`<div class="header-main">${a}</div>`}
+      ${o===V?V:I`<div class="header-end">${o}</div>`}
+    </div>
+  `}function oe(t,e,i,s){const{config:n}=t;return I`
     <div class="chips" role="group">
-      ${t.map(t=>{const o=t.key===s,a=r.modes.colors[t.key];return I`
+      ${e.map(e=>{const r=e.key===i,o=n.modes.colors[e.key];return I`
           <button
             class="chip"
             type="button"
-            aria-pressed=${o?"true":"false"}
-            ?disabled=${n}
-            style=${a?`--pm-chip-color: ${a}`:""}
-            @click=${()=>i&&mt(e,i,t.key)}
+            aria-pressed=${r?"true":"false"}
+            ?disabled=${s}
+            style=${o?`--pm-chip-color: ${o}`:""}
+            @click=${()=>function(t,e){const i=ee(t.subject);i&&t.call(t.hass.callService("preset_manager","set_active_mode",{mode:e},{entity_id:i}))}(t,e.key)}
           >
-            ${r.modes.icons?pt(t.icon):F}
-            <span>${t.name}</span>
+            ${n.modes.icons?ne(e.icon):V}
+            <span>${e.name}</span>
           </button>
         `})}
     </div>
-  `}(e,t,i,s,n)}
-    </div>
-  `}function _t(e,t,s,i,n){if(e.stage)return void e.stage(t.entity_id,{service:s,data:i,display:n});const r=t.entity_id.split(".",1)[0];e.call(e.hass.callService(r,s,i,{entity_id:t.entity_id}))}function vt(e,t){const s=e.draft?.get(t.entity_id)?.display;return void 0!==s?{disabled:!1,empty:!1,staged:s}:{disabled:(i=t.state,void 0===i||i===Re),empty:Le(t.state),staged:void 0};var i}function bt(e,t,s){const i=e.attributes[t];return null==i?s:i}function gt(e,t,s,i){const{disabled:n,empty:r,staged:o}=vt(e,t);let a=o??(r?"":t.state);return void 0===o&&("datetime"===i&&(a=r?"":function(e){const t=new Date(e);if(Number.isNaN(t.getTime()))return"";const s=e=>String(e).padStart(2,"0");return`${t.getFullYear()}-${s(t.getMonth()+1)}-${s(t.getDate())}T${s(t.getHours())}:${s(t.getMinutes())}`}(t.state)),"time"===i&&(a=a.slice(0,5))),I`
+  `}function ae(t){return function(t){const e=t.config.modes.visible;return"manual"===e?null===se(t.hass,t.subject):"never"!==e}(t)?I`<div class="section">${function(t){const e=Zt(t.subject);return e.length?oe(t,e,Yt(t.hass,t.subject),null!==se(t.hass,t.subject)):I`<div class="note">${Lt(t.hass,"no_modes")}</div>`}(t)}</div>`:V}function ce(t,e,i,s,n){if(t.stage)return void t.stage(e.entity_id,{service:i,data:s,display:n});const r=e.entity_id.split(".",1)[0];t.call(t.hass.callService(r,i,s,{entity_id:e.entity_id}))}function le(t,e){const i=t.draft?.get(e.entity_id)?.display;return void 0!==i?{disabled:!1,empty:!1,staged:i}:{disabled:(s=e.state,void 0===s||s===qt),empty:Bt(e.state),staged:void 0};var s}function de(t,e,i){const s=t.attributes[e];return null==s?i:s}function he(t,e,i,s){const{disabled:n,empty:r,staged:o}=le(t,e);let a=o??(r?"":e.state);return void 0===o&&("datetime"===s&&(a=r?"":function(t){const e=new Date(t);if(Number.isNaN(e.getTime()))return"";const i=t=>String(t).padStart(2,"0");return`${e.getFullYear()}-${i(e.getMonth()+1)}-${i(e.getDate())}T${i(e.getHours())}:${i(e.getMinutes())}`}(e.state)),"time"===s&&(a=a.slice(0,5))),I`
     <input
       class="date-input"
-      type=${"datetime"===i?"datetime-local":i}
-      aria-label=${s}
+      type=${"datetime"===s?"datetime-local":s}
+      aria-label=${i}
       .value=${a}
       ?disabled=${n}
-      @change=${s=>{const n=s.target.value;n&&_t(e,t,"set_value","date"===i?{date:n}:"time"===i?{time:`${n}:00`}:{datetime:`${n.replace("T"," ")}:00`},n)}}
+      @change=${i=>{const n=i.target.value;n&&ce(t,e,"set_value","date"===s?{date:n}:"time"===s?{time:`${n}:00`}:{datetime:`${n.replace("T"," ")}:00`},n)}}
     />
-  `}function $t(e,t,s,i){if(!s)return I`<span class="row-value muted">
-      ${lt(e.hass,"unavailable")}
-    </span>`;switch(t){case"number":return function(e,t,s){const{disabled:i,empty:n,staged:r}=vt(e,t),o=bt(t,"min",0),a=bt(t,"max",100),c=bt(t,"step",1),l=t.attributes.unit_of_measurement??"",d=r??t.state,h=n?"":d,p=s=>{const i=s.target.valueAsNumber;Number.isNaN(i)||_t(e,t,"set_value",{value:i},String(i))};return"slider"===bt(t,"mode","box")?I`
+  `}function ue(t,e,i,s){if(!i)return I`<span class="row-value muted">
+      ${Lt(t.hass,"unavailable")}
+    </span>`;switch(e){case"number":return function(t,e,i){const{disabled:s,empty:n,staged:r}=le(t,e),o=de(e,"min",0),a=de(e,"max",100),c=de(e,"step",1),l=e.attributes.unit_of_measurement??"",d=r??e.state,h=n?"":d,u=i=>{const s=i.target.valueAsNumber;Number.isNaN(s)||ce(t,e,"set_value",{value:s},String(s))};return"slider"===de(e,"mode","box")?I`
       <input
         class="slider"
         type="range"
-        aria-label=${s}
+        aria-label=${i}
         min=${o}
         max=${a}
         step=${c}
         .value=${n?String(o):h}
-        ?disabled=${i}
-        @change=${p}
+        ?disabled=${s}
+        @change=${u}
       />
       <span class="slider-value">
         ${n?"—":`${d}${l?` ${l}`:""}`}
@@ -605,209 +652,151 @@ const e="preset-manager-card";function t(e,t,s,i){var n,r=arguments.length,o=r<3
       class="number-input"
       type="number"
       inputmode="decimal"
-      aria-label=${s}
+      aria-label=${i}
       min=${o}
       max=${a}
       step=${c}
       .value=${h}
-      ?disabled=${i}
-      @change=${p}
-      @keydown=${s=>{const n="ArrowUp"===s.key?1:"ArrowDown"===s.key?-1:0;if(!n||i)return;s.preventDefault();const r=s.target,l=Number.isNaN(r.valueAsNumber)?o:r.valueAsNumber,d=Math.min(a,Math.max(o,l+n*c));if(d===l)return;const h=(String(c).split(".")[1]??"").length;r.value=d.toFixed(h),_t(e,t,"set_value",{value:Number(r.value)},r.value)}}
+      ?disabled=${s}
+      @change=${u}
+      @keydown=${i=>{const n="ArrowUp"===i.key?1:"ArrowDown"===i.key?-1:0;if(!n||s)return;i.preventDefault();const r=i.target,l=Number.isNaN(r.valueAsNumber)?o:r.valueAsNumber,d=Math.min(a,Math.max(o,l+n*c));if(d===l)return;const h=(String(c).split(".")[1]??"").length;r.value=d.toFixed(h),ce(t,e,"set_value",{value:Number(r.value)},r.value)}}
     />
-    ${l?I`<span class="row-value">${l}</span>`:F}
-  `}(e,s,i);case"boolean":return function(e,t,s){const{disabled:i,empty:n,staged:r}=vt(e,t);return I`
+    ${l?I`<span class="row-value">${l}</span>`:V}
+  `}(t,i,s);case"boolean":return function(t,e,i){const{disabled:s,empty:n,staged:r}=le(t,e);return I`
     <label class="switch">
       <input
         type="checkbox"
         role="switch"
-        aria-label=${s}
-        .checked=${"on"===(r??t.state)}
+        aria-label=${i}
+        .checked=${"on"===(r??e.state)}
         .indeterminate=${n}
-        ?disabled=${i}
-        @change=${s=>{const i=s.target.checked;_t(e,t,i?"turn_on":"turn_off",{},i?"on":"off")}}
+        ?disabled=${s}
+        @change=${i=>{const s=i.target.checked;ce(t,e,s?"turn_on":"turn_off",{},s?"on":"off")}}
       />
     </label>
-  `}(e,s,i);case"select":return function(e,t,s){const{disabled:i,empty:n,staged:r}=vt(e,t),o=bt(t,"options",[]),a=r??t.state;return I`
+  `}(t,i,s);case"select":return function(t,e,i){const{disabled:s,empty:n,staged:r}=le(t,e),o=de(e,"options",[]),a=r??e.state;return I`
     <select
       class="select-input"
-      aria-label=${s}
-      ?disabled=${i}
-      @change=${s=>{const i=s.target.value;_t(e,t,"select_option",{option:i},i)}}
+      aria-label=${i}
+      ?disabled=${s}
+      @change=${i=>{const s=i.target.value;ce(t,e,"select_option",{option:s},s)}}
     >
-      ${n?I`<option value="" selected disabled>${"—"}</option>`:F}
-      ${o.map(e=>I`
-          <option value=${e} ?selected=${e===a}>
-            ${e}
+      ${n?I`<option value="" selected disabled>${"—"}</option>`:V}
+      ${o.map(t=>I`
+          <option value=${t} ?selected=${t===a}>
+            ${t}
           </option>
         `)}
     </select>
-  `}(e,s,i);case"text":return function(e,t,s){const{disabled:i,empty:n,staged:r}=vt(e,t),o=t.attributes.pattern;return I`
+  `}(t,i,s);case"text":return function(t,e,i){const{disabled:s,empty:n,staged:r}=le(t,e),o=e.attributes.pattern;return I`
     <input
       class="text-input"
-      type=${"password"===bt(t,"mode","text")?"password":"text"}
-      aria-label=${s}
-      minlength=${bt(t,"min",0)}
-      maxlength=${bt(t,"max",255)}
-      pattern=${o??F}
-      .value=${n?"":r??t.state}
-      ?disabled=${i}
-      @change=${s=>{const i=s.target.value;_t(e,t,"set_value",{value:i},i)}}
+      type=${"password"===de(e,"mode","text")?"password":"text"}
+      aria-label=${i}
+      minlength=${de(e,"min",0)}
+      maxlength=${de(e,"max",255)}
+      pattern=${o??V}
+      .value=${n?"":r??e.state}
+      ?disabled=${s}
+      @change=${i=>{const s=i.target.value;ce(t,e,"set_value",{value:s},s)}}
     />
-  `}(e,s,i);case"date":return gt(e,s,i,"date");case"time":return gt(e,s,i,"time");case"datetime":return gt(e,s,i,"datetime");default:return I`<span class="row-value muted">
-        ${lt(e.hass,"not_editable")}
-      </span>`}}function yt(e,t){return"number"===e&&void 0!==t&&"slider"===bt(t,"mode","box")}function wt(e,t){const s=e.config.values.parameters,i=new Map((s??[]).map(e=>[e.parameter,e]));return function(e,t){if(!t)return e.parameters;const s=new Map(e.parameters.map(e=>[e.key,e]));return t.map(e=>s.get(e)).filter(e=>void 0!==e)}(t,s?s.map(e=>e.parameter):null).map(e=>{const t=i.get(e.key);return{parameter:e,label:t?.name??e.name,icon:t?.icon}})}function xt(e,t,s){if(!s)return F;const i=!1===t.icon?void 0:t.icon??(e.config.values.icons?Be(e.hass,t.parameter.entity)?.attributes.icon:void 0);return I`<span class="row-icon">${pt(i)}</span>`}function At(e,t,s){const{text:i,muted:n}=function(e,t){const s=Be(e.hass,t.entity);return s?s.state===De?{text:lt(e.hass,"not_set"),muted:!0}:Le(s.state)?{text:lt(e.hass,"unavailable"),muted:!0}:{text:Ie(e.hass,s),muted:!1}:{text:lt(e.hass,"unavailable"),muted:!0}}(e,t.parameter);return I`
+  `}(t,i,s);case"date":return he(t,i,s,"date");case"time":return he(t,i,s,"time");case"datetime":return he(t,i,s,"datetime");default:return I`<span class="row-value muted">
+        ${Lt(t.hass,"not_editable")}
+      </span>`}}function pe(t,e){const i=t.config.values.parameters,s=new Map((i??[]).map(t=>[t.parameter,t]));return function(t,e){if(!e)return t.parameters;const i=new Map(t.parameters.map(t=>[t.key,t]));return e.map(t=>i.get(t)).filter(t=>void 0!==t)}(e,i?i.map(t=>t.parameter):null).map(t=>{const e=s.get(t.key);return{parameter:t,label:e?.name??t.name,icon:e?.icon}})}function me(t,e,i){if(!i)return V;const s=!1===e.icon?void 0:e.icon??(t.config.values.icons?Vt(t.hass,e.parameter.entity)?.attributes.icon:void 0);return I`<span class="row-icon">${ne(s)}</span>`}function fe(t,e,i){const{text:s,muted:n}=function(t,e){const i=Vt(t.hass,e.entity);return i?i.state===It?{text:Lt(t.hass,"not_set"),muted:!0}:Bt(i.state)?{text:Lt(t.hass,"unavailable"),muted:!0}:{text:Kt(t.hass,i),muted:!1}:{text:Lt(t.hass,"unavailable"),muted:!0}}(t,e.parameter);return I`
     <div class="row">
       <div class="row-label">
-        ${xt(e,t,s)}<span>${t.label}</span>
+        ${me(t,e,i)}<span>${e.label}</span>
       </div>
-      <div class="row-value ${n?"muted":""}">${i}</div>
+      <div class="row-value ${n?"muted":""}">${s}</div>
     </div>
-  `}function kt(e,t,s,i,n){const r=s?t.parameter.editors[s]:void 0,o=Be(e.hass,r),a=yt(t.parameter.type,o);return I`
+  `}function _e(t,e,i,s,n){const r=i?e.parameter.editors[i]:void 0,o=Vt(t.hass,r),a=function(t,e){return"number"===t&&void 0!==e&&"slider"===de(e,"mode","box")}(e.parameter.type,o);return I`
     <div class="row ${a?"wide":""}">
       <div class="row-label">
-        ${xt(e,t,n)}<span>${i}</span>
+        ${me(t,e,n)}<span>${s}</span>
       </div>
       <div class="row-control">
-        ${$t(e,t.parameter.type,o,i)}
+        ${ue(t,e.parameter.type,o,s)}
       </div>
     </div>
-  `}function Et(e){const t=lt(e.hass,"editing");return I`
-    <label class="toolbar">
-      <span class="toolbar-label">${t}</span>
-      <span class="switch">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label=${t}
-          .checked=${e.editing}
-          @change=${t=>e.setEditing(t.target.checked)}
-        />
-      </span>
-    </label>
-  `}function St(e){return I`
+  `}function ve(t){const e={ArrowLeft:-1,ArrowRight:1,Home:-1/0,End:1/0}[t.key];if(void 0===e)return;const i=[...t.currentTarget.querySelectorAll("button.tab")],s=i.indexOf(t.target);if(s<0)return;t.preventDefault();const n=Math.min(Math.max(s+e,0),i.length-1);i[n].focus(),i[n].click()}function be(t){const e=Zt(t.subject);if(!e.length)return V;const i=t.editMode,s=(e,s)=>{const n=e===i;return I`
+      <button
+        class="tab"
+        type="button"
+        role="tab"
+        aria-selected=${n?"true":"false"}
+        tabindex=${n?0:-1}
+        @click=${()=>t.selectEditMode(e)}
+      >
+        ${s}
+      </button>
+    `};return I`
+    <div class="section strip">
+      <div
+        class="tabs"
+        role="tablist"
+        aria-label=${Lt(t.hass,"mode")}
+        @keydown=${ve}
+      >
+        ${s(null,Lt(t.hass,"active"))}
+        ${e.map(t=>s(t.key,t.name))}
+      </div>
+    </div>
+  `}function ge(t){if(!t.config.values.visible)return V;const e=t.subject.preset,i=pe(t,e);if(!i.length)return I`<div class="section note">
+      ${Lt(t.hass,"no_parameters")}
+    </div>`;const s=null===t.subject.presetMode?I`<div class="note warning">${Lt(t.hass,"orphaned")}</div>`:V,n=function(t,e){return t.config.values.icons||e.some(t=>"string"==typeof t.icon)}(t,i),r=t.draft.size?function(t){return I`
     <div class="toolbar">
       <span class="toolbar-label"></span>
-      <button
-        class="apply"
-        type="button"
-        ?disabled=${0===e.draft.size}
-        @click=${()=>e.apply()}
-      >
-        ${lt(e.hass,"apply")}
+      <button class="discard" type="button" @click=${()=>t.discard()}>
+        ${Lt(t.hass,"discard")}
+      </button>
+      <button class="apply" type="button" @click=${()=>t.apply()}>
+        ${Lt(t.hass,"apply")}
       </button>
     </div>
-  `}function Mt(e){if("preset"!==e.subject.kind)return F;if(!e.config.values.visible)return F;const t=e.subject.preset,s=wt(e,t);if(!s.length)return I`<div class="section note">
-      ${lt(e.hass,"no_parameters")}
-    </div>`;const i=null===e.subject.presetMode?I`<div class="note warning">${lt(e.hass,"orphaned")}</div>`:F,n=function(e,t){return e.config.values.icons||t.some(e=>"string"==typeof e.icon)}(e,s),{editor:r}=e.config,o=()=>I`
-    <div class="section rows">
-      ${i}${r.confirm?Et(e):F}
-      ${s.map(t=>At(e,t,n))}
-    </div>
-  `;if(!r.enabled)return o();if(r.confirm&&!e.editing)return o();if("all"===r.mode){const t=Ze(e.subject);return I`
+  `}(t):V,o=t.config.values.mode;if("active"===o)return I`
       <div class="section rows">
-        ${i}${r.confirm?Et(e):F}
-        ${s.map(s=>I`
-            <div class="group-label">${s.label}</div>
-            ${t.map(t=>kt(e,s,t.key,t.name,n))}
+        ${s}${i.map(e=>fe(t,e,n))}
+      </div>
+    `;if("all"===o){const e=Zt(t.subject);return I`
+      <div class="section rows">
+        ${s}
+        ${i.map(i=>I`
+            <div class="group-label">${i.label}</div>
+            ${e.map(e=>_e(t,i,e.key,e.name,n))}
           `)}
-        ${r.confirm?St(e):F}
+        ${r}
       </div>
-    `}const a="active"===r.mode?Xe(e.hass,e.subject):e.editMode;return I`
-    <div class="section rows">
-      ${i}${r.confirm?Et(e):F}
-      ${"picker"===r.mode?function(e){const t=Ze(e.subject);if(t.length<2)return F;const s=Xe(e.hass,e.subject),i=t.find(e=>e.key===s),n=lt(e.hass,e.config.editor.confirm?"mode":"editing"),r="dropdown"===e.config.editor.style?I`
-          <select
-            class="select-input"
-            aria-label=${n}
-            @change=${t=>e.selectEditMode(t.target.value)}
-          >
-            ${t.map(t=>I`
-                <option value=${t.key} ?selected=${t.key===e.editMode}>
-                  ${t.name}
-                </option>
-              `)}
-          </select>
-        `:I`
-          <div class="chips secondary" role="group" aria-label=${n}>
-            ${t.map(t=>I`
-                <button
-                  class="chip"
-                  type="button"
-                  aria-pressed=${t.key===e.editMode?"true":"false"}
-                  @click=${()=>e.selectEditMode(t.key)}
-                >
-                  <span>${t.name}</span>
-                </button>
-              `)}
-          </div>
-        `;return I`
-    <div class="row">
-      <div class="row-label"><span>${n}:</span></div>
-      <div class="row-control">${r}</div>
-    </div>
-    ${i&&i.key!==e.editMode?I`<div class="note">
-          ${lt(e.hass,"active_is",{mode:i.name})}
-        </div>`:F}
-  `}(e):F}
-      ${s.map(t=>kt(e,t,a,t.label,n))}
-      ${r.confirm?St(e):F}
-    </div>
-  `}function Tt(e,t){const s=e.config.presets.editable;return t.parameters.map(i=>{const n=s&&yt(i.type,Be(e.hass,i.editors[Ye(e.hass,t)??""]));return I`
-      <div class="row ${n?"wide":""}">
-        <div class="row-label"><span>${i.name}</span></div>
-        ${s?function(e,t,s){const i=Ye(e.hass,t),n=Be(e.hass,i?s.editors[i]:void 0);return I`
-    <div class="row-control">
-      ${$t(e,s.type,n,s.name)}
-    </div>
-  `}(e,t,i):function(e,t){const s=Be(e.hass,t.entity);let i,n=!0;return s?s.state===De?i=lt(e.hass,"not_set"):Le(s.state)?i=lt(e.hass,"unavailable"):(i=Ie(e.hass,s),n=!1):i=lt(e.hass,"unavailable"),I`<div class="row-value ${n?"muted":""}">${i}</div>`}(e,i)}
+    `}if("edit"===o){const e=Yt(t.hass,t.subject);return I`
+      <div class="section rows">
+        ${s}
+        ${i.map(i=>_e(t,i,e,i.label,n))}
+        ${r}
       </div>
-    `})}function Ct(e,t){const{hass:s,subject:i}=e;switch(t){case"preset_mode":return"preset"===i.kind?i.presetMode?`${lt(s,"preset_mode")}: ${i.presetMode.name}`:lt(s,"orphaned"):dt(s,"presets_one","presets_other",i.presets.length);case"blueprint":return"preset"===i.kind&&i.blueprint?`${lt(s,"blueprint")}: ${i.blueprint.name}`:null;case"source":{const e="preset_mode"===i.kind?i.presetMode.source_entity:null;if(!e)return null;const t=s.states[e];return`${lt(s,"source")}: ${t?.attributes.friendly_name??e}`}case"last_changed":{const e=Be(s,Ge(i));return e?`${lt(s,"changed")}: ${function(e,t){const s=new Date(t).getTime();if(Number.isNaN(s))return"";const i=Math.round((s-Date.now())/1e3),n=[["year",31536e3],["month",2592e3],["day",86400],["hour",3600],["minute",60]],r=new Intl.RelativeTimeFormat(e.language||"en",{numeric:"auto"});for(const[e,t]of n)if(Math.abs(i)>=t)return r.format(Math.round(i/t),e);return r.format(Math.round(i),"second")}(s,e.last_changed)}`:null}default:return null}}const Pt={action:"more-info"};let jt=class extends ae{constructor(){super(...arguments),this._editModeOverride=null,this._editing=!1,this._draft=new Map,this._watched=[],this._held=!1,this._lastTap=0}setConfig(e){this._config=Me(e),this._editModeOverride=null,this._editing=!1,this._draft=new Map,this._watched=[]}static getConfigElement(){return document.createElement(`${e}-editor`)}static async getStubConfig(t){const s=ze(t)??await Ue(t),i=s.preset_modes.find(e=>e.entities.mode)?.entities.mode??s.presets.find(e=>e.entities.active_mode)?.entities.active_mode;return{type:`custom:${e}`,entity:i??""}}set hass(e){const t=this._hass;if(this._hass=e,!t)return this.requestUpdate(),void this._load();if(t.language===e.language&&t.themes===e.themes){for(const s of this._watched)if(t.states[s]!==e.states[s])return void this.requestUpdate()}else this.requestUpdate()}get hass(){return this._hass}connectedCallback(){super.connectedCallback(),this._load()}disconnectedCallback(){super.disconnectedCallback(),this._unsubscribe?.(),this._unsubscribe=void 0,this._clearTimers()}async _load(){this._hass&&!this._unsubscribe&&(this._unsubscribe=He(this._hass,e=>{this._structure=e}),this._structure=await Ue(this._hass))}getCardSize(){const e=this._config;if(!e)return 2;let t=e.header.visible?1:0;const s=this._subject;return(void 0===e.modes.visible?null===s||"preset_mode"===s.kind:"never"!==e.modes.visible)&&(t+=1),e.values.visible&&(t+=2),e.presets.visible&&(t+=2),e.footer.visible&&(t+=1),Math.max(1,t)}getGridOptions(){return{columns:12,min_columns:6}}get _tapAction(){return this._config?.tap_action??Pt}_clearTimers(){this._holdTimer&&clearTimeout(this._holdTimer),this._tapTimer&&clearTimeout(this._tapTimer),this._errorTimer&&clearTimeout(this._errorTimer),this._holdTimer=this._tapTimer=this._errorTimer=void 0}_headerDown(e){this._held=!1,Fe(this._config?.hold_action)&&(this._holdTimer=setTimeout(()=>{this._held=!0,this._run(this._config?.hold_action,e)},500))}_headerUp(){this._holdTimer&&clearTimeout(this._holdTimer),this._holdTimer=void 0}_headerClick(e){if(this._held)return void(this._held=!1);const t=this._config?.double_tap_action;if(!Fe(t))return void this._run(this._tapAction,e);const s=Date.now();if(s-this._lastTap<250)return this._tapTimer&&clearTimeout(this._tapTimer),this._tapTimer=void 0,this._lastTap=0,void this._run(t,e);this._lastTap=s,this._tapTimer=setTimeout(()=>{this._tapTimer=void 0,this._run(this._tapAction,e)},250)}_run(e,t){if(!this._hass)return;const s="preset_mode"===t.kind?t.presetMode.entities.mode:t.preset.entities.active_mode;this._call(Ve(this,this._hass,e,s??this._config?.entity))}_apply(){if(!this._hass||!this._draft.size)return;const e=this._hass,t=[...this._draft].map(([t,s])=>e.callService(t.split(".",1)[0],s.service,s.data,{entity_id:t}));this._editing=!1,this._draft=new Map,this._editModeOverride=null,this._call(Promise.all(t))}_call(e){e.then(()=>{void 0!==this._error&&(this._error=void 0)},e=>{this._error=this._messageOf(e),this._errorTimer&&clearTimeout(this._errorTimer),this._errorTimer=setTimeout(()=>{this._errorTimer=void 0,this._error=void 0},6e3)})}_messageOf(e){if("string"==typeof e)return e;if(e&&"object"==typeof e){const t=e,s=t.body;for(const e of[t.message,s?.message,t.error])if("string"==typeof e&&e)return e}return String(e)}willUpdate(e){super.willUpdate(e);const t=this._subject;this._watched=t?function(e){if("preset_mode"===e.kind){const t=rt(e.presetMode);for(const s of e.presets)t.push(...nt(s));return t}const t=nt(e.preset);return e.presetMode&&t.push(...rt(e.presetMode)),t}(t):[]}get _subject(){return this._config&&this._structure?ot(this._structure,this._config.entity):null}_editMode(e){if(this._editModeOverride)return this._editModeOverride;const t=this._config?.editor.default_mode,s=Ze(e);return t&&s.some(e=>e.key===t)?t:Xe(this._hass,e)??s[0]?.key??null}render(){const e=this._config,t=this._hass;if(!e||!t)return F;if(!this._structure)return this._shell(this._skeleton());const s=this._subject;if(!s){const s=this._structure.preset_modes.length+this._structure.presets.length;return this._shell(this._alert(s?lt(t,"not_found",{entity:e.entity}):lt(t,"not_set_up")))}const i={hass:t,config:e,subject:s,host:this,editMode:this._editMode(s),selectEditMode:e=>{this._editModeOverride=e},call:e=>this._call(e),editing:this._editing,draft:this._draft,setEditing:e=>{this._editing=e,this._draft=new Map,e||(this._editModeOverride=null)},stage:(e,t)=>{this._draft=new Map(this._draft).set(e,t)},apply:()=>this._apply(),tappable:Fe(this._tapAction)||Fe(e.hold_action),onHeaderDown:()=>this._headerDown(s),onHeaderUp:()=>this._headerUp(),onHeaderClick:()=>this._headerClick(s)};return this._shell(I`
-      ${ut(i)} ${ft(i)} ${Mt(i)}
-      ${function(e){if("preset_mode"!==e.subject.kind)return F;if(!e.config.presets.visible)return F;const{presets:t}=e.subject;if(!t.length)return I`<div class="section note">
-      ${dt(e.hass,"presets_one","presets_other",0)}
-    </div>`;const s=e.config.presets.values;return I`
-    <div class="section rows">
-      ${t.map(t=>{const i=t.entities.active_mode,n=I`
-          <button
-            class="row-label link-row"
-            type="button"
-            ?disabled=${!i}
-            @click=${()=>i&&qe(e.host,i)}
-          >
-            <span>${t.name}</span>
-          </button>
-        `;if(!s){const t=Be(e.hass,i);return I`
-            <div class="row">
-              ${n}
-              <div class="row-value ${t&&!Le(t.state)?"":"muted"}">
-                ${t&&!Le(t.state)?t.state:lt(e.hass,"no_mode")}
-              </div>
-            </div>
-          `}return I`
-          <div class="group-label">${t.name}</div>
-          ${Tt(e,t)}
-        `})}
+    `}const a=t.editMode;return I`
+    ${be(t)}
+    <div class="section rows" role="tabpanel">
+      ${s}
+      ${null===a?i.map(e=>fe(t,e,n)):i.map(e=>_e(t,e,a,e.label,n))}
+      ${r}
     </div>
-  `}(i)} ${function(e){if(!e.config.footer.visible)return F;const t=e.config.footer.content.map(t=>Ct(e,t)).filter(e=>null!==e);return t.length?I`
-    <div class="section footer">
-      ${t.map(e=>I`<span>${e}</span>`)}
-    </div>
-  `:F}(i)}
-      ${this._error?I`<div class="section inline-error" role="alert">${this._error}</div>`:F}
-    `)}_shell(e){return I`<ha-card>${e}</ha-card>`}_skeleton(){return I`
-      <div class="section rows" aria-busy="true" aria-label=${lt(this._hass,"loading")}>
+  `}const ye={action:"more-info"};let $e=class extends at{constructor(){super(...arguments),this._draft=new Map,this._watched=[],this._held=!1,this._lastTap=0}setConfig(t){this._config=At(t),this._viewMode=void 0,this._draft=new Map,this._watched=[]}static getConfigElement(){return document.createElement(`${t}-editor`)}static async getStubConfig(e){const i=Ot(e)??await Pt(e),s=i.presets.find(t=>t.entities.active_mode)?.entities.active_mode;return{type:`custom:${t}`,entity:s??""}}set hass(t){const e=this._hass;if(this._hass=t,!e)return this.requestUpdate(),void this._load();if(e.language===t.language&&e.themes===t.themes){for(const i of this._watched)if(e.states[i]!==t.states[i])return void this.requestUpdate()}else this.requestUpdate()}get hass(){return this._hass}connectedCallback(){super.connectedCallback(),this._load()}disconnectedCallback(){super.disconnectedCallback(),this._unsubscribe?.(),this._unsubscribe=void 0,this._clearTimers()}async _load(){this._hass&&!this._unsubscribe&&(this._unsubscribe=jt(this._hass,t=>{this._structure=t}),this._structure=await Pt(this._hass))}getCardSize(){const t=this._config;if(!t)return 2;let e=t.header.visible?1:0;return"never"!==t.modes.visible&&(e+=1),t.values.visible&&(e+=2),Math.max(1,e)}getGridOptions(){return{columns:12,min_columns:6}}get _tapAction(){return this._config?.tap_action??ye}_clearTimers(){this._holdTimer&&clearTimeout(this._holdTimer),this._tapTimer&&clearTimeout(this._tapTimer),this._errorTimer&&clearTimeout(this._errorTimer),this._holdTimer=this._tapTimer=this._errorTimer=void 0}_headerDown(t){this._held=!1,Ft(this._config?.hold_action)&&(this._holdTimer=setTimeout(()=>{this._held=!0,this._run(this._config?.hold_action,t)},500))}_headerUp(){this._holdTimer&&clearTimeout(this._holdTimer),this._holdTimer=void 0}_headerClick(t){if(this._held)return void(this._held=!1);const e=this._config?.double_tap_action;if(!Ft(e))return void this._run(this._tapAction,t);const i=Date.now();if(i-this._lastTap<250)return this._tapTimer&&clearTimeout(this._tapTimer),this._tapTimer=void 0,this._lastTap=0,void this._run(e,t);this._lastTap=i,this._tapTimer=setTimeout(()=>{this._tapTimer=void 0,this._run(this._tapAction,t)},250)}_run(t,e){if(!this._hass)return;const i=e.preset.entities.active_mode;this._call(Gt(this,this._hass,t,i??this._config?.entity))}_apply(){if(!this._hass||!this._draft.size)return;const t=this._hass,e=[...this._draft].map(([e,i])=>t.callService(e.split(".",1)[0],i.service,i.data,{entity_id:e}));this._draft=new Map,this._viewMode=void 0,this._call(Promise.all(e))}_call(t){t.then(()=>{void 0!==this._error&&(this._error=void 0)},t=>{this._error=this._messageOf(t),this._errorTimer&&clearTimeout(this._errorTimer),this._errorTimer=setTimeout(()=>{this._errorTimer=void 0,this._error=void 0},6e3)})}_messageOf(t){if("string"==typeof t)return t;if(t&&"object"==typeof t){const e=t,i=e.body;for(const t of[e.message,i?.message,e.error])if("string"==typeof t&&t)return t}return String(t)}willUpdate(t){super.willUpdate(t);const e=this._subject;this._watched=e?function(t){const e=Nt(t.preset);return t.presetMode&&e.push(...zt(t.presetMode)),e}(e):[]}get _subject(){return this._config&&this._structure?Ht(this._structure,this._config.entity):null}_viewedMode(){return this._viewMode??null}render(){const t=this._config,e=this._hass;if(!t||!e)return V;if(!this._structure)return this._shell(this._skeleton());const i=this._subject;if(!i){let i;return i=this._structure.preset_modes.length+this._structure.presets.length?function(t,e){return t.preset_modes.some(t=>zt(t).includes(e))}(this._structure,t.entity)?Lt(e,"not_a_preset",{entity:t.entity}):Lt(e,"not_found",{entity:t.entity}):Lt(e,"not_set_up"),this._shell(this._alert(i))}const s={hass:e,config:t,subject:i,host:this,editMode:this._viewedMode(),selectEditMode:t=>{this._viewMode=t},call:t=>this._call(t),draft:this._draft,stage:(t,e)=>{this._draft=new Map(this._draft).set(t,e)},apply:()=>this._apply(),discard:()=>{this._draft=new Map},tappable:Ft(this._tapAction)||Ft(t.hold_action),onHeaderDown:()=>this._headerDown(i),onHeaderUp:()=>this._headerUp(),onHeaderClick:()=>this._headerClick(i)};return this._shell(I`
+      ${re(s)} ${ae(s)} ${ge(s)}
+     
+      ${this._error?I`<div class="section inline-error" role="alert">${this._error}</div>`:V}
+    `)}_shell(t){return I`<ha-card>${t}</ha-card>`}_skeleton(){return I`
+      <div class="section rows" aria-busy="true" aria-label=${Lt(this._hass,"loading")}>
         <div class="skeleton" style="width:45%"></div>
         <div class="skeleton" style="width:70%"></div>
       </div>
-    `}_alert(e){return Je("ha-alert")?I`<ha-alert alert-type="warning">${e}</ha-alert>`:I`<div class="fallback-alert" role="alert">${e}</div>`}};jt.styles=ht,t([pe()],jt.prototype,"_config",void 0),t([pe()],jt.prototype,"_structure",void 0),t([pe()],jt.prototype,"_editModeOverride",void 0),t([pe()],jt.prototype,"_editing",void 0),t([pe()],jt.prototype,"_draft",void 0),t([pe()],jt.prototype,"_error",void 0),jt=t([le(e)],jt);const Ot={entity:"Entity",header:"Header",modes:"Modes",values:"Values",editor:"Editing",presets:"Presets",footer:"Footer",actions:"Actions",visible:"Show",automatic:"Automatic switch",title:"Title",subtitle:"Subtitle",icon:"Icon",icon_color:"Icon colour",style:"Style",icons:"Show icons",parameters:"Parameters",parameters_note:"Parameters",enabled:"Editable",confirm:"Confirm with a button",editable:"Editable",mode:"Which mode",default_mode:"Start on",content:"Content",tap_action:"Tap",hold_action:"Hold",double_tap_action:"Double tap"},Nt=["more-info","navigate","url","perform-action","none"];function Ut(e){return{selector:{select:{mode:"dropdown",options:e.map(([e,t])=>({value:e,label:t}))}}}}let zt=class extends ae{constructor(){super(...arguments),this._config={},this._label=e=>e.name&&Ot[e.name]||e.title||e.name||""}set hass(e){this._hass=e,this._structure??=ze(e),this._load(),this.requestUpdate()}get hass(){return this._hass}setConfig(e){this._config=e}disconnectedCallback(){super.disconnectedCallback(),this._unsubscribe?.(),this._unsubscribe=void 0}async _load(){this._hass&&!this._unsubscribe&&(this._unsubscribe=He(this._hass,e=>{this._structure=e}),this._structure=await Ue(this._hass))}_entityPicker(){const e=[...(this._structure?.preset_modes??[]).map(e=>e.entities.mode),...(this._structure?.presets??[]).map(e=>e.entities.active_mode)].filter(e=>Boolean(e));return e.length?{include_entities:e}:{integration:"preset_manager"}}_hasParameterOverrides(){const e=this._config.values,t=e?.parameters;return Array.isArray(t)&&t.some(e=>"string"!=typeof e)}get _subject(){const e=this._config.entity;return this._structure&&"string"==typeof e&&e?ot(this._structure,e):null}_schema(e){const t="preset"===e?.kind,s="preset_mode"===e?.kind,i=e?"preset_mode"===e.kind?e.presetMode.modes:e.preset.modes:[],n=[{name:"entity",required:!0,selector:{entity:this._entityPicker()}},{type:"expandable",name:"header",title:Ot.header,schema:[{name:"visible",selector:{boolean:{}}},{name:"automatic",selector:{boolean:{}}},{name:"title",selector:{text:{}}},{name:"subtitle",selector:{text:{}}},{name:"icon",selector:{icon:{}}},{name:"icon_color",selector:{ui_color:{}}}]},{type:"expandable",name:"modes",title:Ot.modes,schema:[{name:"visible",...Ut([["always","Always"],["never","Never"],["manual","While the mode can be set by hand"]])},{name:"style",...Ut([["chips","Chips"],["dropdown","Dropdown"]])},...i.some(e=>e.icon)?[{name:"icons",selector:{boolean:{}}}]:[]]}];if(t){const t=e.preset.parameters.map(e=>({value:e.key,label:e.name}));n.push({type:"expandable",name:"values",title:Ot.values,schema:[{name:"visible",selector:{boolean:{}}},this._hasParameterOverrides()?{name:"parameters_note",type:"constant",value:"Renamed parameters are edited in YAML."}:{name:"parameters",selector:{select:{multiple:!0,mode:"list",options:t}}},{name:"icons",selector:{boolean:{}}}]},{type:"expandable",name:"editor",title:Ot.editor,schema:[{name:"enabled",selector:{boolean:{}}},{name:"confirm",selector:{boolean:{}}},{name:"mode",...Ut([["picker","Pick a mode in the card"],["active","The active mode"],["all","Every mode"]])},{name:"style",...Ut([["chips","Chips"],["dropdown","Dropdown"]])},{name:"default_mode",...Ut(i.map(e=>[e.key,e.name]))}]})}return s&&n.push({type:"expandable",name:"presets",title:Ot.presets,schema:[{name:"visible",selector:{boolean:{}}},{name:"values",selector:{boolean:{}}},{name:"editable",selector:{boolean:{}}}]}),n.push({type:"expandable",name:"footer",title:Ot.footer,schema:[{name:"visible",selector:{boolean:{}}},{name:"content",selector:{select:{multiple:!0,mode:"list",options:[{value:"preset_mode",label:"Preset mode"},{value:"blueprint",label:"Blueprint"},{value:"source",label:"Source entity"},{value:"last_changed",label:"Last change"}]}}}]},{type:"expandable",title:Ot.actions,schema:[{name:"tap_action",selector:{ui_action:{actions:Nt}}},{name:"hold_action",selector:{ui_action:{actions:Nt}}},{name:"double_tap_action",selector:{ui_action:{actions:Nt}}}]}),n}_formData(){try{const t=Me({type:`custom:${e}`,...this._config,entity:this._config.entity??"sensor.placeholder"});return{...t,entity:this._config.entity??"",values:{...t.values,parameters:this._config.values?.parameters}}}catch(e){return{...this._config}}}_valueChanged(e){e.stopPropagation();We(this,"config-changed",{config:Te({...e.detail.value})})}render(){if(!this._hass)return F;const e=this._subject;return I`
+    `}_alert(t){return Xt("ha-alert")?I`<ha-alert alert-type="warning">${t}</ha-alert>`:I`<div class="fallback-alert" role="alert">${t}</div>`}};$e.styles=Wt,e([ut()],$e.prototype,"_config",void 0),e([ut()],$e.prototype,"_structure",void 0),e([ut()],$e.prototype,"_viewMode",void 0),e([ut()],$e.prototype,"_draft",void 0),e([ut()],$e.prototype,"_error",void 0),$e=e([lt(t)],$e);const we={entity:"Entity",header:"Header",modes:"Modes",values:"Values",actions:"Actions",visible:"Show",automatic:"Automatic switch",title:"Title",subtitle:"Subtitle",icon:"Icon",icon_color:"Icon colour",icons:"Show icons",parameters:"Parameters",parameters_note:"Parameters",mode:"Which mode",content:"Content",tap_action:"Tap",hold_action:"Hold",double_tap_action:"Double tap"},xe=["more-info","navigate","url","perform-action","none"];function Ae(t){return{selector:{select:{mode:"dropdown",options:t.map(([t,e])=>({value:t,label:e}))}}}}let ke=class extends at{constructor(){super(...arguments),this._config={},this._label=t=>t.name&&we[t.name]||t.title||t.name||""}set hass(t){this._hass=t,this._structure??=Ot(t),this._load(),this.requestUpdate()}get hass(){return this._hass}setConfig(t){this._config=t}disconnectedCallback(){super.disconnectedCallback(),this._unsubscribe?.(),this._unsubscribe=void 0}async _load(){this._hass&&!this._unsubscribe&&(this._unsubscribe=jt(this._hass,t=>{this._structure=t}),this._structure=await Pt(this._hass))}_entityPicker(){const t=(this._structure?.presets??[]).map(t=>t.entities.active_mode).filter(t=>Boolean(t));return t.length?{include_entities:t}:{integration:"preset_manager"}}_hasParameterOverrides(){const t=this._config.values,e=t?.parameters;return Array.isArray(e)&&e.some(t=>"string"!=typeof t)}get _subject(){const t=this._config.entity;return this._structure&&"string"==typeof t&&t?Ht(this._structure,t):null}_schema(t){const e=t?t.preset.modes:[],i=[{name:"entity",required:!0,selector:{entity:this._entityPicker()}},{type:"expandable",name:"header",title:we.header,schema:[{name:"visible",selector:{boolean:{}}},{name:"automatic",selector:{boolean:{}}},{name:"title",selector:{text:{}}},{name:"subtitle",selector:{text:{}}},{name:"icon",selector:{icon:{}}},{name:"icon_color",selector:{ui_color:{}}}]},{type:"expandable",name:"modes",title:we.modes,schema:[{name:"visible",...Ae([["always","Always"],["never","Never"],["manual","While the mode can be set by hand"]])},...e.some(t=>t.icon)?[{name:"icons",selector:{boolean:{}}}]:[]]}];if(t){const e=t.preset.parameters.map(t=>({value:t.key,label:t.name}));i.push({type:"expandable",name:"values",title:we.values,schema:[{name:"visible",selector:{boolean:{}}},{name:"mode",...Ae([["active","Show the active values"],["picker","Pick a mode in the card"],["edit","Edit the active mode"],["all","Every mode at once"]])},this._hasParameterOverrides()?{name:"parameters_note",type:"constant",value:"Renamed parameters are edited in YAML."}:{name:"parameters",selector:{select:{multiple:!0,mode:"list",options:e}}},{name:"icons",selector:{boolean:{}}}]})}return i.push({type:"expandable",title:we.actions,schema:[{name:"tap_action",selector:{ui_action:{actions:xe}}},{name:"hold_action",selector:{ui_action:{actions:xe}}},{name:"double_tap_action",selector:{ui_action:{actions:xe}}}]}),i}_formData(){try{const e=At({type:`custom:${t}`,...this._config,entity:this._config.entity??"sensor.placeholder"});return{...e,entity:this._config.entity??"",values:{...e.values,parameters:this._config.values?.parameters}}}catch(t){return{...this._config}}}_valueChanged(t){t.stopPropagation();Jt(this,"config-changed",{config:kt({...t.detail.value})})}render(){if(!this._hass)return V;const t=this._subject;return I`
       <ha-form
         .hass=${this._hass}
         .data=${this._formData()}
-        .schema=${this._schema(e)}
+        .schema=${this._schema(t)}
         .computeLabel=${this._label}
         @value-changed=${this._valueChanged}
       ></ha-form>
-      ${this._config.entity&&!e&&this._structure?I`<p style="color: var(--error-color)">
-            ${lt(this._hass,"not_found",{entity:String(this._config.entity)})}
-          </p>`:F}
-    `}};t([pe()],zt.prototype,"_config",void 0),t([pe()],zt.prototype,"_structure",void 0),zt=t([le(`${e}-editor`)],zt),window.customCards=window.customCards??[],window.customCards.some(t=>t.type===e)||window.customCards.push({type:e,name:"Preset Manager",description:"The values of a preset, or the modes of a preset mode, with the mode it is on right now.",preview:!1,documentationURL:"https://github.com/julezdean/ha-preset-manager"}),console.info("%c PRESET-MANAGER-CARD %c 0.3.0 ","color: white; background: #03a9f4; font-weight: 700;","color: #03a9f4; background: white; font-weight: 700;");
+      ${this._config.entity&&!t&&this._structure?I`<p style="color: var(--error-color)">
+            ${Lt(this._hass,"not_found",{entity:String(this._config.entity)})}
+          </p>`:V}
+    `}};e([ut()],ke.prototype,"_config",void 0),e([ut()],ke.prototype,"_structure",void 0),ke=e([lt(`${t}-editor`)],ke),window.customCards=window.customCards??[],window.customCards.some(e=>e.type===t)||window.customCards.push({type:t,name:"Preset Manager",description:"The values of a preset, with the mode it is on right now.",preview:!1,documentationURL:"https://github.com/julezdean/ha-preset-manager"}),console.info("%c PRESET-MANAGER-CARD %c 0.4.0 ","color: white; background: #03a9f4; font-weight: 700;","color: #03a9f4; background: white; font-weight: 700;");

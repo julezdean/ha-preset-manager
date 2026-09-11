@@ -108,10 +108,9 @@ class ActiveModeSensor(PresetModeEntity, SensorEntity):
             ATTR_MODES: [item.name for item in config.modes],
         }
         if config.source_entity is not None:
-            # There is no automatic to report: the entity is the automatic.
+            # The only thing left to say about where the mode comes from: a
+            # preset mode is never set by hand, so there is nothing else.
             attributes[ATTR_SOURCE_ENTITY] = config.source_entity
-        else:
-            attributes[ATTR_AUTOMATIC] = self.preset_mode.automatic
         return attributes
 
 
@@ -142,7 +141,11 @@ class PresetActiveModeSensor(PresetEntity, SensorEntity):
         preset_mode = self.coordinator.preset_mode
         attributes: dict[str, Any] = {
             ATTR_MODE_KEY: state.mode_key,
+            # Where the mode comes from, and whether it is being taken: the
+            # preset stays part of its preset mode while it holds a mode of
+            # its own, so this keeps naming the dimension either way.
             ATTR_MODE_SOURCE: preset_mode.config.name if preset_mode else None,
+            ATTR_AUTOMATIC: self.coordinator.automatic,
             ATTR_MODES: [mode.name for mode in self.coordinator.modes],
             ATTR_VALUES: {
                 parameter.key: state.values.get(parameter.key)

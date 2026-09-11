@@ -46,9 +46,9 @@ automations lives in the integration instead.
 
 You can create **as many preset modes as you like** and attach each preset to
 one of them — a shutter can follow a "Window State" preset mode while the
-heating follows "House Mode". A preset mode runs automatically as soon as one
-of its modes has conditions, can be taken over by hand at any time, or can be
-handed to an entity you already have.
+heating follows "House Mode". A preset mode runs on its conditions, or is
+handed to an entity you already have; taking a single preset out of that is
+what its own switch is for.
 
 > **On the word "helper":** these behave like the helpers you would otherwise
 > create by hand, but they are not `input_number` entities. They live on the
@@ -57,12 +57,12 @@ handed to an entity you already have.
 
 ## What it looks like
 
-The integration brings its own dashboard card. Every shape it takes is below —
+The integration brings its own dashboard card. Six of its shapes are below —
 you write one line for the first one and add options only where you want them.
 
-![The Preset Manager card: seventeen variations, from a preset with three values to a preset mode with every preset it drives](assets/card-dark.png)
+![The Preset Manager card in six shapes: a preset showing three values, the same preset with its mode picker and editors, one preset edited across all four modes at once, every parameter type as an editor, a preset set to a mode of its own, and a single value in a compact card](assets/card-dark.png)
 
-Details, and the configuration behind each of them, are under
+The rest of them, and the configuration behind each, are under
 [Dashboard card](#dashboard-card).
 
 ## Installation
@@ -98,8 +98,9 @@ Assistant 2026.3 onwards.
 * **Conditions per mode**, in one sortable list — the first match wins.
 * **Or hand a preset mode to an entity you already have**, whose state then
   names the active mode.
-* **An automatic switch** per preset mode: temporarily take over by hand without
-  changing the configuration.
+* **One switch per preset**: turn off its *automatic mode selection* and that
+  single preset holds a mode of its own while the preset mode carries on without it.
+  A preset mode itself is never set by hand — it computes, or it follows.
 * **Modes with stable keys** — renaming never loses values.
 * **Any number of presets** (devices/scenarios), each following one preset
   mode and reassignable to another one without losing values. A preset also
@@ -116,9 +117,9 @@ Assistant 2026.3 onwards.
 * **Helpers editable straight from the dashboard** — `number`/`switch`/`select`/
   `text` entities in the category *Configuration*.
 * **A dashboard card of its own**, shipped with the integration and served by
-  it: point it at any entity of a preset or a preset mode and it draws that
-  object — values, modes, and the per-mode editors when you want them. Nothing
-  to install, nothing to add as a resource.
+  it: point it at any entity of a preset and it draws that preset — its values,
+  its modes, and the per-mode editors when you want them. Nothing to install,
+  nothing to add as a resource.
 * **Instant updates** on a mode switch, without a restart and without polling.
 * Fully configurable through the UI, no YAML configuration.
 
@@ -128,7 +129,7 @@ Assistant 2026.3 onwards.
 | --- | --- | --- |
 | **Preset mode** | An ordered set of modes; the first whose conditions match is active | House Mode, Window State |
 | **Mode** | One option inside a preset mode, optionally with conditions | Home · Away · Night |
-| **Automatic** | Runtime switch: follow the conditions, or set the mode by hand | `switch.house_mode_automatic` |
+| **Automatic mode selection** | Runtime switch on a preset: take its preset mode's mode, or hold one | `switch.motion_sensor_living_room_follows_preset_mode` |
 | **Preset** | One device or scenario with its parameters, attached to a preset mode | Motion Sensor Living Room |
 | **Parameter** | One configurable value inside a preset | Brightness, Off delay |
 | **Blueprint** | A parameter list of its own that any number of presets can follow | Heating, Shutters |
@@ -363,29 +364,61 @@ changes. Template conditions are tracked as well. Time and sun conditions cannot
 announce themselves that way, so it additionally re-evaluates once a minute when
 such a condition is used.
 
-## Automatic and manual
+## Where the mode comes from
 
-A preset mode where at least one mode has conditions gets a switch:
+**A preset mode is not operated.** Its mode comes from its conditions or from
+the entity it follows, and from nothing else — it has one entity, and that one
+reports:
 
 ```
-switch.house_mode_automatic      on
-select.house_mode_active_mode    Night
 sensor.house_mode_mode           Night
 ```
 
-* **On** — the mode follows the conditions.
-* **Off** — the mode stays where it is and you set it in the select entity.
+There is no selector and no switch, and `preset_manager.set_active_mode` has
+nothing on a preset mode to be aimed at. To pick the mode by hand for
+everything at once, point the preset mode at an `input_select` under
+*Configure → Preset mode settings*: a dropdown you own, on any dashboard, in
+any automation, with a history. That is what a built-in selector would have
+been, minus the pretence that it belongs to this integration.
 
-Switching it back on evaluates the conditions right away, so the preset mode
-catches up without waiting for the next event. The switch position survives restarts.
+A preset mode with neither conditions nor an entity is a list of modes and
+nothing else. That is a configuration, not a defect — it stays on its first
+mode, and the presets following it are the ones you take out by hand.
 
-While the automatic is on, writing to the select entity — or calling
-`preset_manager.set_active_mode` — is **refused** with a clear message. That
-is deliberate: a single click should not silently disable your automation. Turn
-the switch off first, then pick the mode.
+### One preset out of step
 
-A preset mode whose modes have no conditions has no switch, because there is
-nothing to switch between.
+The one switch in the whole integration sits on the preset:
+
+```
+switch.motion_sensor_living_room_follows_preset_mode  off
+select.motion_sensor_living_room_mode_selection       Night
+sensor.house_mode_mode                                Away
+sensor.motion_sensor_living_room_active_mode          Night
+```
+
+* **On** (the default) — the preset takes the mode of its preset mode.
+* **Off** — the preset keeps the mode it had and you set it in its own selector,
+  while the preset mode goes on switching for every other preset.
+
+Switching it off changes nothing on the spot: the mode being handed over becomes
+the one the preset holds. Switching it back on rejoins the preset mode at
+whatever mode that is now on; what was set by hand is dropped, not remembered.
+Writing to the selector while the preset is following is refused with a clear
+message — setting a mode by hand should be a deliberate act, not a side effect
+of a click.
+
+This switch exists on **every** preset, whatever drives its preset mode. What it
+cannot do is rescue an orphaned preset: a preset that follows no preset mode has
+no modes to choose between, and both its switch and its selector say so instead
+of pretending otherwise.
+
+**If the mode it holds is deleted from the preset mode, the preset rejoins it**
+— its *automatic mode selection* goes back on, and a repair issue says so. Holding
+nothing is not the same as being held: the preset would follow every switch of
+its preset mode from then on, with a switch that reads "off". The repair stays
+until the preset is taken out by hand again, which is the decision it asks for.
+
+The switch position and the held mode survive restarts.
 
 ## Handing the preset mode to an entity
 
@@ -402,17 +435,18 @@ sensor.motion_sensor_..._active_mode  Night
 ```
 
 The preset mode sensor carries the entity it follows as the `source_entity`
-attribute, in place of the `automatic` attribute it otherwise has.
+attribute.
 
 That hands the preset mode over completely:
 
 * the **conditions are ignored** — they stay stored, so clearing the entity
   brings them back untouched
-* there is **no automatic switch**, because there is nothing to switch between
-* there is **no select entity**, and `preset_manager.set_active_mode` refuses
-  the preset mode — the mode belongs to the entity
 * a state that names **no** mode, and an `unavailable`/`unknown` entity, leave
   the preset mode without an active mode
+
+This is also how you set the mode of a whole dimension by hand: point it at an
+`input_select` whose options are your mode names, and switching that dropdown
+switches every preset following it.
 
 The picker offers `sensor`, `select`, `input_select`, `input_text` and `text`
 entities. Use this when the mode already exists somewhere in your setup and
@@ -422,9 +456,11 @@ this integration should only carry the values.
 
 **Entity ids are always English**, regardless of the language of your Home
 Assistant instance — `sensor.<preset_mode>_mode`, `sensor.<preset>_active_mode`,
-`select.<preset_mode>_active_mode` and `switch.<preset_mode>_automatic` (the
-last two only where they exist). The **display names** follow the system
-language ("Aktiver Mode" / "Automatik" on a German instance).
+`select.<preset>_mode_selection` and `switch.<preset>_follows_preset_mode`. The
+**display names** follow the system language ("Aktiver Mode" /
+"Mode-Automatik" on a German instance). The switch is the one place where the
+two deliberately differ: its id says what it does to leave a preset mode named
+like its preset no room to collide, its name says what it is.
 
 Names you choose yourself (preset mode, preset, parameter and mode names) go
 into the entity id unchanged: the parameter "Brightness" of the preset "Motion
@@ -439,10 +475,10 @@ Per preset mode, and per preset with P parameters and N modes:
 
 | Entity | Count | Category | Meaning |
 | --- | --- | --- | --- |
-| `sensor.<preset_mode>_mode` | 1 per preset mode | – | Active mode of the preset mode |
-| `select.<preset_mode>_active_mode` | 1 per preset mode | – | Set the active mode (while automatic is off) |
-| `switch.<preset_mode>_automatic` | 1 per preset mode with conditions | – | Follow the conditions, or set by hand |
+| `sensor.<preset_mode>_mode` | 1 per preset mode | – | Active mode of the preset mode; its only entity |
 | `sensor.<preset>_active_mode` | 1 per preset | – | Effective mode + attributes |
+| `select.<preset>_mode_selection` | 1 per preset | – | Set this preset's mode (while it is not following) |
+| `switch.<preset>_follows_preset_mode` | 1 per preset | – | Take the mode of the preset mode, or hold one |
 | `sensor.<preset>_<parameter>` | P | – | Currently valid value |
 | `number`/`switch`/`select`/`text`/`datetime`/`date`/`time` `.<preset>_<mode>_<parameter>` | P × N | Configuration | Mode value for editing |
 
@@ -454,6 +490,7 @@ Attributes of `sensor.<preset>_active_mode`:
 ```yaml
 mode_key: night
 mode_source: House Mode
+automatic: true         # false while this preset is set by hand
 modes: [Home, Away, Night, Window open]
 values:
   brightness: 15
@@ -475,38 +512,41 @@ entity: sensor.motion_sensor_living_room_active_mode
 ```
 
 That is the whole configuration. The card works out what the entity belongs to
-and draws the preset behind it — its name, the mode that is effective right
-now, and one row per parameter with the value that is valid:
+and draws the preset behind it — its name, where its mode comes from, the modes
+it could be on, and one row per parameter with the value that is valid:
 
 ```
-  Motion Sensor Living Room
-  Night · House Mode
+  Motion Sensor Living Room                  [●]
+  Night · Automatic
+
+  ( Home ) ( Away ) [ Night ] ( Window open )
 
   Brightness                             15 %
   Color temperature                   2 200 K
   Off delay                              30 s
 ```
 
-Point it at an entity of a **preset mode** instead and it draws that: the modes
-as a row of chips, the active one marked, and the automatic switch beside the
-name.
+The switch beside the name is that preset's *automatic mode selection*: turn it
+off and the chips become clickable, for this preset alone.
 
-```yaml
-type: custom:preset-manager-card
-entity: sensor.house_mode_mode
-```
+**The second line always says where the mode comes from**, not only when
+something is unusual:
 
-```
-  House Mode                          [Auto ●]
-  Night
+| It reads | Meaning |
+| --- | --- |
+| `Night · Automatic` | takes the mode of its preset mode |
+| `Night · Manual` | on a mode of its own |
+| `Night` | neither — the switch is missing or unavailable |
+| `No mode active · No preset mode` | it follows none, so nothing resolves |
 
-  [ Home ] [ Away ] [ Night ] [ Window open ]
-```
+**A card is about a preset.** A preset mode has none: it is a definition plus
+the logic that picks a mode, it is not operated, and what it computes is one
+sensor — `sensor.<preset_mode>_mode` — that every core card already draws.
+Pointing a card at one says so rather than drawing something read-only.
 
-**Any entity of the object does.** The active mode sensor of a preset, one of
-its value sensors, one of its per-mode editors, the mode sensor of a preset
-mode, its selector, its automatic switch — all of them name the same object and
-give the same card. Nothing is matched by name, so renaming a preset, a mode or
+**Any entity of the preset does.** Its active mode sensor, one of its value
+sensors, one of its per-mode editors, its selector, its switch — all of them
+name the same preset and give the same card. Nothing is matched by name, so renaming a preset, a mode or
 a parameter leaves every card that shows it working.
 
 ### Configuration
@@ -519,28 +559,18 @@ time.
 | --- | --- | --- |
 | `entity` | – | Any entity of Preset Manager. The only required option. |
 | `header.visible` | `true` | The name and the state line. |
-| `header.automatic` | on a preset mode | The automatic switch, labelled, beside the name. |
+| `header.automatic` | `true` | The automatic switch, beside the name. Presets only — a preset mode is not operated. |
 | `header.title` | the object's name | Overrides the first line. |
 | `header.subtitle` | the mode and where it comes from | Overrides the second line; `false` removes it. |
 | `header.icon` | the icon of the active mode | Overrides the icon; `false` removes it. |
 | `header.icon_color` | the mode's colour | Overrides the icon colour. |
-| `modes.visible` | on a preset mode | `true`, `false`, or `manual` for “only while the mode can be set from here”. Off by default on a preset, which does not own the dimension. |
-| `modes.style` | `chips` | `chips` or `dropdown`. |
+| `modes.visible` | `true` | `true`, `false`, or `manual` for “only while the mode can be set from here”. `manual` says nothing new on a preset mode, which is never set from here; the visual editor offers a plain switch there. |
 | `modes.icons` | `true` | Show the icon of each mode — only does something for modes that were given one. |
 | `modes.colors` | – | Colour per mode key, used for the active chip and the header icon. |
 | `values.visible` | `true` | The parameter rows of a preset. |
+| `values.mode` | `active` | What the rows show: `active`, `picker`, `edit` or `all`; see below. |
 | `values.parameters` | all of them | Which parameters to show, in which order. |
 | `values.icons` | `false` | Show each parameter's icon. |
-| `editor.enabled` | `false` | Turn the rows into the per-mode editors. |
-| `editor.mode` | `picker` | `picker`, `active` or `all`; see below. |
-| `editor.style` | `chips` | How `picker` is drawn: `chips` or `dropdown`. |
-| `editor.confirm` | `false` | Editing behind a switch, written only when applied. Implies `enabled`. |
-| `editor.default_mode` | the active mode | Mode key the picker starts on. |
-| `presets.visible` | `false` | On a preset mode: list the presets following it. |
-| `presets.values` | `false` | And their values. |
-| `presets.editable` | `false` | And make those values editable. Implies the two above. |
-| `footer.visible` | `false` | The footer line. |
-| `footer.content` | `[preset_mode]` | Any of `preset_mode`, `blueprint`, `source`, `last_changed`. |
 | `tap_action` | `more-info` | Home Assistant's action config, on the header. |
 | `hold_action` | – | Same. |
 | `double_tap_action` | – | Same. |
@@ -558,14 +588,11 @@ Everything else is grouped, so a long configuration stays readable:
 
 ```yaml
 values:
-  parameters: [brightness, off_delay]
-
-editor:
-  enabled: true
   mode: picker
+  parameters: [brightness, off_delay]
 ```
 
-instead of `show_values`, `value_parameters`, `show_editor`, `editor_mode`.
+instead of `show_values`, `value_parameters`, `value_mode`.
 
 ### Picking parameters
 
@@ -587,58 +614,50 @@ deleting a parameter does not break every dashboard that named it.
 ### Editing values
 
 The editors are `Configuration` entities: they are how a preset is **set up**,
-not how it is used. So `editor.enabled` is off by default and a card shows the
-resolved values — which is what a dashboard is for. Turn it on and the same
-rows become the per-mode helpers:
+not how it is used. So `values.mode` is `active` by default and a card shows
+the resolved values, read-only — which is what a dashboard is for.
 
-* `mode: picker` — an *Edit:* line picks which mode is edited, as chips or, with
-  `editor.style: dropdown`, as a menu. Under the switch of `editor.confirm` that
-  line reads *Mode:* instead: the switch has already said “edit”, and saying it
-  twice reads like two settings for one thing. A line below names the active mode
-  whenever the two differ. The chips are deliberately quieter than the mode row
-  above: smaller, without icons, and coloured from the text rather than the
-  accent. One row changes the house, the other changes what this card shows,
-  and they should not look like the same act.
-* `mode: active` — always edits the mode that is active.
-* `mode: all` — every mode of every parameter, one row each. The full picture,
-  and the widest.
+`values.mode: picker` puts a strip of tabs above the list saying which mode it
+shows. The first tab is **Active**, and that is where the card rests: the
+values as they are, read-only, exactly what `active` shows. Any other tab
+shows that mode's values as editors.
 
-The read-only column goes away when the editors appear. The editor of the
-active mode holds exactly the value the sensor resolves, so showing both would
-be the same number twice with nothing to tell them apart.
-
-### Editing as a deliberate act
-
-`editor.confirm` turns the whole thing into a step you take on purpose:
-
-```yaml
-type: custom:preset-manager-card
-entity: sensor.motion_sensor_living_room_active_mode
-editor:
-  confirm: true
-  style: dropdown
+```
+  Active   Home   Away   Night   Window open
+  ‾‾‾‾‾‾
+  Brightness                            15 %
 ```
 
-The card shows its values. An **Edit** switch opens the editors on the mode
-that is active right now, and the *Edit:* picker changes which mode they write
-to — one round of editing can touch several modes. Nothing reaches Home
-Assistant while you type: what you change is held, the **Apply** button sends
-all of it at once, and the card goes back to the values.
+Picking a mode is therefore the deliberate act — one gesture, not a switch and
+then a choice. And **nothing is written until *Apply***: what you change is
+collected in the card's draft, and two buttons appear exactly while something
+is waiting — *Apply* sends it, *Discard* drops it and the editors go back to
+what the entities say. Reading is always safe; no gesture in this list changes
+the house by itself.
 
-Turning the switch back off discards what was held. Nothing had been written,
-so there is nothing to undo, and a dialog asking whether you meant it would be
-a dialog for its own sake.
+The draft is keyed by entity, so one round can touch several modes: pick Night,
+change a value, pick Away, change another, apply once. Switching back to
+*Active* keeps the buttons — a draft left behind must not become invisible.
+After *Apply* the card returns to *Active*, because what was just written is
+now what those values say.
 
-`confirm` implies `enabled`, because a card with no editors has nothing to
-switch into.
+Tabs, not chips, and that is the whole point of the shape: the row above
+changes the house, this one changes nothing but the panel underneath. A pill is
+a state, a tab is a view, and two rows of pills claimed the same authority
+however small the second one was made. The strip carries no colour and no
+icons, sits flush against the list it governs, and scrolls sideways rather than
+wrapping — a strip that breaks into two lines stops reading as one. Arrow keys
+walk along it, and the selection follows the focus, because picking a mode here
+costs nothing.
 
-On a **preset mode** card the same applies to the presets it lists:
-`presets.editable` turns their values into editors for the mode each preset is
-on. There is no mode picker per preset there — the card already has one row of
-chips deciding the mode, and a second way to choose one would be a different
-question wearing the same clothes. Switching the mode moves these editors with
-it, which is the point: having seen what Night means for every device in the
-room, this is where it is changed.
+Two shapes skip the picker:
+
+* `values.mode: edit` — the editors of the mode that is active, always open.
+* `values.mode: all` — every mode of every parameter, one row each. The full
+  picture, and the widest.
+
+Both still collect and still end in *Apply*; there is only one way to write on
+this card.
 
 ### Switching the mode
 
@@ -646,26 +665,23 @@ Clicking a chip calls `preset_manager.set_active_mode` with the mode's **key**,
 so it keeps working after a rename. The chips are disabled when the integration
 would refuse the write anyway:
 
-* while the **automatic** is on — turn the switch in the header off first,
-* when the preset mode **follows another entity**, which owns the mode.
+* while the preset is **following its preset mode** — turn the switch in the
+  header off first,
+* when a preset **follows no preset mode**, so there is nothing to choose from.
 
-The row itself carries no explanation: the second line of the header names the
-active mode and, where there is one, the entity the preset mode was handed to,
-and the automatic sits beside it as a switch. What a preset *follows* is not in
-there — that is what `footer.content: [preset_mode]` is for.
+The row carries no explanation: the switch in the header says who is deciding,
+and the second line names the active mode and whether the preset is on one of
+its own. Which preset mode it follows is not on the card at all — that is what
+`sensor.<preset>_active_mode` carries in its `mode_source` attribute, and what
+the device page shows.
 
-`modes.visible: manual` shows the row only while a click would do something —
-the automatic is off, or the preset mode never had one because none of its
-modes has conditions. A preset mode handed to an entity can never be set from
-here and never shows the row. A row of chips nobody may press is a row that
-only takes space, and this is the option that says so.
+`modes.visible: manual` shows the row only while a click would do something, so
+only while the preset is not following. A row of chips nobody may press is a
+row that only takes space, and this is the option that says so.
 
-On a preset card the chips are hidden by default, and so is the automatic
-switch. Showing either there is deliberate: a preset does not own its
-dimension, so switching the mode — or the automatic — from one preset's card
-changes what every preset of that preset mode does. The two are separate
-options, because they are separate decisions: which mode, and who gets to
-decide it.
+**A card only ever operates the preset it is about.** Clicking around on it can
+never change what the other presets of the same dimension do — there is nothing
+on the other side to write to.
 
 ### Examples
 
@@ -683,31 +699,11 @@ type: custom:preset-manager-card
 entity: sensor.motion_sensor_living_room_active_mode
 header:
   subtitle: false
+  automatic: false
+modes:
+  visible: false
 values:
   parameters: [brightness]
-```
-
-**The dimension** — the modes of a preset mode with its automatic.
-
-```yaml
-type: custom:preset-manager-card
-entity: sensor.house_mode_mode
-modes:
-  colors:
-    night: "#5c6bc0"
-    window_open: "#ef6c00"
-```
-
-**The room** — one preset mode with everything that follows it, and the values
-of the mode it is on, editable.
-
-```yaml
-type: custom:preset-manager-card
-entity: sensor.house_mode_mode
-presets:
-  editable: true
-footer:
-  content: [last_changed]
 ```
 
 **Setting up a preset** — the per-mode helpers, without leaving the dashboard.
@@ -715,11 +711,8 @@ footer:
 ```yaml
 type: custom:preset-manager-card
 entity: sensor.heating_bath_active_mode
-editor:
-  enabled: true
+values:
   mode: picker
-footer:
-  content: [preset_mode, blueprint]
 ```
 
 **Everything at once** — every group, for reading rather than for using.
@@ -752,14 +745,6 @@ values:
     - parameter: off_delay
       name: Run-on
       icon: mdi:timer-outline
-
-editor:
-  enabled: true
-  mode: picker
-  default_mode: night
-
-footer:
-  content: [preset_mode, blueprint, last_changed]
 
 tap_action:
   action: more-info
@@ -957,6 +942,7 @@ the rest are dropped, the same way a deleted parameter's values are.
 | Restart with no stored active mode | The first mode, or `unknown` once conditions are in play |
 | No mode's conditions match | No mode is active; the preset mode and its presets report `unknown` |
 | A condition fails | Warning in the log, that mode is skipped |
+| The mode a preset was set to by hand is deleted | It follows its preset mode again, repair issue |
 | Source entity names no mode, or is unavailable | Warning in the log, no mode is active |
 | Blueprint deleted | Its presets keep its parameters as their own, values included, and are editable again |
 
@@ -968,10 +954,12 @@ or a label works as well, and nothing depends on a name you are free to
 change.
 
 ```yaml
-# Set the active mode by its stable key (only while the automatic is off)
+# Set the mode of one preset by its stable key. Only while that preset is not
+# following its preset mode, and it never touches the preset mode itself -
+# which has no selector to be aimed at.
 action: preset_manager.set_active_mode
 target:
-  entity_id: select.house_mode_active_mode
+  entity_id: select.motion_sensor_living_room_mode_selection
 data:
   mode: night
 
@@ -1059,16 +1047,21 @@ To look at the card without Home Assistant:
 npm run preview        # serves the repository; open the URL it prints
 ```
 
-Two query parameters make that page reproducible rather than something to
-click through: `?theme=dark` opens it in the dark palette, and `?gallery=1480`
-drops the prose and the narrow-column tests and lays the rest out at a fixed
-width. That is how the picture at the top of this file is made:
+Query parameters make that page reproducible rather than something to click
+through: `?theme=dark` opens it in the dark palette, `?gallery=1100` drops the
+prose and the narrow-column tests and lays the rest out at that width,
+`?showcase=1` keeps only the cards tagged for the picture below, and
+`?columns=3` says how many columns they are poured into. Which cards those are
+is decided in `preview.html`, not here, so a card that changes shape changes
+the picture with it - and the height below with it, which is the document
+height of that page at that width. Regenerate the picture whenever the card
+changes visibly:
 
 ```bash
 "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" \
   --headless=new --hide-scrollbars --force-device-scale-factor=2 \
-  --window-size=1480,1730 --screenshot=assets/card-dark.png \
-  "http://localhost:8765/frontend/preview.html?gallery=1480&theme=dark"
+  --window-size=1100,806 --screenshot=assets/card-dark.png \
+  "http://localhost:8765/frontend/preview.html?gallery=1100&columns=3&showcase=1&theme=dark"
 ```
 
 [frontend/preview.html](frontend/preview.html) puts every variant on one page —

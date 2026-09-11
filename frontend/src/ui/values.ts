@@ -1,22 +1,23 @@
 /**
- * The value list of a preset - read-only, or editable per mode.
+ * The value list of a preset - what is valid now, or the values of one mode.
  *
- * Read-only is the default and shows the main sensors: one row per parameter
- * carrying the value of whichever mode is active. That is the whole point of
- * the integration, and it is what a dashboard wants to see.
+ * With `values.mode: active` it is one row per parameter carrying the value of
+ * whichever mode is active. That is the whole point of the integration, and it
+ * is what a dashboard wants to see.
  *
- * With `editor.enabled` the same rows become the per-mode editors, and the
- * read-only column goes away with them: the editor of the active mode holds
- * exactly the value the sensor resolves, so showing both would be the same
- * number twice with nothing to tell the two apart.
+ * With `picker`, a strip of tabs above the list says which mode it shows. The
+ * first tab is **Active**, and it is where the card rests: the values as they
+ * are, read-only, exactly as a card without editors would show them. Any other
+ * tab shows that mode's values as editors. Picking a mode is therefore the
+ * deliberate act that a separate "edit" switch used to be, and it is one
+ * gesture instead of two.
  *
- * With `editor.confirm` on top of that, the card starts on the values and the
- * editors sit behind a switch. What is changed there is held, not written, and
- * an *Apply* button sends the lot and closes the view again. Two things follow
- * from that shape and are worth stating: the mode picker still works while the
- * editors are open, so one round of editing can touch several modes, and
- * turning the switch back off throws the draft away because none of it was
- * ever written.
+ * **Nothing is written until *Apply*.** Changes are collected in the card's
+ * draft, which is keyed by entity, so one round can touch several modes: pick
+ * Night, change a value, pick Away, change another, apply once. The button
+ * appears exactly while something is waiting, so it cannot be missed and does
+ * not sit there empty. Reading is therefore always safe - there is no gesture
+ * in this list that changes the house by itself.
  */
 
 import { html, nothing, type TemplateResult } from "lit";
@@ -144,104 +145,103 @@ function editorRow(
   `;
 }
 
-/** The chips choosing which mode the editors write to. */
-function editModePicker(context: CardContext): TemplateResult | typeof nothing {
-  const modes = modesOf(context.subject);
-  if (modes.length < 2) return nothing;
-  const active = activeModeKey(context.hass, context.subject);
-  const activeMode = modes.find((mode) => mode.key === active);
-
-  // Under the edit switch the word "edit" has already been said, and saying it
-  // twice reads like two settings for one thing. There the line only has to
-  // name what it picks - which mode the editors write to.
-  const label = localize(context.hass, context.config.editor.confirm ? "mode" : "editing");
-  const control =
-    context.config.editor.style === "dropdown"
-      ? html`
-          <select
-            class="select-input"
-            aria-label=${label}
-            @change=${(event: Event) =>
-              context.selectEditMode((event.target as HTMLSelectElement).value)}
-          >
-            ${modes.map(
-              (mode) => html`
-                <option value=${mode.key} ?selected=${mode.key === context.editMode}>
-                  ${mode.name}
-                </option>
-              `,
-            )}
-          </select>
-        `
-      : html`
-          <div class="chips secondary" role="group" aria-label=${label}>
-            ${modes.map(
-              (mode) => html`
-                <button
-                  class="chip"
-                  type="button"
-                  aria-pressed=${mode.key === context.editMode ? "true" : "false"}
-                  @click=${() => context.selectEditMode(mode.key)}
-                >
-                  <span>${mode.name}</span>
-                </button>
-              `,
-            )}
-          </div>
-        `;
-
-  return html`
-    <div class="row">
-      <div class="row-label"><span>${label}:</span></div>
-      <div class="row-control">${control}</div>
-    </div>
-    ${activeMode && activeMode.key !== context.editMode
-      ? html`<div class="note">
-          ${localize(context.hass, "active_is", { mode: activeMode.name })}
-        </div>`
-      : nothing}
-  `;
-}
-
-/** The switch that opens and closes the editors. */
-function editSwitch(context: CardContext): TemplateResult {
-  const label = localize(context.hass, "editing");
-  return html`
-    <label class="toolbar">
-      <span class="toolbar-label">${label}</span>
-      <span class="switch">
-        <input
-          type="checkbox"
-          role="switch"
-          aria-label=${label}
-          .checked=${context.editing}
-          @change=${(event: Event) =>
-            context.setEditing((event.target as HTMLInputElement).checked)}
-        />
-      </span>
-    </label>
-  `;
-}
-
-/** Sends what the editors collected, and closes them again. */
-function applyButton(context: CardContext): TemplateResult {
+/**
+ * What to do with what the editors collected.
+ *
+ * Both or neither: a button that sends changes without one that drops them
+ * makes backing out mean retyping every value from memory, while the values
+ * are still there to be read off the entities - discarding costs nothing but
+ * the button.
+ */
+function draftButtons(context: CardContext): TemplateResult {
   return html`
     <div class="toolbar">
       <span class="toolbar-label"></span>
-      <button
-        class="apply"
-        type="button"
-        ?disabled=${context.draft.size === 0}
-        @click=${() => context.apply()}
-      >
+      <button class="discard" type="button" @click=${() => context.discard()}>
+        ${localize(context.hass, "discard")}
+      </button>
+      <button class="apply" type="button" @click=${() => context.apply()}>
         ${localize(context.hass, "apply")}
       </button>
     </div>
   `;
 }
 
+/**
+ * Move the focus along the strip, and take the selection with it.
+ *
+ * Arrow keys are what a tab strip answers to; without them a keyboard walks
+ * into the strip and out the other side. Selection follows focus because
+ * picking a mode here costs nothing - it changes what this card shows and
+ * touches nothing in the house, so there is no reason to ask for a second
+ * press to confirm it.
+ */
+function onStripKey(event: KeyboardEvent): void {
+  const offset = { ArrowLeft: -1, ArrowRight: 1, Home: -Infinity, End: Infinity }[
+    event.key
+  ];
+  if (offset === undefined) return;
+  const strip = event.currentTarget as HTMLElement;
+  const tabs = [...strip.querySelectorAll<HTMLButtonElement>("button.tab")];
+  const from = tabs.indexOf(event.target as HTMLButtonElement);
+  if (from < 0) return;
+  event.preventDefault();
+  const to = Math.min(Math.max(from + offset, 0), tabs.length - 1);
+  tabs[to].focus();
+  tabs[to].click();
+}
+
+/**
+ * The strip choosing which mode the list shows.
+ *
+ * Tabs, not chips. The row above this one switches the house; this one
+ * switches nothing but the panel underneath, and a second row of pills said
+ * those were the same kind of act - a pill is a state, a tab is a view. It
+ * therefore carries no colour and no icons, sits flush against the list it
+ * governs, and scrolls sideways rather than wrapping: a strip that breaks
+ * into two lines stops reading as one.
+ *
+ * "Active" is first and is not a mode: it is the resolved view, where the
+ * card rests when nobody has asked for anything else. The rest are the modes,
+ * and picking one opens its values for editing.
+ */
+function modePicker(context: CardContext): TemplateResult | typeof nothing {
+  const modes = modesOf(context.subject);
+  if (!modes.length) return nothing;
+  const picked = context.editMode;
+
+  const tab = (key: string | null, name: string): TemplateResult => {
+    const selected = key === picked;
+    return html`
+      <button
+        class="tab"
+        type="button"
+        role="tab"
+        aria-selected=${selected ? "true" : "false"}
+        tabindex=${selected ? 0 : -1}
+        @click=${() => context.selectEditMode(key)}
+      >
+        ${name}
+      </button>
+    `;
+  };
+
+  return html`
+    <div class="section strip">
+      <div
+        class="tabs"
+        role="tablist"
+        aria-label=${localize(context.hass, "mode")}
+        @keydown=${onStripKey}
+      >
+        ${tab(null, localize(context.hass, "active"))}
+        ${modes.map((mode) => tab(mode.key, mode.name))}
+      </div>
+    </div>
+  `;
+}
+
 export function renderValues(context: CardContext): TemplateResult | typeof nothing {
-  if (context.subject.kind !== "preset") return nothing;
   if (!context.config.values.visible) return nothing;
 
   const preset = context.subject.preset;
@@ -260,45 +260,61 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
       : nothing;
 
   const reserved = iconColumn(context, list);
-  const { editor } = context.config;
-  const values = () => html`
-    <div class="section rows">
-      ${note}${editor.confirm ? editSwitch(context) : nothing}
-      ${list.map((row) => readOnlyRow(context, row, reserved))}
-    </div>
-  `;
+  // Here whenever something is waiting, whichever mode is on screen - a draft
+  // left behind by switching chips must not be invisible.
+  const buttons = context.draft.size ? draftButtons(context) : nothing;
+  const mode = context.config.values.mode;
 
-  if (!editor.enabled) return values();
-  // Confirmed editing starts closed: the card is a card until asked otherwise.
-  if (editor.confirm && !context.editing) return values();
-
-  if (editor.mode === "all") {
-    const modes = modesOf(context.subject);
+  if (mode === "active") {
     return html`
       <div class="section rows">
-        ${note}${editor.confirm ? editSwitch(context) : nothing}
-        ${list.map(
-          (row) => html`
-            <div class="group-label">${row.label}</div>
-            ${modes.map((mode) =>
-              editorRow(context, row, mode.key, mode.name, reserved),
-            )}
-          `,
-        )}
-        ${editor.confirm ? applyButton(context) : nothing}
+        ${note}${list.map((row) => readOnlyRow(context, row, reserved))}
       </div>
     `;
   }
 
-  const modeKey =
-    editor.mode === "active" ? activeModeKey(context.hass, context.subject) : context.editMode;
+  if (mode === "all") {
+    const modes = modesOf(context.subject);
+    return html`
+      <div class="section rows">
+        ${note}
+        ${list.map(
+          (row) => html`
+            <div class="group-label">${row.label}</div>
+            ${modes.map((each) =>
+              editorRow(context, row, each.key, each.name, reserved),
+            )}
+          `,
+        )}
+        ${buttons}
+      </div>
+    `;
+  }
 
+  if (mode === "edit") {
+    const modeKey = activeModeKey(context.hass, context.subject);
+    return html`
+      <div class="section rows">
+        ${note}
+        ${list.map((row) => editorRow(context, row, modeKey, row.label, reserved))}
+        ${buttons}
+      </div>
+    `;
+  }
+
+  // The picker, resting on "Active": the same rows a read-only card shows,
+  // until a mode is asked for. The strip is a section of its own so that it
+  // can reach both edges of the card - a tab strip that stops short of them
+  // is a row of buttons with a line under it.
+  const picked = context.editMode;
   return html`
-    <div class="section rows">
-      ${note}${editor.confirm ? editSwitch(context) : nothing}
-      ${editor.mode === "picker" ? editModePicker(context) : nothing}
-      ${list.map((row) => editorRow(context, row, modeKey, row.label, reserved))}
-      ${editor.confirm ? applyButton(context) : nothing}
+    ${modePicker(context)}
+    <div class="section rows" role="tabpanel">
+      ${note}
+      ${picked === null
+        ? list.map((row) => readOnlyRow(context, row, reserved))
+        : list.map((row) => editorRow(context, row, picked, row.label, reserved))}
+      ${buttons}
     </div>
   `;
 }
