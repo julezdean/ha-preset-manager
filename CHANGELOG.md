@@ -12,7 +12,22 @@ whatever it hands them — `b10` and `b11` landed between `b4` and `b3`. A final
 release sorts above every beta in either spelling, so the 0.3.0 tags were left
 as they are rather than renamed mid-series.
 
-## [Unreleased]
+## [0.4.0] - 2026-09-11
+
+A preset is what you operate; a preset mode is what defines the modes. This
+release makes the code say that. The preset mode loses its selector and its
+automatic - its mode comes from its conditions or from the entity it follows,
+and from nothing else - while every preset gains one of each, so a single
+preset can hold a mode of its own while the dimension carries on switching for
+the others. The card is about a preset only, and its value list gained a way
+to read and edit any mode without switching the house into it.
+
+**This release breaks things on purpose.** Two entities of a preset mode are
+gone and nothing replaces them there, `preset_manager.set_active_mode` is now
+aimed at a preset, and the card's options lost four groups. There is no
+migration path and no deprecation period: the integration has one user, who
+decided this. Storage grows one minor version, which older versions simply do
+not read.
 
 ### Added
 
