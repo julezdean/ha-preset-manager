@@ -112,6 +112,15 @@ as they are rather than renamed mid-series.
 
 ### Changed
 
+- **The mode picker in the value list is a tab strip, not a second row of
+  chips.** However small those chips were made, two rows of pills on one card
+  claimed the same authority - and they are not the same act: the row above
+  switches the house, this one switches nothing but the panel underneath. A
+  pill is a state, a tab is a view. The strip carries no colour and no icons,
+  reaches both edges of the card, and scrolls sideways rather than wrapping,
+  so it stays one strip with twelve modes as with three. Arrow keys walk along
+  it and the selection follows the focus, which costs nothing here because
+  reading a mode changes nothing.
 - **No more rules between the sections of a card.** Header, modes and values
   were separated by a hairline each; the padding around them already groups
   them, and three lines on a card that carries at most four blocks drew more

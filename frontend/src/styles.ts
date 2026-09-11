@@ -183,31 +183,62 @@ export const cardStyles = css`
     cursor: default;
   }
 
-  /* The mode row changes the house; the editing row changes what this card
-     shows. Two rows of identical chips said those were the same kind of act.
-     This one is smaller, carries no icons and takes its selected colour from
-     the text rather than the accent - a switch on the card, not a state of
-     the home. */
-  .chips.secondary .chip {
-    min-height: 26px;
-    padding: 0 10px;
-    font-size: 12px;
-    background: transparent;
-    box-shadow: inset 0 0 0 1px var(--pm-divider);
+  .chip:disabled:not([aria-pressed="true"]) {
+    color: var(--pm-disabled);
   }
 
-  .chips.secondary .chip:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--pm-text) 8%, transparent);
+  /* Mode tabs -------------------------------------------------------------- */
+
+  /* The chip row changes the house; this one changes what the card shows. As
+     two rows of pills they claimed the same authority, however small the
+     second one was made - a pill is a state, a tab is a view. So: no colour,
+     no icons, no enclosure, and flush against the list it governs, which is
+     why the strip is its own section and pulls back out of its padding. */
+  .section.strip {
+    padding-bottom: 0;
   }
 
-  .chips.secondary .chip[aria-pressed="true"] {
-    background: color-mix(in srgb, var(--pm-text) 14%, transparent);
-    box-shadow: none;
+  .tabs {
+    display: flex;
+    gap: 18px;
+    /* Sideways rather than into a second line: a strip that wraps stops
+       reading as one strip. The scrollbar stays hidden; the cut-off tab at
+       the edge is what says there is more. */
+    overflow-x: auto;
+    scrollbar-width: none;
+    margin: 0 calc(-1 * var(--pm-padding-x));
+    padding: 0 var(--pm-padding-x);
+    border-bottom: 1px solid var(--pm-divider);
+  }
+
+  .tabs::-webkit-scrollbar {
+    display: none;
+  }
+
+  .tab {
+    appearance: none;
+    border: none;
+    background: none;
+    color: var(--pm-muted);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 4px 0 10px;
+    /* Over the strip's own line, so the two never stack into 3px. */
+    margin-bottom: -1px;
+    border-bottom: 2px solid transparent;
+    transition: color 160ms ease, border-color 160ms ease;
+  }
+
+  .tab:hover {
     color: var(--pm-text);
   }
 
-  .chip:disabled:not([aria-pressed="true"]) {
-    color: var(--pm-disabled);
+  .tab[aria-selected="true"] {
+    color: var(--pm-text);
+    border-bottom-color: var(--pm-accent);
   }
 
   /* Rows ------------------------------------------------------------------ */

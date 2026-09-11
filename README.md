@@ -617,13 +617,14 @@ The editors are `Configuration` entities: they are how a preset is **set up**,
 not how it is used. So `values.mode` is `active` by default and a card shows
 the resolved values, read-only — which is what a dashboard is for.
 
-`values.mode: picker` puts a row of chips above the list saying which mode it
-shows. The first chip is **Active**, and that is where the card rests: the
-values as they are, read-only, exactly what `active` shows. Any other chip
+`values.mode: picker` puts a strip of tabs above the list saying which mode it
+shows. The first tab is **Active**, and that is where the card rests: the
+values as they are, read-only, exactly what `active` shows. Any other tab
 shows that mode's values as editors.
 
 ```
-  [ Active ] ( Home ) ( Away ) ( Night ) ( Window open )
+  Active   Home   Away   Night   Window open
+  ‾‾‾‾‾‾
   Brightness                            15 %
 ```
 
@@ -640,10 +641,14 @@ change a value, pick Away, change another, apply once. Switching back to
 After *Apply* the card returns to *Active*, because what was just written is
 now what those values say.
 
-The picker chips are deliberately quieter than the mode row above them: smaller, without icons,
-and coloured from the text rather than the accent. One row changes the house,
-the other changes what this card shows, and they should not look like the same
-act.
+Tabs, not chips, and that is the whole point of the shape: the row above
+changes the house, this one changes nothing but the panel underneath. A pill is
+a state, a tab is a view, and two rows of pills claimed the same authority
+however small the second one was made. The strip carries no colour and no
+icons, sits flush against the list it governs, and scrolls sideways rather than
+wrapping — a strip that breaks into two lines stops reading as one. Arrow keys
+walk along it, and the selection follows the focus, because picking a mode here
+costs nothing.
 
 Two shapes skip the picker:
 

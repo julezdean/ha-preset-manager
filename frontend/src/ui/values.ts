@@ -1,15 +1,15 @@
 /**
  * The value list of a preset - what is valid now, or the values of one mode.
  *
- * Without `editor.enabled` it is one row per parameter carrying the value of
+ * With `values.mode: active` it is one row per parameter carrying the value of
  * whichever mode is active. That is the whole point of the integration, and it
  * is what a dashboard wants to see.
  *
- * With the editors on, a row of chips above the list says which mode it shows.
- * The first chip is **Active**, and it is where the card rests: the values as
- * they are, read-only, exactly as a card without editors would show them. Any
- * other chip shows that mode's values as editors. Picking a mode is therefore
- * the deliberate act that a separate "edit" switch used to be, and it is one
+ * With `picker`, a strip of tabs above the list says which mode it shows. The
+ * first tab is **Active**, and it is where the card rests: the values as they
+ * are, read-only, exactly as a card without editors would show them. Any other
+ * tab shows that mode's values as editors. Picking a mode is therefore the
+ * deliberate act that a separate "edit" switch used to be, and it is one
  * gesture instead of two.
  *
  * **Nothing is written until *Apply*.** Changes are collected in the card's
@@ -168,44 +168,74 @@ function draftButtons(context: CardContext): TemplateResult {
 }
 
 /**
- * The chips choosing which mode the list shows.
+ * Move the focus along the strip, and take the selection with it.
  *
- * "Active" first, and it is not a mode: it is the resolved view, the one the
- * card shows when nobody has asked for anything else. The rest are the modes,
+ * Arrow keys are what a tab strip answers to; without them a keyboard walks
+ * into the strip and out the other side. Selection follows focus because
+ * picking a mode here costs nothing - it changes what this card shows and
+ * touches nothing in the house, so there is no reason to ask for a second
+ * press to confirm it.
+ */
+function onStripKey(event: KeyboardEvent): void {
+  const offset = { ArrowLeft: -1, ArrowRight: 1, Home: -Infinity, End: Infinity }[
+    event.key
+  ];
+  if (offset === undefined) return;
+  const strip = event.currentTarget as HTMLElement;
+  const tabs = [...strip.querySelectorAll<HTMLButtonElement>("button.tab")];
+  const from = tabs.indexOf(event.target as HTMLButtonElement);
+  if (from < 0) return;
+  event.preventDefault();
+  const to = Math.min(Math.max(from + offset, 0), tabs.length - 1);
+  tabs[to].focus();
+  tabs[to].click();
+}
+
+/**
+ * The strip choosing which mode the list shows.
+ *
+ * Tabs, not chips. The row above this one switches the house; this one
+ * switches nothing but the panel underneath, and a second row of pills said
+ * those were the same kind of act - a pill is a state, a tab is a view. It
+ * therefore carries no colour and no icons, sits flush against the list it
+ * governs, and scrolls sideways rather than wrapping: a strip that breaks
+ * into two lines stops reading as one.
+ *
+ * "Active" is first and is not a mode: it is the resolved view, where the
+ * card rests when nobody has asked for anything else. The rest are the modes,
  * and picking one opens its values for editing.
  */
 function modePicker(context: CardContext): TemplateResult | typeof nothing {
   const modes = modesOf(context.subject);
   if (!modes.length) return nothing;
-  const label = localize(context.hass, "mode");
   const picked = context.editMode;
 
+  const tab = (key: string | null, name: string): TemplateResult => {
+    const selected = key === picked;
+    return html`
+      <button
+        class="tab"
+        type="button"
+        role="tab"
+        aria-selected=${selected ? "true" : "false"}
+        tabindex=${selected ? 0 : -1}
+        @click=${() => context.selectEditMode(key)}
+      >
+        ${name}
+      </button>
+    `;
+  };
+
   return html`
-    <div class="row">
-      <div class="row-label"><span>${label}:</span></div>
-      <div class="row-control">
-        <div class="chips secondary" role="group" aria-label=${label}>
-          <button
-            class="chip"
-            type="button"
-            aria-pressed=${picked === null ? "true" : "false"}
-            @click=${() => context.selectEditMode(null)}
-          >
-            <span>${localize(context.hass, "active")}</span>
-          </button>
-          ${modes.map(
-            (mode) => html`
-              <button
-                class="chip"
-                type="button"
-                aria-pressed=${mode.key === picked ? "true" : "false"}
-                @click=${() => context.selectEditMode(mode.key)}
-              >
-                <span>${mode.name}</span>
-              </button>
-            `,
-          )}
-        </div>
+    <div class="section strip">
+      <div
+        class="tabs"
+        role="tablist"
+        aria-label=${localize(context.hass, "mode")}
+        @keydown=${onStripKey}
+      >
+        ${tab(null, localize(context.hass, "active"))}
+        ${modes.map((mode) => tab(mode.key, mode.name))}
       </div>
     </div>
   `;
@@ -273,11 +303,14 @@ export function renderValues(context: CardContext): TemplateResult | typeof noth
   }
 
   // The picker, resting on "Active": the same rows a read-only card shows,
-  // until a mode is asked for.
+  // until a mode is asked for. The strip is a section of its own so that it
+  // can reach both edges of the card - a tab strip that stops short of them
+  // is a row of buttons with a line under it.
   const picked = context.editMode;
   return html`
-    <div class="section rows">
-      ${note}${modePicker(context)}
+    ${modePicker(context)}
+    <div class="section rows" role="tabpanel">
+      ${note}
       ${picked === null
         ? list.map((row) => readOnlyRow(context, row, reserved))
         : list.map((row) => editorRow(context, row, picked, row.label, reserved))}
